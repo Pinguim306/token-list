@@ -1,0 +1,33 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <radialGradient id="glow" cx="50%" cy="38%" r="62%">
+      <stop offset="0%" stop-color="#e5647f" stop-opacity="0.32"/>
+      <stop offset="55%" stop-color="#e5647f" stop-opacity="0.06"/>
+      <stop offset="100%" stop-color="#e5647f" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="bar" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#f0798f"/>
+      <stop offset="100%" stop-color="#e5647f"/>
+    </linearGradient>
+  </defs>
+
+  <!-- badge -->
+  <rect x="0" y="0" width="512" height="512" rx="112" fill="#17120f"/>
+  <rect x="0" y="0" width="512" height="512" rx="112" fill="url(#glow)"/>
+  <rect x="6" y="6" width="500" height="500" rx="106" fill="none" stroke="#ffffff" stroke-opacity="0.08" stroke-width="2"/>
+
+  <!-- FWA wordmark, geometric, white -->
+  <g fill="none" stroke="#ffffff" stroke-width="30" stroke-linecap="round" stroke-linejoin="round">
+    <!-- F -->
+    <path d="M90 181 V331 M90 181 H166 M90 256 H150"/>
+    <!-- W -->
+    <path d="M201 181 L228 331 L256 236 L284 331 L311 181"/>
+    <!-- A -->
+    <path d="M336 331 L386 181 L436 331 M356 286 H416"/>
+  </g>
+
+  <!-- rose accent shelf -->
+  <rect x="112" y="360" width="256" height="16" rx="8" fill="url(#bar)"/>
+  <!-- rose gem -->
+  <rect x="381" y="357" width="22" height="22" rx="4" transform="rotate(45 392 368)" fill="#f0798f"/>
+</svg>
