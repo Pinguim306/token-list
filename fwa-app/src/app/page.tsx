@@ -13,7 +13,7 @@ import { DEMO } from "@/lib/demo";
 
 export default function Home() {
   return (
-    <div className="container">
+    <div className="fwa-container">
       <BackgroundFx />
       <Hero />
       <Ticker />
@@ -26,14 +26,14 @@ export default function Home() {
       )}
 
       <div className="section-title" id="acquire">The pool</div>
-      <div className="grid">
+      <div className="fwa-grid">
         <DrawPanel />
         <PoolStats />
         <PositionsTable />
       </div>
 
       <div className="section-title" id="deposit">Participate</div>
-      <div className="grid">
+      <div className="fwa-grid">
         <DepositForm />
         <CreditsPanel />
         <RewardsPanel />

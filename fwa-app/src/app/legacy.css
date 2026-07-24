@@ -1,0 +1,267 @@
+/* FWA legacy hand-authored styles. Imported by globals.css into @layer
+   components so Tailwind utilities (a later layer) always win on collisions
+   such as .grid and .container. Do not import this file directly. */
+* { box-sizing: border-box; }
+html, body { padding: 0; margin: 0; }
+body {
+  background: var(--bg);
+  background-image: var(--bg-tint);
+  background-attachment: fixed;
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-feature-settings: "cv02","cv03","cv04","cv11";
+  -webkit-font-smoothing: antialiased;
+  line-height: 1.45;
+}
+a { color: var(--accent-strong); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.fwa-container { max-width: 1120px; margin: 0 auto; padding: 20px 20px 96px; }
+
+/* ---- top nav ---- */
+.nav {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 14px 0 22px;
+}
+.brand { display: flex; align-items: center; gap: 12px; }
+.brand .mark {
+  font-family: var(--font-display); font-size: 20px; letter-spacing: .02em;
+  color: var(--accent-ink); background: var(--ink);
+  width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center;
+  box-shadow: var(--shadow-sm);
+}
+.brand .mark .glow { color: var(--accent); }
+.brand .name { font-family: var(--font-display); font-size: 15px; letter-spacing: .01em; }
+.brand .sub { color: var(--muted); font-size: 12px; }
+
+/* ---- hero ---- */
+.hero { position: relative; padding: 26px 0 40px; }
+.eyebrow {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase;
+  color: var(--muted); background: var(--surface); border: 1px solid var(--border);
+  padding: 6px 12px; border-radius: var(--radius-pill); box-shadow: var(--shadow-sm);
+}
+.eyebrow .dot { width: 7px; height: 7px; border-radius: 999px; background: var(--success); box-shadow: 0 0 0 4px var(--success-soft); }
+.hero h1 {
+  font-family: var(--font-display);
+  font-size: clamp(40px, 8vw, 92px);
+  line-height: .96; letter-spacing: -.01em; margin: 18px 0 0; font-weight: 400;
+  text-transform: uppercase;
+}
+.hero h1 .accent {
+  color: var(--accent);
+  text-shadow: 0 6px 0 rgba(214,78,108,.18);
+}
+.hero p.lead {
+  max-width: 640px; margin: 18px 0 0; font-size: 17px; color: var(--muted);
+}
+.hero-cta { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 26px; }
+
+/* ---- hero stat tiles ---- */
+.hero-stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-top: 34px; }
+.tile {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  padding: 16px 18px; box-shadow: var(--shadow-sm); position: relative; overflow: hidden;
+}
+.tile::after {
+  content: ""; position: absolute; inset: 0 0 auto 0; height: 3px;
+  background: linear-gradient(90deg, var(--accent), var(--warning));
+  opacity: .8;
+}
+.tile .k { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 600; }
+.tile .v { font-family: var(--font-display); font-size: 30px; margin-top: 8px; line-height: 1; }
+.tile .u { font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+/* ---- section + grid ---- */
+.section-title {
+  font-family: var(--font-display); font-size: 14px; text-transform: uppercase;
+  letter-spacing: .04em; margin: 40px 0 14px; display: flex; align-items: center; gap: 10px;
+}
+.section-title::before { content: ""; width: 20px; height: 3px; background: var(--accent); border-radius: 2px; }
+.fwa-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 18px; align-items: start; }
+
+/* ---- cards ---- */
+.card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  padding: 18px; box-shadow: var(--shadow-sm); transition: box-shadow .2s, transform .2s, border-color .2s;
+}
+.card:hover { box-shadow: var(--shadow); border-color: var(--border-strong); }
+.card.feature { grid-column: span 2; background:
+  linear-gradient(180deg, var(--surface), var(--surface-2)); }
+@media (max-width: 720px) { .card.feature { grid-column: span 1; } .hero-stats { grid-template-columns: repeat(2,1fr);} }
+.card h2 {
+  font-family: var(--font-display); font-size: 13px; text-transform: uppercase; letter-spacing: .04em;
+  color: var(--ink); margin: 0 0 14px; display: flex; align-items: center; gap: 8px;
+}
+.card h2 .ic { color: var(--accent); }
+
+/* ---- stat rows ---- */
+.stat { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 9px 0; border-bottom: 1px solid var(--border); }
+.stat:last-of-type { border-bottom: 0; }
+.stat span { color: var(--muted); font-size: 14px; }
+.stat b { font-variant-numeric: tabular-nums; font-weight: 600; font-size: 15px; }
+.stat b.big { font-family: var(--font-display); font-weight: 400; font-size: 20px; }
+
+/* ---- buttons ---- */
+.btn {
+  --bg: var(--surface-3);
+  appearance: none; font-family: var(--font-body); font-weight: 600; font-size: 14px;
+  color: var(--ink); background: var(--bg); border: 1px solid var(--border-strong);
+  border-radius: var(--radius); padding: 10px 16px; cursor: pointer;
+  transition: transform .06s, box-shadow .2s, background .2s, border-color .2s;
+}
+.btn:hover:not(:disabled) { border-color: var(--accent); }
+.btn:active:not(:disabled) { transform: translateY(1px); }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn.primary {
+  color: var(--accent-ink); background: var(--accent); border-color: var(--accent-strong);
+  box-shadow: var(--shadow-accent);
+}
+.btn.primary:hover:not(:disabled) { background: var(--accent-strong); }
+.btn.ghost { background: transparent; border-color: var(--border); color: var(--muted); }
+.btn.lg { padding: 13px 22px; font-size: 15px; border-radius: 12px; }
+
+/* ---- inputs ---- */
+input {
+  background: var(--surface-2); color: var(--ink); border: 1px solid var(--border-strong);
+  border-radius: var(--radius); padding: 10px 12px; width: 100%; font-size: 14px; font-family: var(--font-body);
+  transition: border-color .15s, box-shadow .15s;
+}
+input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 4px var(--accent-soft); }
+label { display: block; font-size: 12px; color: var(--muted); margin: 12px 0 5px; font-weight: 600; }
+
+/* ---- table ---- */
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { text-align: left; padding: 9px 8px; border-bottom: 1px solid var(--border); font-variant-numeric: tabular-nums; }
+th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; }
+tbody tr { transition: background .15s; }
+tbody tr:hover { background: var(--surface-2); }
+td .odds { font-weight: 700; color: var(--success); }
+
+/* ---- badges / pills ---- */
+.badge {
+  display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: var(--radius-pill);
+  font-size: 12px; font-weight: 600; background: var(--surface-3); border: 1px solid var(--border); color: var(--muted);
+}
+.badge.crown { background: var(--crown-soft); border-color: transparent; color: var(--crown); }
+.badge.warn { background: var(--warning-soft); border-color: transparent; color: var(--warning); }
+.badge.ok { background: var(--success-soft); border-color: transparent; color: var(--success); }
+.badge.hot { background: var(--accent-soft); border-color: transparent; color: var(--accent-strong); }
+
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.muted { color: var(--muted); font-size: 13px; }
+.mono { font-family: var(--font-mono); }
+.notice {
+  font-size: 13px; color: var(--ink); background: var(--accent-soft);
+  border: 1px solid var(--accent); border-left-width: 4px; border-radius: var(--radius);
+  padding: 12px 14px;
+}
+.notice b { color: var(--accent-strong); }
+
+/* ---- gacha draw visual ---- */
+.gacha {
+  position: relative; border-radius: 14px; padding: 22px; text-align: center;
+  background:
+    radial-gradient(120% 100% at 50% 0%, var(--accent-soft), transparent 70%),
+    var(--surface-2);
+  border: 1px dashed var(--border-strong);
+  overflow: hidden;
+}
+.gacha .ring {
+  width: 84px; height: 84px; margin: 4px auto 12px; border-radius: 999px;
+  display: grid; place-items: center; font-family: var(--font-display); font-size: 30px; color: var(--accent-ink);
+  background: conic-gradient(from 0deg, var(--accent), var(--warning), var(--success), var(--accent));
+  box-shadow: var(--shadow-accent);
+}
+.gacha .ring span { width: 66px; height: 66px; border-radius: 999px; background: var(--surface); color: var(--ink); display: grid; place-items: center; }
+.gacha .state { font-family: var(--font-display); font-size: 22px; text-transform: uppercase; }
+.gacha .sub { color: var(--muted); font-size: 13px; margin-top: 4px; }
+
+/* ---- footer ---- */
+.foot { margin-top: 56px; padding-top: 22px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; flex-wrap: wrap; gap: 12px; color: var(--muted); font-size: 13px; }
+.foot .tm { font-family: var(--font-display); font-size: 13px; color: var(--ink); }
+
+/* ============================================================================
+   Motion layer — entrance, gacha spin, marquee ticker, floating orbs, glow.
+   ========================================================================== */
+
+@keyframes fwa-rise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+@keyframes fwa-spin { to { transform: rotate(360deg); } }
+@keyframes fwa-spin-rev { to { transform: rotate(-360deg); } }
+@keyframes fwa-float { 0%,100% { transform: translate(0,0) scale(1);} 50% { transform: translate(24px,-30px) scale(1.08);} }
+@keyframes fwa-float2 { 0%,100% { transform: translate(0,0) scale(1);} 50% { transform: translate(-30px,24px) scale(1.1);} }
+@keyframes fwa-marquee { from { transform: translateX(0);} to { transform: translateX(-50%);} }
+@keyframes fwa-shimmer { from { background-position: -160% 0;} to { background-position: 260% 0;} }
+@keyframes fwa-pulse { 0%,100% { box-shadow: 0 0 0 0 var(--accent-soft);} 50% { box-shadow: 0 0 0 10px transparent;} }
+@keyframes fwa-pop { 0% { transform: scale(.96);} 60% { transform: scale(1.02);} 100% { transform: scale(1);} }
+
+/* entrance: hero pieces + cards rise in with a stagger */
+.hero > *, .hero-stats { opacity: 0; animation: fwa-rise .7s cubic-bezier(.2,.7,.2,1) forwards; }
+.hero .eyebrow { animation-delay: .02s; }
+.hero h1 { animation-delay: .08s; }
+.hero p.lead { animation-delay: .16s; }
+.hero .hero-cta { animation-delay: .24s; }
+.hero-stats { animation-delay: .30s; }
+.fwa-grid > * { opacity: 0; animation: fwa-rise .6s cubic-bezier(.2,.7,.2,1) forwards; }
+.fwa-grid > *:nth-child(1) { animation-delay: .04s; }
+.fwa-grid > *:nth-child(2) { animation-delay: .12s; }
+.fwa-grid > *:nth-child(3) { animation-delay: .20s; }
+.section-title { opacity: 0; animation: fwa-rise .5s ease forwards; }
+
+/* card hover lift */
+.card { transition: box-shadow .22s, transform .22s, border-color .22s; }
+.card:hover { transform: translateY(-3px); }
+
+/* hero stat tiles: shimmering top bar + hover pop */
+.tile::after {
+  background: linear-gradient(90deg, var(--accent), var(--warning), var(--success), var(--accent));
+  background-size: 220% 100%; animation: fwa-shimmer 3.5s linear infinite;
+}
+.tile { transition: transform .2s, box-shadow .2s; }
+.tile:hover { transform: translateY(-3px); box-shadow: var(--shadow); }
+.tile .v { animation: fwa-pop .5s ease both; }
+
+/* gacha ring: continuous spin + pulsing glow; inner counter-rotates to stay upright */
+.gacha .ring { animation: fwa-spin 7s linear infinite; }
+.gacha .ring span { animation: fwa-spin-rev 7s linear infinite; }
+.gacha.inflight .ring { animation-duration: 1.1s; }
+.gacha.inflight .ring span { animation-duration: 1.1s; }
+.gacha::before {
+  content: ""; position: absolute; inset: -40% 30% auto 30%; height: 140px;
+  background: radial-gradient(closest-side, var(--accent-soft), transparent);
+  filter: blur(10px); opacity: .8; animation: fwa-pulse 3s ease-in-out infinite;
+}
+.gacha .state { animation: fwa-pop .5s ease both; }
+
+/* primary button glow pulse */
+.btn.primary { position: relative; }
+.btn.primary:not(:disabled):hover { box-shadow: 0 16px 44px -12px var(--accent-strong); }
+
+/* marquee ticker */
+.ticker {
+  margin-top: 26px; border: 1px solid var(--border); border-radius: var(--radius-pill);
+  background: var(--surface); box-shadow: var(--shadow-sm); overflow: hidden;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+          mask-image: linear-gradient(90deg, transparent, #000 6%, #000 94%, transparent);
+}
+.ticker .track { display: inline-flex; gap: 34px; white-space: nowrap; padding: 11px 0; animation: fwa-marquee 26s linear infinite; }
+.ticker:hover .track { animation-play-state: paused; }
+.ticker .chip { font-family: var(--font-display); font-size: 12px; letter-spacing: .02em; color: var(--muted); text-transform: uppercase; display: inline-flex; align-items: center; gap: 34px; }
+.ticker .chip b { color: var(--accent-strong); }
+.ticker .chip::after { content: "◈"; color: var(--warning); }
+
+/* floating background orbs */
+.bg-fx { position: fixed; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; }
+.bg-fx .orb { position: absolute; border-radius: 999px; filter: blur(60px); opacity: .5; }
+.bg-fx .orb.a { width: 460px; height: 460px; left: -120px; top: -80px; background: var(--accent); opacity: .22; animation: fwa-float 18s ease-in-out infinite; }
+.bg-fx .orb.b { width: 380px; height: 380px; right: -100px; top: 120px; background: var(--warning); opacity: .16; animation: fwa-float2 22s ease-in-out infinite; }
+.bg-fx .orb.c { width: 300px; height: 300px; left: 40%; bottom: -120px; background: var(--success); opacity: .12; animation: fwa-float 26s ease-in-out infinite; }
+
+/* connect-wallet subtle attention */
+.nav .btn.primary { animation: fwa-pulse 3s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  .hero > *, .hero-stats, .grid > *, .section-title { opacity: 1 !important; }
+}
