@@ -42,7 +42,10 @@ export function Hero() {
             <div className="sub">{activeChain.name} · chainId {activeChain.id}</div>
           </div>
         </a>
-        <ConnectButton />
+        <div className="nav-actions">
+          <a className="nav-link" href="/app/portfolio">Portfolio</a>
+          <ConnectButton />
+        </div>
       </nav>
 
       <header className="hero">

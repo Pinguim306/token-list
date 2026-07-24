@@ -58,7 +58,11 @@ export function PositionsTable() {
           <tbody>
             {rows.map((r) => (
               <tr key={r.id.toString()}>
-                <td>{r.id.toString()}</td>
+                <td>
+                  <a href={`/app/position/${r.id.toString()}`} title={`Open position #${r.id}`}>
+                    {r.id.toString()}
+                  </a>
+                </td>
                 <td className="mono">{short(r.depositor)}</td>
                 <td className="mono">#{r.tokenId.toString()}</td>
                 <td>{fmt(r.backing, dec)}</td>
