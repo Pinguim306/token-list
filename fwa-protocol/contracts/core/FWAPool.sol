@@ -10,6 +10,7 @@ import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {FenwickTree} from "../libraries/FenwickTree.sol";
 import {IRandomnessRouter, IRandomnessConsumer} from "../interfaces/IRandomness.sol";
 import {IFWAWhitelist} from "../interfaces/IFWAWhitelist.sol";
+import {IFWAEmitter} from "../interfaces/IFWAEmitter.sol";
 
 /// @title FWAPool
 /// @notice Core Fake World Assets pool: ERC-721 positions backed by an ERC-20
@@ -51,6 +52,9 @@ contract FWAPool is IRandomnessConsumer, Ownable, ReentrancyGuard {
     IRandomnessRouter public immutable router;
     IFWAWhitelist public immutable whitelist;
     address public feeRouter;
+    /// @notice Optional $FWA emissions sink. Notified via guarded (try/catch)
+    ///         hooks so it can never revert or brick pool operations.
+    address public emitter;
 
     uint256 public surchargeBps = 1_000; // 10% acquisition surcharge over EV
     uint256 public acquisitionCutBps = 2_000; // protocol cut of the acquisition fee
@@ -135,6 +139,7 @@ contract FWAPool is IRandomnessConsumer, Ownable, ReentrancyGuard {
     event CreditWithdrawn(address indexed account, uint256 amount);
     event NFTEscrowed(address indexed asset, uint256 indexed tokenId, address indexed to);
     event StuckNFTClaimed(address indexed asset, uint256 indexed tokenId, address indexed to);
+    event EmitterUpdated(address indexed emitter);
     event ParamsUpdated();
 
     constructor(
@@ -185,6 +190,7 @@ contract FWAPool is IRandomnessConsumer, Ownable, ReentrancyGuard {
         tree.update(id, int256(weight));
 
         emit Deposited(id, msg.sender, asset, tokenId, backing, weight);
+        _notifyDeposit(id, msg.sender, backing);
     }
 
     /// @notice Depositor voluntarily closes an active position, reclaiming the NFT,
@@ -203,6 +209,7 @@ contract FWAPool is IRandomnessConsumer, Ownable, ReentrancyGuard {
 
         IERC721(asset).transferFrom(address(this), depositor, tokenId);
         emit Withdrawn(id, depositor);
+        _notifyClose(id);
     }
 
     /// @notice Claim accrued fee earnings for an active position without closing it.
@@ -347,6 +354,30 @@ contract FWAPool is IRandomnessConsumer, Ownable, ReentrancyGuard {
         emit DrawSettled(drawId, id, uint8(choice));
 
         _deliver(asset, nftTo, tokenId);
+        _notifyClose(id); // selected position left the pool
+        _notifyPurchase(buyer); // reward the purchaser
+    }
+
+    // --------------------------------------------------------------------- //
+    //                      Emitter hooks (guarded)                          //
+    // --------------------------------------------------------------------- //
+
+    function _notifyDeposit(uint256 id, address depositor, uint256 backing) internal {
+        address e = emitter;
+        if (e == address(0)) return;
+        try IFWAEmitter(e).onDeposit(id, depositor, backing) {} catch {}
+    }
+
+    function _notifyClose(uint256 id) internal {
+        address e = emitter;
+        if (e == address(0)) return;
+        try IFWAEmitter(e).onClose(id) {} catch {}
+    }
+
+    function _notifyPurchase(address buyer) internal {
+        address e = emitter;
+        if (e == address(0)) return;
+        try IFWAEmitter(e).onPurchase(buyer) {} catch {}
     }
 
     /// @dev Non-reverting NFT delivery. If the collection reverts the transfer,
@@ -457,5 +488,11 @@ contract FWAPool is IRandomnessConsumer, Ownable, ReentrancyGuard {
     function setFeeRouter(address feeRouter_) external onlyOwner {
         require(feeRouter_ != address(0), "FWA: zero");
         feeRouter = feeRouter_;
+    }
+
+    /// @notice Set (or clear, with address(0)) the $FWA emissions sink.
+    function setEmitter(address emitter_) external onlyOwner {
+        emitter = emitter_;
+        emit EmitterUpdated(emitter_);
     }
 }

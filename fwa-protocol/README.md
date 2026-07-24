@@ -13,7 +13,9 @@ and heavily-backed ones are rare.
 
 > This repository is the engineering counterpart to the viability study in
 > [`../docs/analise-fwa-robinhoodchain.md`](../docs/analise-fwa-robinhoodchain.md).
-> It implements **Fase 0 + the core of Fase 1** of that plan.
+> It implements **Fase 0 tooling + the core of Fase 1 (pool/randomness/selection)
+> + Fase 2 (`$FWA` tokenomics: emissions, claim)** of that plan, all reviewed by an
+> adversarial security pass whose confirmed findings are fixed in-tree.
 
 ## Why this is a redesign, not a port
 
@@ -61,13 +63,22 @@ work.
 | `libraries/FenwickTree.sol` | O(log n) weighted random selection (fixed capacity for correct dynamic growth) |
 | `randomness/RandomnessRouter.sol` | Consumer ⇄ adapter indirection; minimal fulfill callback |
 | `randomness/MockRandomnessAdapter.sol` | Deterministic randomness for tests / local |
-| `randomness/CCIPVRFAdapter.sol` | Production skeleton: VRF v2.5 from Arbitrum One over CCIP |
+| `randomness/CCIPVRFAdapter.sol` | Production skeleton: VRF v2.5 request from Arbitrum One over CCIP (RH Chain side) |
+| `randomness/VRFRequester.sol` | Production skeleton: Arbitrum One counterpart — draws VRF, relays back over CCIP |
 | `token/FWAToken.sol` | `$FWA` reward token: capped, role-gated mint, launch gate, 1% DEX-trade fee |
-| `mocks/*` | ERC-20/721 mocks + Fenwick + reentrancy harnesses (test-only) |
+| `token/FWAEmitter.sol` | `$FWA` emissions (MasterChef-style): depositor rewards on √backing + per-acquisition purchaser rewards; guarded pool hooks |
+| `token/FWAClaim.sol` | Merkle-gated `$FWA` distribution (snapshot allocation) |
+| `mocks/*` | ERC-20/721 + pausable-721 + reverting-emitter + Fenwick + reentrancy harnesses (test-only) |
 
-**Deferred to later phases (see the plan):** `$FWA` emissions/`FWAEmitter`
-(MasterChef-style), the `crown`/tithe top-deposit reward, Merkle claim, and the
-Arbitrum-One-side `VRFRequester` counterpart.
+The pool notifies the emitter via **guarded (try/catch) hooks** (`onDeposit` /
+`onClose` / `onPurchase`), so a buggy or malicious emitter can never revert or
+brick pool operations — the same non-reverting-delivery principle applied to NFT
+settlement.
+
+**Deferred to later phases (see the plan):** the `crown`/tithe top-deposit
+reward, the pro-rata **daily-pot** purchaser-reward variant (the MVP uses a fixed
+per-acquisition reward), and live wiring/parameterization of the CCIP↔VRF path
+(pending the Fase 0 spike).
 
 ## Toolchain note (Hardhat, not Foundry)
 
@@ -83,7 +94,8 @@ to stay portable until Fase 0 confirms the chain's ArbOS opcode support.
 ```bash
 npm install
 npm run build          # hardhat compile
-npm test               # 23 tests: Fenwick, pool mechanics, freeze, settlement, token, periphery
+npm test               # 29 tests: Fenwick, pool mechanics, freeze, settlement, DoS,
+                       #           token, emitter, claim, periphery
 
 # Fase 0 — inventory the real testnet before committing further:
 npx hardhat run scripts/probe-chain.js --network robinhood-testnet

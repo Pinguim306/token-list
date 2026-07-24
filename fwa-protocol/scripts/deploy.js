@@ -49,9 +49,20 @@ async function main() {
     await feeRouter.getAddress(),
     deployer.address
   );
-  const rcpt = await tx.wait();
+  await tx.wait();
   const pool = (await factory.allPools(0));
   await (await router.setConsumer(pool, true)).wait();
+
+  // $FWA token + emissions (Fase 2).
+  const CAP = 1_000_000_000n * 10n ** 18n;
+  const fwa = await (await E.getContractFactory("FWAToken")).deploy(CAP, deployer.address, deployer.address);
+  await fwa.waitForDeployment();
+  const emitter = await (await E.getContractFactory("FWAEmitter")).deploy(await fwa.getAddress(), deployer.address);
+  await emitter.waitForDeployment();
+  await (await emitter.setPool(pool)).wait();
+  const poolC = await E.getContractAt("FWAPool", pool);
+  await (await poolC.setEmitter(await emitter.getAddress())).wait();
+  await (await fwa.setFeeExempt(await emitter.getAddress(), true)).wait();
 
   console.log(JSON.stringify({
     backing: await backing.getAddress(),
@@ -61,6 +72,8 @@ async function main() {
     feeRouter: await feeRouter.getAddress(),
     factory: await factory.getAddress(),
     pool,
+    fwa: await fwa.getAddress(),
+    emitter: await emitter.getAddress(),
   }, null, 2));
 }
 

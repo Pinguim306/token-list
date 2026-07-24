@@ -3,42 +3,7 @@ pragma solidity ^0.8.20;
 
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IRandomnessAdapter, IRandomnessRouter} from "../interfaces/IRandomness.sol";
-
-// -------------------------------------------------------------------------- //
-//  Minimal local CCIP types.
-//
-//  PRODUCTION: replace these with the canonical Chainlink imports
-//    import {IRouterClient} from "@chainlink/contracts-ccip/.../IRouterClient.sol";
-//    import {Client}        from "@chainlink/contracts-ccip/.../libraries/Client.sol";
-//    import {CCIPReceiver}  from "@chainlink/contracts-ccip/.../applications/CCIPReceiver.sol";
-//  They are inlined here so the architecture compiles without adding the
-//  dependency in an environment where it cannot be fetched.
-// -------------------------------------------------------------------------- //
-library CCIP {
-    struct EVMTokenAmount {
-        address token;
-        uint256 amount;
-    }
-    struct EVM2AnyMessage {
-        bytes receiver;
-        bytes data;
-        EVMTokenAmount[] tokenAmounts;
-        address feeToken;
-        bytes extraArgs;
-    }
-    struct Any2EVMMessage {
-        bytes32 messageId;
-        uint64 sourceChainSelector;
-        bytes sender;
-        bytes data;
-        EVMTokenAmount[] destTokenAmounts;
-    }
-}
-
-interface ICCIPRouterClient {
-    function getFee(uint64 destChainSelector, CCIP.EVM2AnyMessage calldata message) external view returns (uint256);
-    function ccipSend(uint64 destChainSelector, CCIP.EVM2AnyMessage calldata message) external payable returns (bytes32);
-}
+import {CCIP, ICCIPRouterClient} from "./CCIPTypes.sol";
 
 /// @title CCIPVRFAdapter (RobinhoodChain side)
 /// @notice Randomness adapter that sources Chainlink VRF v2.5 from Arbitrum One
