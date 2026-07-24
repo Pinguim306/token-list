@@ -62,7 +62,7 @@ export function PositionsTable() {
                 <td className="mono">{short(r.depositor)}</td>
                 <td className="mono">#{r.tokenId.toString()}</td>
                 <td>{fmt(r.backing, dec)}</td>
-                <td>{r.odds !== undefined ? bpsToPct(r.odds) : "—"}</td>
+                <td><span className="odds">{r.odds !== undefined ? bpsToPct(r.odds) : "—"}</span></td>
               </tr>
             ))}
           </tbody>

@@ -1,0 +1,88 @@
+"use client";
+
+import { useReadContract, useReadContracts } from "wagmi";
+import { pool, backing, emitter } from "@/lib/contracts";
+import { activeChain } from "@/lib/chains";
+import { formatUnits } from "viem";
+import { CountUp } from "./CountUp";
+import { DEMO, demo } from "@/lib/demo";
+import { ConnectButton } from "./ConnectButton";
+
+export function Hero() {
+  const { data: decimals } = useReadContract({ ...backing, functionName: "decimals", query: { enabled: !DEMO } });
+  const dec = DEMO ? demo.decimals : decimals ?? 18;
+
+  const { data } = useReadContracts({
+    contracts: [
+      { ...pool, functionName: "acquisitionPrice" },
+      { ...pool, functionName: "activeCount" },
+      { ...pool, functionName: "topPot" },
+      { ...emitter, functionName: "purchaserBudget" },
+    ],
+    query: { enabled: !DEMO, refetchInterval: 8000 },
+  });
+  const price = DEMO ? demo.price : (data?.[0]?.result as bigint | undefined);
+  const active = DEMO ? demo.activeCount : (data?.[1]?.result as bigint | undefined);
+  const pot = DEMO ? demo.topPot : (data?.[2]?.result as bigint | undefined);
+  const budget = DEMO ? demo.purchaserBudget : (data?.[3]?.result as bigint | undefined);
+
+  const num = (v: bigint | undefined, d: number) => (v === undefined ? 0 : Number(formatUnits(v, d)));
+  const priceN = num(price, dec);
+  const activeN = active === undefined ? 0 : Number(active);
+  const potN = num(pot, dec);
+  const budgetN = num(budget, 18);
+
+  return (
+    <>
+      <nav className="nav">
+        <div className="brand">
+          <div className="mark">F<span className="glow">W</span>A</div>
+          <div>
+            <div className="name">FAKE WORLD ASSETS</div>
+            <div className="sub">{activeChain.name} · chainId {activeChain.id}</div>
+          </div>
+        </div>
+        <ConnectButton />
+      </nav>
+
+      <header className="hero">
+        <span className="eyebrow"><span className="dot" /> Onchain · Randomized acquisition</span>
+        <h1>
+          Acquire the pool<br /> at <span className="accent">random</span>.
+        </h1>
+        <p className="lead">
+          Depositors lock an NFT plus backing to form a position. Purchasers pay a pool-derived price to
+          acquire <b>one position at random</b> — then keep it or sell it back for the standing bid. Odds
+          scale inversely with backing.
+        </p>
+        <div className="hero-cta">
+          <a className="btn primary lg" href="#acquire">Acquire a position</a>
+          <a className="btn lg" href="#deposit">Provide backing</a>
+        </div>
+
+        <div className="hero-stats">
+          <div className="tile">
+            <div className="k">Acquisition price</div>
+            <div className="v"><CountUp value={priceN} decimals={2} /></div>
+            <div className="u">per random draw</div>
+          </div>
+          <div className="tile">
+            <div className="k">Active positions</div>
+            <div className="v"><CountUp value={activeN} /></div>
+            <div className="u">in the pool</div>
+          </div>
+          <div className="tile">
+            <div className="k">Crown tithe pot</div>
+            <div className="v"><CountUp value={potN} decimals={1} /></div>
+            <div className="u">to the top deposit</div>
+          </div>
+          <div className="tile">
+            <div className="k">$FWA rewards</div>
+            <div className="v"><CountUp value={budgetN} /></div>
+            <div className="u">purchaser budget</div>
+          </div>
+        </div>
+      </header>
+    </>
+  );
+}
