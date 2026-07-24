@@ -116,6 +116,10 @@ contract FWAPool is IRandomnessConsumer, Ownable, ReentrancyGuard {
     /// @notice Pull-based withdrawable balances (earnings, refunds, payouts, protocol fees).
     mapping(address => uint256) public backingCredit;
 
+    /// @notice keccak256(asset, tokenId) => rightful recipient of an NFT whose
+    ///         settlement transfer reverted and was escrowed for later claim.
+    mapping(bytes32 => address) public nftClaims;
+
     // --------------------------------------------------------------------- //
     //                                 Events                                //
     // --------------------------------------------------------------------- //
@@ -129,6 +133,8 @@ contract FWAPool is IRandomnessConsumer, Ownable, ReentrancyGuard {
     event DrawRefunded(uint256 indexed drawId, address indexed buyer, uint256 amount);
     event StaleFulfillment(uint256 indexed drawId);
     event CreditWithdrawn(address indexed account, uint256 amount);
+    event NFTEscrowed(address indexed asset, uint256 indexed tokenId, address indexed to);
+    event StuckNFTClaimed(address indexed asset, uint256 indexed tokenId, address indexed to);
     event ParamsUpdated();
 
     constructor(
@@ -319,23 +325,50 @@ contract FWAPool is IRandomnessConsumer, Ownable, ReentrancyGuard {
 
         _payEarnings(id); // realize the selected position's own fee earnings
 
+        address nftTo;
         if (choice == Choice.Keep) {
             uint256 keepFee = (backing * settlementFeeBps) / BPS;
             backingCredit[feeRouter] += keepFee;
             backingCredit[depositor] += backing - keepFee;
-            _deactivate(id);
-            IERC721(asset).transferFrom(address(this), buyer, tokenId);
+            nftTo = buyer;
         } else {
             uint256 bid = (backing * bidBps) / BPS;
             backingCredit[buyer] += bid;
             backingCredit[feeRouter] += backing - bid; // retained settlement discount
-            _deactivate(id);
-            IERC721(asset).transferFrom(address(this), depositor, tokenId);
+            nftTo = depositor;
         }
+        _deactivate(id);
 
+        // Effects before interaction: ALWAYS release the in-flight lock and close
+        // the draw. Combined with the non-reverting delivery below, a misbehaving
+        // collection (pausable / blocklisted / malicious) can never wedge the pool.
         d.state = DrawState.Settled;
         drawInFlight = false;
         emit DrawSettled(drawId, id, uint8(choice));
+
+        _deliver(asset, nftTo, tokenId);
+    }
+
+    /// @dev Non-reverting NFT delivery. If the collection reverts the transfer,
+    ///      the NFT is escrowed for a pull-based claim instead of bricking the pool.
+    function _deliver(address asset, address to, uint256 tokenId) internal {
+        try IERC721(asset).transferFrom(address(this), to, tokenId) {
+            // delivered
+        } catch {
+            nftClaims[keccak256(abi.encodePacked(asset, tokenId))] = to;
+            emit NFTEscrowed(asset, tokenId, to);
+        }
+    }
+
+    /// @notice Retrieve an NFT that could not be delivered at settlement time
+    ///         (e.g. the collection was paused). Callable once transfers work again.
+    function claimStuckNFT(address asset, uint256 tokenId) external nonReentrant {
+        bytes32 k = keccak256(abi.encodePacked(asset, tokenId));
+        address to = nftClaims[k];
+        require(to == msg.sender, "FWA: not claimant");
+        delete nftClaims[k];
+        IERC721(asset).transferFrom(address(this), msg.sender, tokenId);
+        emit StuckNFTClaimed(asset, tokenId, msg.sender);
     }
 
     // --------------------------------------------------------------------- //
@@ -361,11 +394,12 @@ contract FWAPool is IRandomnessConsumer, Ownable, ReentrancyGuard {
             backingCredit[feeRouter] += amount;
             return;
         }
-        uint256 perPos = (amount * ACC_PRECISION) / activeCount;
-        accFeePerPosition += perPos;
-        // Route truncation dust to the protocol so token accounting stays exact.
-        uint256 distributed = (perPos * activeCount) / ACC_PRECISION;
-        if (amount > distributed) backingCredit[feeRouter] += amount - distributed;
+        // The sub-wei fractional remainder ((amount * ACC_PRECISION) % activeCount)
+        // stays inside accFeePerPosition and is paid out via carry on future claims,
+        // or harmlessly stranded (always the solvent direction). It is NOT also
+        // credited to the protocol — doing so double-counts it and can, over many
+        // distributions, credit more than `amount` in aggregate.
+        accFeePerPosition += (amount * ACC_PRECISION) / activeCount;
     }
 
     function _payEarnings(uint256 id) internal returns (uint256 pending) {
