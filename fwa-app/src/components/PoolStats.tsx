@@ -3,10 +3,11 @@
 import { useReadContract, useReadContracts } from "wagmi";
 import { pool, backing } from "@/lib/contracts";
 import { fmt, bpsToPct } from "@/lib/format";
+import { DEMO, demo } from "@/lib/demo";
 
 export function PoolStats() {
-  const { data: decimals } = useReadContract({ ...backing, functionName: "decimals" });
-  const dec = decimals ?? 18;
+  const { data: decimals } = useReadContract({ ...backing, functionName: "decimals", query: { enabled: !DEMO } });
+  const dec = DEMO ? demo.decimals : decimals ?? 18;
 
   const { data } = useReadContracts({
     contracts: [
@@ -18,16 +19,16 @@ export function PoolStats() {
       { ...pool, functionName: "surchargeBps" },
       { ...pool, functionName: "bidBps" },
     ],
-    query: { refetchInterval: 8000 },
+    query: { refetchInterval: 8000, enabled: !DEMO },
   });
 
-  const price = data?.[0]?.result as bigint | undefined;
-  const active = data?.[1]?.result as bigint | undefined;
-  const inFlight = data?.[2]?.result as boolean | undefined;
-  const topId = data?.[3]?.result as bigint | undefined;
-  const topPot = data?.[4]?.result as bigint | undefined;
-  const surcharge = data?.[5]?.result as bigint | undefined;
-  const bid = data?.[6]?.result as bigint | undefined;
+  const price = DEMO ? demo.price : (data?.[0]?.result as bigint | undefined);
+  const active = DEMO ? demo.activeCount : (data?.[1]?.result as bigint | undefined);
+  const inFlight = DEMO ? demo.drawInFlight : (data?.[2]?.result as boolean | undefined);
+  const topId = DEMO ? demo.topListingId : (data?.[3]?.result as bigint | undefined);
+  const topPot = DEMO ? demo.topPot : (data?.[4]?.result as bigint | undefined);
+  const surcharge = DEMO ? demo.surchargeBps : (data?.[5]?.result as bigint | undefined);
+  const bid = DEMO ? demo.bidBps : (data?.[6]?.result as bigint | undefined);
 
   return (
     <div className="card">

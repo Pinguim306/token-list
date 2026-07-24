@@ -1,13 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { useAccount, useReadContract, useReadContracts, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { useAccount, useReadContracts, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { emitter, addresses } from "@/lib/contracts";
 import { fmt } from "@/lib/format";
+import { DEMO, demo } from "@/lib/demo";
 
 export function RewardsPanel() {
   const { address } = useAccount();
-  const hasEmitter = addresses.emitter !== "0x0000000000000000000000000000000000000000";
+  const hasEmitter = DEMO || addresses.emitter !== "0x0000000000000000000000000000000000000000";
 
   const { data } = useReadContracts({
     contracts: [
@@ -15,16 +16,16 @@ export function RewardsPanel() {
       { ...emitter, functionName: "currentDay" },
       { ...emitter, functionName: "purchaserBudget" },
     ],
-    query: { enabled: hasEmitter, refetchInterval: 8000 },
+    query: { enabled: !DEMO && hasEmitter, refetchInterval: 8000 },
   });
-  const credit = data?.[0]?.result as bigint | undefined;
-  const day = data?.[1]?.result as bigint | undefined;
-  const budget = data?.[2]?.result as bigint | undefined;
+  const credit = DEMO ? demo.reward : (data?.[0]?.result as bigint | undefined);
+  const day = DEMO ? demo.currentDay : (data?.[1]?.result as bigint | undefined);
+  const budget = DEMO ? demo.purchaserBudget : (data?.[2]?.result as bigint | undefined);
 
   const [claimDayInput, setClaimDayInput] = useState("");
   const { writeContract, data: hash, isPending } = useWriteContract();
   const { isLoading: mining } = useWaitForTransactionReceipt({ hash });
-  const busy = isPending || mining;
+  const busy = isPending || mining || DEMO;
 
   if (!hasEmitter) {
     return (
@@ -51,7 +52,7 @@ export function RewardsPanel() {
       <div className="row">
         <input value={claimDayInput} onChange={(e) => setClaimDayInput(e.target.value)} placeholder="0" style={{ maxWidth: 120 }} />
         <button className="btn" disabled={busy || !address || claimDayInput === ""}
-          onClick={() => writeContract({ ...emitter, functionName: "claimDay", args: [BigInt(claimDayInput), address!] })}>
+          onClick={() => writeContract({ ...emitter, functionName: "claimDay", args: [BigInt(claimDayInput || "0"), address!] })}>
           Claim day pot
         </button>
       </div>

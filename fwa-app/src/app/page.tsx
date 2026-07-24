@@ -1,40 +1,48 @@
 "use client";
 
-import { ConnectButton } from "@/components/ConnectButton";
+import { Hero } from "@/components/Hero";
+import { BackgroundFx } from "@/components/BackgroundFx";
+import { Ticker } from "@/components/Ticker";
 import { PoolStats } from "@/components/PoolStats";
 import { PositionsTable } from "@/components/PositionsTable";
 import { DepositForm } from "@/components/DepositForm";
 import { DrawPanel } from "@/components/DrawPanel";
 import { CreditsPanel } from "@/components/CreditsPanel";
 import { RewardsPanel } from "@/components/RewardsPanel";
-import { addresses } from "@/lib/contracts";
-import { activeChain } from "@/lib/chains";
+import { DEMO } from "@/lib/demo";
 
 export default function Home() {
-  const configured = addresses.pool !== "0x0000000000000000000000000000000000000000";
   return (
-    <div className="container">
-      <header className="top">
-        <div>
-          <h1>Fake World Assets</h1>
-          <span className="muted">{activeChain.name} · chainId {activeChain.id}</span>
-        </div>
-        <ConnectButton />
-      </header>
-      {!configured && (
-        <div className="notice">
-          Set <span className="mono">NEXT_PUBLIC_POOL_ADDRESS</span> (see <span className="mono">.env.local.example</span>)
-          to connect the UI to a deployed pool.
+    <div className="fwa-container">
+      <BackgroundFx />
+      <Hero />
+      <Ticker />
+
+      {DEMO && (
+        <div className="notice" style={{ marginTop: 8 }}>
+          <b>Preview with sample data.</b> Representative demo values — point the app at a deployed pool
+          (<span className="mono">NEXT_PUBLIC_POOL_ADDRESS</span>) for live on-chain data and transactions.
         </div>
       )}
-      <div className="grid" style={{ marginTop: 16 }}>
-        <PoolStats />
+
+      <div className="section-title" id="acquire">The pool</div>
+      <div className="fwa-grid">
         <DrawPanel />
-        <DepositForm />
+        <PoolStats />
         <PositionsTable />
+      </div>
+
+      <div className="section-title" id="deposit">Participate</div>
+      <div className="fwa-grid">
+        <DepositForm />
         <CreditsPanel />
         <RewardsPanel />
       </div>
+
+      <footer className="foot">
+        <span>Fake World Assets · a randomized onchain acquisition protocol</span>
+        <span className="tm">FWA™ · RobinhoodChain</span>
+      </footer>
     </div>
   );
 }
