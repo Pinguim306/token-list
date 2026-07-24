@@ -7,11 +7,10 @@ import { DepositForm } from "@/components/DepositForm";
 import { DrawPanel } from "@/components/DrawPanel";
 import { CreditsPanel } from "@/components/CreditsPanel";
 import { RewardsPanel } from "@/components/RewardsPanel";
-import { addresses } from "@/lib/contracts";
 import { activeChain } from "@/lib/chains";
+import { DEMO } from "@/lib/demo";
 
 export default function Home() {
-  const configured = addresses.pool !== "0x0000000000000000000000000000000000000000";
   return (
     <div className="container">
       <header className="top">
@@ -21,10 +20,11 @@ export default function Home() {
         </div>
         <ConnectButton />
       </header>
-      {!configured && (
+      {DEMO && (
         <div className="notice">
-          Set <span className="mono">NEXT_PUBLIC_POOL_ADDRESS</span> (see <span className="mono">.env.local.example</span>)
-          to connect the UI to a deployed pool.
+          <b>Preview with sample data.</b> This dashboard is showing representative demo values.
+          Point it at a deployed pool (set <span className="mono">NEXT_PUBLIC_POOL_ADDRESS</span>) for live,
+          on-chain data and working transactions.
         </div>
       )}
       <div className="grid" style={{ marginTop: 16 }}>
