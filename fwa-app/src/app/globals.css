@@ -1,3 +1,14 @@
+/* Tailwind v4 — theme + utilities only. Preflight is intentionally NOT imported:
+   this app is hand-styled below, and Tailwind's global reset would change it.
+   Utilities are opt-in per element, so new (v0-generated) UI can use them while
+   the existing CSS keeps rendering exactly as before. */
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
+/* Importing the sub-files (rather than "tailwindcss") skips Preflight, but it
+   also skips Tailwind's automatic source detection — so declare it explicitly. */
+@source "../";
+
 /* ============================================================================
    FWA — design system (inspired by fwa.fun): Bungee display + Inter, warm
    off-white / near-black themes, rose accent, vivid semantic colors.
@@ -70,6 +81,53 @@
     --shadow: 0 18px 46px -18px rgba(0,0,0,.7), 0 2px 8px rgba(0,0,0,.4);
     --shadow-accent: 0 18px 50px -16px rgba(236,123,147,.4);
   }
+}
+
+/* ---------------------------------------------------------------------------
+   Tailwind theme bridge. `inline` makes utilities compile to `var(--token)`
+   instead of a copied value, so every utility inherits the light/dark switch
+   from the :root blocks above. The CSS custom properties remain the single
+   source of truth — this only exposes them under semantic utility names.
+   -------------------------------------------------------------------------- */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
+
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-ink: var(--accent-ink);
+
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-crown: var(--crown);
+  --color-crown-soft: var(--crown-soft);
+
+  --font-display: var(--font-display);
+  --font-body: var(--font-body);
+  --font-mono: var(--font-mono);
+
+  --radius-md: var(--radius);
+  --radius-lg: var(--radius-lg);
+  --radius-pill: var(--radius-pill);
+
+  /* Shadows MUST be declared here. Unlike radius/font (where Tailwind's utility
+     emits `var(--radius-lg)` and our :root override wins), the shadow utilities
+     inline their default value — omitting these silently ships Tailwind's greys
+     instead of our warm, dark-mode-aware shadows. */
+  --shadow-sm: var(--shadow-sm);
+  --shadow-md: var(--shadow);
+  --shadow-accent: var(--shadow-accent);
 }
 
 * { box-sizing: border-box; }
