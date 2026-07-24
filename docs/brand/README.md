@@ -2,6 +2,20 @@
 
 Source-of-truth brand assets for **Fake World Assets** on RobinhoodChain.
 
+## Figma library
+
+[**FWA — Design System**](https://www.figma.com/design/hk4CJfj7jnqzrymQpWfP0c) mirrors
+this kit as Figma variables, text styles and components:
+
+| In Figma | Contents |
+|---|---|
+| `FWA Color Light` / `FWA Color Dark` | 40 colour variables, values taken **from `fwa-app/src/app/globals.css`** (the code is the source of truth). Two collections rather than one with two modes — the Figma Starter plan caps collections at a single mode. |
+| Text styles | `Display/XL·L·M` (Bungee), `Body/Large·Base·Small`, `Label/Medium·Semibold`, `Eyebrow` (Inter). |
+| Components | `Button/Primary`, `Button/Secondary`, `Eyebrow/Pill`, `Stat/Tile`, `Card/Base` — fills bound to the colour variables. |
+
+When a token changes in `globals.css`, update the Figma variable to match — not
+the other way around.
+
 ## Design tokens
 
 | Token | Value | Use |

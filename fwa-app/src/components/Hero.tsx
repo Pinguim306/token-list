@@ -35,14 +35,17 @@ export function Hero() {
   return (
     <>
       <nav className="nav">
-        <div className="brand">
+        <a className="brand" href="/" aria-label="Fake World Assets — home">
           <div className="mark">F<span className="glow">W</span>A</div>
           <div>
             <div className="name">FAKE WORLD ASSETS</div>
             <div className="sub">{activeChain.name} · chainId {activeChain.id}</div>
           </div>
+        </a>
+        <div className="nav-actions">
+          <a className="nav-link" href="/app/portfolio">Portfolio</a>
+          <ConnectButton />
         </div>
-        <ConnectButton />
       </nav>
 
       <header className="hero">

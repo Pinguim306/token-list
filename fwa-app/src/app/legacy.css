@@ -23,7 +23,17 @@ a:hover { text-decoration: underline; }
   display: flex; align-items: center; justify-content: space-between; gap: 16px;
   padding: 14px 0 22px;
 }
-.brand { display: flex; align-items: center; gap: 12px; }
+.nav-actions { display: flex; align-items: center; gap: 14px; }
+.nav-link {
+  font-size: 14px; font-weight: 600; color: var(--muted); text-decoration: none;
+  padding: 8px 12px; border-radius: var(--radius-pill); transition: color .15s, background .15s;
+}
+.nav-link:hover { color: var(--ink); background: var(--surface-2); text-decoration: none; }
+
+/* .brand is an <a> (back to the marketing home), so opt out of the global link
+   colour/underline and keep the wordmark's own styling. */
+.brand { display: flex; align-items: center; gap: 12px; color: var(--ink); text-decoration: none; }
+.brand:hover { text-decoration: none; }
 .brand .mark {
   font-family: var(--font-display); font-size: 20px; letter-spacing: .02em;
   color: var(--accent-ink); background: var(--ink);
