@@ -1,0 +1,105 @@
+# Fake World Assets (FWA) — RobinhoodChain
+
+An on-chain, randomized asset-acquisition protocol for **RobinhoodChain** (Arbitrum
+Orbit L2, chainId `4663` / testnet `46630`), rebuilt from the FWA idea
+([fwa.fun](https://www.fwa.fun/docs/overview)).
+
+Depositors lock an ERC-721 plus an ERC-20 backing stake to create a **position**
+(modeled on a Uniswap-V2 pair). Purchasers pay a pool-derived price to acquire
+**one position at random**, then choose to keep the NFT or sell it back for the
+depositor's standing bid. Selection weight is **inversely proportional to
+backing**, so lightly-backed positions are drawn often (small expected reward)
+and heavily-backed ones are rare.
+
+> This repository is the engineering counterpart to the viability study in
+> [`../docs/analise-fwa-robinhoodchain.md`](../docs/analise-fwa-robinhoodchain.md).
+> It implements **Fase 0 + the core of Fase 1** of that plan.
+
+## Why this is a redesign, not a port
+
+RobinhoodChain lacks two pillars the original FWA relies on:
+
+1. **No Chainlink VRF on-chain.** Randomness is abstracted behind a
+   `RandomnessRouter` + swappable adapter. The production path is
+   **Chainlink VRF v2.5 requested cross-chain from Arbitrum One over CCIP**
+   (`CCIPVRFAdapter`); a native provider (Pyth Entropy) is the target fallback.
+   A `MockRandomnessAdapter` drives the flow deterministically in tests.
+2. **No blue-chip NFTs / ERC-721 bridge.** The core is **collection-agnostic and
+   backing-token-agnostic** (any whitelisted ERC-721, backed by any ERC-20 such as
+   USDG), so the prize layer can pivot without touching pool accounting.
+
+## Security model — the lesson of the 2026-07-03 FWA exploit
+
+The live FWA protocol was drained when state was mutated **between the VRF request
+and its callback**, steering a draw onto the pool's most valuable NFT. This
+implementation is built around **freeze-at-request**:
+
+- On `startDraw` the payment is escrowed and the **total selection weight is
+  snapshotted**. Draws are **strictly serialized** (one in flight at a time) and
+  the pool is **frozen** — no deposit or withdrawal can change the selection set
+  while a draw is pending.
+- The randomness callback (`fulfillRandomness`) is **minimal and resilient**: it
+  only stores the word, never selects, never transfers, and **never reverts** on a
+  stale/expired draw.
+- Selection + settlement happen in a **separate, permissionless `settle` step**
+  applied to the frozen snapshot. Payouts are **pull-based** (`withdrawCredit`).
+- Liveness: if randomness never arrives, `expireDraw` refunds the buyer after a
+  timeout; after the purchaser window, anyone can `finalize` the default outcome.
+
+Serialized freeze is deliberately conservative for the MVP; higher throughput
+(append-only deposits during flight, per-draw tree snapshots) is documented future
+work.
+
+## Contracts
+
+| Contract | Responsibility |
+|---|---|
+| `core/FWAPool.sol` | Positions, inverse-weight selection, harmonic-mean pricing + surcharge, freeze-at-request draw queue, Keep/SellBack settlement, pull-based credits |
+| `core/FWAFactory.sol` | Deploys & registers pools (collection-agnostic) |
+| `core/FWAWhitelist.sol` | Curates allowed ERC-721 collections; sticky blocking |
+| `core/FeeRouter.sol` | Splits protocol fees across recipients by basis-point shares |
+| `libraries/FenwickTree.sol` | O(log n) weighted random selection (fixed capacity for correct dynamic growth) |
+| `randomness/RandomnessRouter.sol` | Consumer ⇄ adapter indirection; minimal fulfill callback |
+| `randomness/MockRandomnessAdapter.sol` | Deterministic randomness for tests / local |
+| `randomness/CCIPVRFAdapter.sol` | Production skeleton: VRF v2.5 from Arbitrum One over CCIP |
+| `token/FWAToken.sol` | `$FWA` reward token: capped, role-gated mint, launch gate, 1% DEX-trade fee |
+| `mocks/*` | ERC-20/721 mocks + Fenwick + reentrancy harnesses (test-only) |
+
+**Deferred to later phases (see the plan):** `$FWA` emissions/`FWAEmitter`
+(MasterChef-style), the `crown`/tithe top-deposit reward, Merkle claim, and the
+Arbitrum-One-side `VRFRequester` counterpart.
+
+## Toolchain note (Hardhat, not Foundry)
+
+The plan recommends Foundry, but its binaries ship via GitHub Releases, which is
+blocked by this environment's egress policy. **Hardhat** is used instead (bundled
+network needs no downloads; solc is fetched from `binaries.soliditylang.org`).
+The contracts are framework-agnostic and compile under Foundry elsewhere.
+`evmVersion` is pinned to **`paris`** and OpenZeppelin to **5.0.x** (no `mcopy`)
+to stay portable until Fase 0 confirms the chain's ArbOS opcode support.
+
+## Usage
+
+```bash
+npm install
+npm run build          # hardhat compile
+npm test               # 23 tests: Fenwick, pool mechanics, freeze, settlement, token, periphery
+
+# Fase 0 — inventory the real testnet before committing further:
+npx hardhat run scripts/probe-chain.js --network robinhood-testnet
+
+# Deploy the full stack (Mock adapter by default; USE_CCIP=1 for the CCIP skeleton):
+npx hardhat run scripts/deploy.js --network robinhood-testnet
+```
+
+Networks are preconfigured in `hardhat.config.js` (`robinhood-testnet` = 46630,
+`robinhood-mainnet` = 4663) with Blockscout verification endpoints. Set
+`DEPLOYER_MNEMONIC` (see `.env.example`) to deploy.
+
+## Fase 0 go/no-go gate
+
+Before investing in Fase 1+, the probe + a CCIP round-trip spike must confirm:
+measured VRF-via-CCIP latency (p95) and per-draw cost are acceptable, contract
+deployment/verification works, ArbOS supports the chosen opcodes, and the mainnet
+ToS carries no blocker. If VRF-via-CCIP is unviable **and** no native provider
+onboards, the randomness requirement is unmet — stop.
