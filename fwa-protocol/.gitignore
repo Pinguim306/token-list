@@ -5,3 +5,6 @@ coverage/
 coverage.json
 typechain-types/
 .env
+
+# static analysis
+crytic-export/
