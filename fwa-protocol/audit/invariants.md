@@ -3,6 +3,13 @@
 The properties the protocol must uphold. Each notes where it is enforced and
 which tests exercise it. Auditors: try to break these.
 
+> The fund-safety and structural invariants (4, 7, 8, 9, 10, 11, 13, 14) are
+> additionally checked by **randomized property testing** (`test/Invariants.test.js`):
+> 4 seeds × 60 rounds of random deposits/draws/settlements/withdrawals/claims,
+> asserting solvency (`poolBalance ≥ everything owed`, gap = only accumulator
+> dust), Fenwick/weight consistency, crown validity, and active-set agreement
+> after every operation, then a full drain to dust.
+
 ## Selection & freeze-at-request (the exploit-critical core)
 
 1. **Frozen selection set.** The position selected by a draw is a pure function
