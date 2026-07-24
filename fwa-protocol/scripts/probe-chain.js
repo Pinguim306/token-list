@@ -20,12 +20,15 @@ const hre = require("hardhat");
 const ARB_SYS = "0x0000000000000000000000000000000000000064";
 const ARB_GAS_INFO = "0x000000000000000000000000000000000000006C";
 
-// TODO(Fase 0): replace with real addresses from official docs / provider chainlists.
+// Addresses confirmed present in the official RobinhoodChain protocol-contracts
+// docs are filled in; randomness/DEX infra is NOT published there and must be
+// obtained from the provider (Chainlink/Pyth) before it can be probed.
 const CANDIDATES = {
   "Multicall3": "0xcA11bde05977b3631167028862bE2a173976CA11",
-  "Chainlink CCIP Router (fill from docs)": "0x0000000000000000000000000000000000000000",
-  "Pyth Entropy (fill from chainlist)": "0x0000000000000000000000000000000000000000",
-  "Uniswap v4 PoolManager (fill from Blockscout)": "0x0000000000000000000000000000000000000000",
+  "Permit2 (per RH docs)": "0x000000000022D473030F116dDEE9F6B43aC78BA3",
+  "Chainlink CCIP Router (NOT in RH docs — get from Chainlink)": "0x0000000000000000000000000000000000000000",
+  "Pyth Entropy (NOT in RH docs — get from Pyth chainlist)": "0x0000000000000000000000000000000000000000",
+  "Uniswap v4 PoolManager (get from Blockscout)": "0x0000000000000000000000000000000000000000",
 };
 
 async function codeSize(provider, addr) {
