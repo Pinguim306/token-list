@@ -56,6 +56,18 @@ contract FWAPool is IRandomnessConsumer, Ownable, ReentrancyGuard {
     ///         hooks so it can never revert or brick pool operations.
     address public emitter;
 
+    // Crown (top-deposit) reward. Exactly one active position holds the crown and
+    // accrues a tithe (topShareBps of each acquisition fee), paid out when it exits
+    // or is dethroned. A challenger must exceed the incumbent's backing by
+    // topThresholdBps. While the crown is vacant, the tithe reverts to the equal
+    // per-position split. Crown bookkeeping never touches selection weights, so it
+    // is orthogonal to freeze-at-request.
+    uint256 public topListingId; // active position holding the crown; 0 = vacant
+    uint256 public topBacking; // its backing (challenge reference)
+    uint256 public topPot; // accrued tithe (backing token)
+    uint256 public topShareBps = 500; // 5% of each acquisition fee -> tithe
+    uint256 public topThresholdBps = 1_000; // challenger must exceed incumbent by 10%
+
     uint256 public surchargeBps = 1_000; // 10% acquisition surcharge over EV
     uint256 public acquisitionCutBps = 2_000; // protocol cut of the acquisition fee
     uint256 public settlementFeeBps = 100; // 1% of backing when purchaser keeps the NFT
@@ -140,6 +152,10 @@ contract FWAPool is IRandomnessConsumer, Ownable, ReentrancyGuard {
     event NFTEscrowed(address indexed asset, uint256 indexed tokenId, address indexed to);
     event StuckNFTClaimed(address indexed asset, uint256 indexed tokenId, address indexed to);
     event EmitterUpdated(address indexed emitter);
+    event CrownClaimed(uint256 indexed id, uint256 backing);
+    event CrownDethroned(uint256 indexed oldId, uint256 indexed newId, uint256 potPaid);
+    event CrownVacated(uint256 indexed id, uint256 potPaid);
+    event CrownParamsUpdated(uint256 topShareBps, uint256 topThresholdBps);
     event ParamsUpdated();
 
     constructor(
@@ -190,6 +206,7 @@ contract FWAPool is IRandomnessConsumer, Ownable, ReentrancyGuard {
         tree.update(id, int256(weight));
 
         emit Deposited(id, msg.sender, asset, tokenId, backing, weight);
+        _claimTopSpot(id); // auto-challenge the crown (no-op unless vacant or beats threshold)
         _notifyDeposit(id, msg.sender, backing);
     }
 
@@ -318,11 +335,8 @@ contract FWAPool is IRandomnessConsumer, Ownable, ReentrancyGuard {
         require(p.active, "FWA: inactive selection"); // guaranteed by freeze-at-request
         d.selectedId = id;
 
-        // Distribute the acquisition fee: protocol cut + equal split among active positions.
-        uint256 price = d.price;
-        uint256 protocolCut = (price * acquisitionCutBps) / BPS;
-        if (protocolCut > 0) backingCredit[feeRouter] += protocolCut;
-        _distributeFee(price - protocolCut);
+        // Distribute the acquisition fee: protocol cut + crown tithe + equal split.
+        _settleFee(d.price);
 
         address buyer = d.buyer;
         address depositor = p.depositor;
@@ -419,6 +433,22 @@ contract FWAPool is IRandomnessConsumer, Ownable, ReentrancyGuard {
     //                               Internals                               //
     // --------------------------------------------------------------------- //
 
+    /// @dev Splits an acquisition fee: protocol cut, then crown tithe (if the
+    ///      crown is occupied), then the equal per-position remainder.
+    function _settleFee(uint256 price) internal {
+        uint256 protocolCut = (price * acquisitionCutBps) / BPS;
+        if (protocolCut > 0) backingCredit[feeRouter] += protocolCut;
+        uint256 distributable = price - protocolCut;
+        if (topListingId != 0 && topShareBps > 0) {
+            uint256 tithe = (distributable * topShareBps) / BPS;
+            if (tithe > 0) {
+                topPot += tithe;
+                distributable -= tithe;
+            }
+        }
+        _distributeFee(distributable);
+    }
+
     function _distributeFee(uint256 amount) internal {
         if (amount == 0) return;
         if (activeCount == 0) {
@@ -442,10 +472,50 @@ contract FWAPool is IRandomnessConsumer, Ownable, ReentrancyGuard {
 
     function _deactivate(uint256 id) internal {
         Position storage p = positions[id];
+        // Crown exit: the departing crown holder collects the accrued tithe pot.
+        if (id == topListingId) {
+            uint256 pot = topPot;
+            topPot = 0;
+            topListingId = 0;
+            topBacking = 0;
+            if (pot > 0) backingCredit[p.depositor] += pot;
+            emit CrownVacated(id, pot);
+        }
         p.active = false;
         activeCount -= 1;
         weightedBackingTotal -= p.weight * p.backing;
         tree.update(id, -int256(p.weight));
+    }
+
+    /// @notice Claim the crown for an active position — when vacant, or by
+    ///         exceeding the incumbent's backing by topThresholdBps.
+    function claimTopSpot(uint256 id) external nonReentrant {
+        require(!drawInFlight, "FWA: draw in flight");
+        Position storage p = positions[id];
+        require(p.active, "FWA: inactive");
+        require(
+            topListingId == 0 || (id != topListingId && p.backing * BPS >= topBacking * (BPS + topThresholdBps)),
+            "FWA: cannot claim crown"
+        );
+        _claimTopSpot(id);
+    }
+
+    /// @dev Internal crown transfer; no-ops if the position is already the crown
+    ///      or does not beat the threshold. Pays the dethroned incumbent its pot.
+    function _claimTopSpot(uint256 id) internal {
+        Position storage p = positions[id];
+        if (topListingId == 0) {
+            topListingId = id;
+            topBacking = p.backing;
+            emit CrownClaimed(id, p.backing);
+        } else if (id != topListingId && p.backing * BPS >= topBacking * (BPS + topThresholdBps)) {
+            uint256 pot = topPot;
+            topPot = 0;
+            if (pot > 0) backingCredit[positions[topListingId].depositor] += pot;
+            emit CrownDethroned(topListingId, id, pot);
+            topListingId = id;
+            topBacking = p.backing;
+        }
     }
 
     // --------------------------------------------------------------------- //
@@ -494,5 +564,13 @@ contract FWAPool is IRandomnessConsumer, Ownable, ReentrancyGuard {
     function setEmitter(address emitter_) external onlyOwner {
         emitter = emitter_;
         emit EmitterUpdated(emitter_);
+    }
+
+    /// @notice Tune the crown tithe share and challenge threshold.
+    function setCrownParams(uint256 topShareBps_, uint256 topThresholdBps_) external onlyOwner {
+        require(topShareBps_ <= BPS, "FWA: bps");
+        topShareBps = topShareBps_;
+        topThresholdBps = topThresholdBps_;
+        emit CrownParamsUpdated(topShareBps_, topThresholdBps_);
     }
 }

@@ -40,6 +40,19 @@ describe("FWAEmitter", function () {
     await ctx.pool.connect(who).deposit(await ctx.nft.getAddress(), tokenId, backingAmt);
   }
 
+  // one acquisition by `who`, settled SellBack so the NFT returns to alice for re-deposit
+  async function settleOnce(ctx, who) {
+    await ctx.pool.connect(who).startDraw(ethers.MaxUint256);
+    const id = await ctx.pool.drawCount();
+    await ctx.adapter.fulfill(await ctx.router.requestCounter(), 0n);
+    await ctx.pool.connect(who).settle(id, 1); // SellBack
+  }
+
+  async function reDeposit(ctx, tokenId) {
+    await ctx.nft.connect(ctx.alice).approve(await ctx.pool.getAddress(), tokenId);
+    await ctx.pool.connect(ctx.alice).deposit(await ctx.nft.getAddress(), tokenId, 100n * WAD);
+  }
+
   it("accrues depositor rewards proportional to sqrt(backing)", async () => {
     const ctx = await loadFixture(deploy);
     const now = await time.latest();
@@ -65,47 +78,49 @@ describe("FWAEmitter", function () {
     expect(await ctx.fwa.balanceOf(ctx.alice.address)).to.equal(before + (10n * R * T) / 30n);
   });
 
-  it("rewards purchasers a fixed amount per acquisition within the window", async () => {
+  it("splits a day's purchaser pot pro-rata among that day's acquisitions", async () => {
     const ctx = await loadFixture(deploy);
     const now = await time.latest();
-    await ctx.emitter.configure(now - 10, now + 100_000, 0n, 5n * WAD); // purchaserReward = 5 FWA
-    await ctx.emitter.setPurchaserBudget(100n * WAD); // reserve budget for purchaser rewards
+    const DAY = 24 * 3600;
+    await ctx.emitter.configure(now, now + 100 * DAY, 0n, 30n * WAD); // 30 FWA/day pot
+    await ctx.emitter.setPurchaserBudget(1000n * WAD);
 
+    // day 0: buyer acquires twice, bob once (total 3 acquisitions)
     await deposit(ctx, ctx.alice, 1, 100n * WAD);
-    await ctx.pool.connect(ctx.buyer).startDraw(ethers.MaxUint256);
-    const drawId = await ctx.pool.drawCount();
-    await ctx.adapter.fulfill(await ctx.router.requestCounter(), 0n);
-    await ctx.pool.connect(ctx.buyer).settle(drawId, 0); // Keep
+    await settleOnce(ctx, ctx.buyer); // buyer acq #1
+    await reDeposit(ctx, 1);
+    await settleOnce(ctx, ctx.buyer); // buyer acq #2
+    await reDeposit(ctx, 1);
+    await settleOnce(ctx, ctx.bob); // bob acq #1
 
-    expect(await ctx.emitter.rewardCredit(ctx.buyer.address)).to.equal(5n * WAD);
-    expect(await ctx.emitter.purchaserBudget()).to.equal(95n * WAD); // decremented
+    // cannot claim while the day is still open
+    await expect(ctx.emitter.claimDay(0, ctx.buyer.address)).to.be.revertedWith("EM: day still open");
+
+    await time.increase(DAY + 1); // close day 0
+
+    await ctx.emitter.claimDay(0, ctx.buyer.address);
+    await ctx.emitter.claimDay(0, ctx.bob.address);
+    // buyer 2/3, bob 1/3 of the 30 FWA pot
+    expect(await ctx.emitter.rewardCredit(ctx.buyer.address)).to.equal((30n * WAD * 2n) / 3n);
+    expect(await ctx.emitter.rewardCredit(ctx.bob.address)).to.equal((30n * WAD * 1n) / 3n);
+    // double claim rejected
+    await expect(ctx.emitter.claimDay(0, ctx.buyer.address)).to.be.revertedWith("EM: already claimed");
+    expect(await ctx.emitter.purchaserBudget()).to.equal(1000n * WAD - 30n * WAD); // whole pot spent
   });
 
-  it("purchaser rewards stop once the reserved budget is exhausted (no stranding of depositor rewards)", async () => {
+  it("caps day-pot claims at the reserved budget (no stranding of depositor rewards)", async () => {
     const ctx = await loadFixture(deploy);
     const now = await time.latest();
-    await ctx.emitter.configure(now - 10, now + 100_000, 0n, 5n * WAD);
-    await ctx.emitter.setPurchaserBudget(5n * WAD); // only enough for ONE acquisition
+    const DAY = 24 * 3600;
+    await ctx.emitter.configure(now, now + 100 * DAY, 0n, 30n * WAD);
+    await ctx.emitter.setPurchaserBudget(10n * WAD); // less than one day's pot
 
     await deposit(ctx, ctx.alice, 1, 100n * WAD);
-    // first acquisition consumes the whole budget
-    await ctx.pool.connect(ctx.buyer).startDraw(ethers.MaxUint256);
-    let drawId = await ctx.pool.drawCount();
-    await ctx.adapter.fulfill(await ctx.router.requestCounter(), 0n);
-    await ctx.pool.connect(ctx.buyer).settle(drawId, 0);
-    expect(await ctx.emitter.rewardCredit(ctx.buyer.address)).to.equal(5n * WAD);
-    expect(await ctx.emitter.purchaserBudget()).to.equal(0n);
-
-    // buyer keeps the NFT; re-deposit a fresh position and draw again
-    await ctx.nft.connect(ctx.buyer).transferFrom(ctx.buyer.address, ctx.alice.address, 1);
-    await ctx.nft.connect(ctx.alice).approve(await ctx.pool.getAddress(), 1);
-    await ctx.pool.connect(ctx.alice).deposit(await ctx.nft.getAddress(), 1, 100n * WAD);
-    await ctx.pool.connect(ctx.buyer).startDraw(ethers.MaxUint256);
-    drawId = await ctx.pool.drawCount();
-    await ctx.adapter.fulfill(await ctx.router.requestCounter(), 0n);
-    await expect(ctx.pool.connect(ctx.buyer).settle(drawId, 0)).to.not.be.reverted;
-    // budget exhausted -> no further purchaser credit accrued (still exactly one reward)
-    expect(await ctx.emitter.rewardCredit(ctx.buyer.address)).to.equal(5n * WAD);
+    await settleOnce(ctx, ctx.buyer);
+    await time.increase(DAY + 1);
+    await ctx.emitter.claimDay(0, ctx.buyer.address);
+    // reward capped at the 10 FWA budget, not the 30 FWA pot
+    expect(await ctx.emitter.rewardCredit(ctx.buyer.address)).to.equal(10n * WAD);
     expect(await ctx.emitter.purchaserBudget()).to.equal(0n);
   });
 

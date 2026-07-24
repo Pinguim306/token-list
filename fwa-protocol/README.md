@@ -66,7 +66,7 @@ work.
 | `randomness/CCIPVRFAdapter.sol` | Production skeleton: VRF v2.5 request from Arbitrum One over CCIP (RH Chain side) |
 | `randomness/VRFRequester.sol` | Production skeleton: Arbitrum One counterpart — draws VRF, relays back over CCIP |
 | `token/FWAToken.sol` | `$FWA` reward token: capped, role-gated mint, launch gate, 1% DEX-trade fee |
-| `token/FWAEmitter.sol` | `$FWA` emissions (MasterChef-style): depositor rewards on √backing + per-acquisition purchaser rewards; guarded pool hooks |
+| `token/FWAEmitter.sol` | `$FWA` emissions (MasterChef-style): depositor rewards on √backing + pro-rata daily-pot purchaser rewards; guarded pool hooks |
 | `token/FWAClaim.sol` | Merkle-gated `$FWA` distribution (snapshot allocation) |
 | `mocks/*` | ERC-20/721 + pausable-721 + reverting-emitter + Fenwick + reentrancy harnesses (test-only) |
 
@@ -75,10 +75,13 @@ The pool notifies the emitter via **guarded (try/catch) hooks** (`onDeposit` /
 brick pool operations — the same non-reverting-delivery principle applied to NFT
 settlement.
 
-**Deferred to later phases (see the plan):** the `crown`/tithe top-deposit
-reward, the pro-rata **daily-pot** purchaser-reward variant (the MVP uses a fixed
-per-acquisition reward), and live wiring/parameterization of the CCIP↔VRF path
-(pending the Fase 0 spike).
+The `crown`/tithe top-deposit reward (a tithe on each acquisition fee accrued to
+the highest-backed position, paid out on exit/dethrone) and the pro-rata
+**daily-pot** purchaser rewards are now implemented in `FWAPool` and `FWAEmitter`.
+
+**Deferred to later phases (see the plan):** live wiring/parameterization of the
+CCIP↔VRF path (pending the Fase 0 spike — see `../docs/fase0-findings.md`), then
+Fase 3 (frontend/indexing), Fase 4 (external audit/beta), Fase 5 (mainnet).
 
 ## Toolchain note (Hardhat, not Foundry)
 

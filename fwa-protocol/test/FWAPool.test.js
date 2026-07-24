@@ -174,21 +174,24 @@ describe("FWAPool", function () {
     expect(await ctx.pool.backingCredit(ctx.treasury.address)).to.equal(protocolCut + discount);
   });
 
-  it("splits acquisition fee equally among active positions", async () => {
+  it("splits acquisition fee equally among active positions (after crown tithe)", async () => {
     const ctx = await loadFixture(deploy);
-    await deposit(ctx, ctx.alice, 1, 100n * WAD);
-    await deposit(ctx, ctx.bob, 2, 100n * WAD); // equal weights
+    await deposit(ctx, ctx.alice, 1, 100n * WAD); // first deposit auto-takes the crown
+    await deposit(ctx, ctx.bob, 2, 100n * WAD); // equal backing -> does not dethrone
+    expect(await ctx.pool.topListingId()).to.equal(1n);
     const price = await ctx.pool.acquisitionPrice();
     const protocolCut = (price * (await ctx.pool.acquisitionCutBps())) / BPS;
     const distributable = price - protocolCut;
+    const tithe = (distributable * (await ctx.pool.topShareBps())) / BPS; // 5% to the crown pot
+    const afterTithe = distributable - tithe;
 
-    // random word 0 -> selects position 1 (alice)
+    // random word 0 -> selects position 1 (alice, the crown)
     const drawId = await startAndFulfill(ctx, ctx.buyer, 0n);
     await ctx.pool.connect(ctx.buyer).settle(drawId, 1); // SellBack
 
-    // bob (not selected) can claim ~ half of distributable
+    // bob (not the crown) shares half of the post-tithe distributable
     await ctx.pool.connect(ctx.bob).claimEarnings(2);
-    expect(await ctx.pool.backingCredit(ctx.bob.address)).to.equal(distributable / 2n);
+    expect(await ctx.pool.backingCredit(ctx.bob.address)).to.equal(afterTithe / 2n);
   });
 
   it("refunds the buyer when randomness times out", async () => {

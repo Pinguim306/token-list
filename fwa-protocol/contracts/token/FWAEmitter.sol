@@ -21,13 +21,14 @@ import {IFWAEmitter} from "../interfaces/IFWAEmitter.sol";
 ///      The two reward streams are SEGREGATED so they cannot cannibalize each
 ///      other. Depositor emissions are bounded by depositorRatePerSec*(end-start);
 ///      purchaser rewards are bounded by an explicit `purchaserBudget` that the
-///      owner funds and that `onPurchase` decrements (skipping once exhausted).
+///      owner funds and that day-pot claims decrement (capping once exhausted).
 ///      Fund the contract with at least (depositor emission cap + purchaserBudget)
 ///      $FWA so no legitimately-accrued reward is ever stranded.
 ///
-///      Simplification vs. the original FWA: purchaser rewards are a fixed
-///      per-acquisition amount instead of a pro-rata daily pot. Documented as a
-///      deliberate MVP choice; the daily-pot variant is future work.
+///      Purchaser rewards follow the original FWA pro-rata daily-pot model:
+///      each acquisition is recorded against the current day, and after that day
+///      closes a purchaser claims purchaserDailyPot * theirAcquisitions /
+///      totalAcquisitions via claimDay.
 contract FWAEmitter is IFWAEmitter, Ownable {
     using SafeERC20 for IERC20;
 
@@ -54,22 +55,27 @@ contract FWAEmitter is IFWAEmitter, Ownable {
 
     mapping(uint256 => Stake) public stakes; // positionId => stake
 
-    // Purchaser side.
-    uint256 public purchaserRewardPerAcq;
-    /// @notice $FWA reserved for purchaser rewards. Decremented per acquisition;
-    ///         once exhausted, onPurchase no-ops so it can never eat into the
-    ///         depositor emission allocation.
+    // Purchaser side — pro-rata daily pots (mirrors the original FWA).
+    uint256 public constant SECONDS_PER_DAY = 1 days;
+    uint256 public purchaserDailyPot; // $FWA split pro-rata among a day's acquisitions
+    /// @notice $FWA reserved for purchaser rewards. Decremented as day pots are
+    ///         claimed; claims are capped at the remaining budget so purchaser
+    ///         rewards can never eat into the depositor emission allocation.
     uint256 public purchaserBudget;
+    mapping(uint256 => uint256) public dayTotalAcq; // day => total acquisitions
+    mapping(uint256 => mapping(address => uint256)) public dayUserAcq; // day => user => acquisitions
+    mapping(uint256 => mapping(address => bool)) public dayClaimed; // day => user => claimed
 
     mapping(address => uint256) public rewardCredit; // claimable $FWA
 
     event PoolUpdated(address indexed pool);
-    event Configured(uint256 startTime, uint256 endTime, uint256 depositorRatePerSec, uint256 purchaserRewardPerAcq);
+    event Configured(uint256 startTime, uint256 endTime, uint256 depositorRatePerSec, uint256 purchaserDailyPot);
     event PurchaserBudgetSet(uint256 amount);
     event Staked(uint256 indexed positionId, address indexed owner, uint256 shares);
     event Unstaked(uint256 indexed positionId, address indexed owner, uint256 pending);
     event Harvested(uint256 indexed positionId, address indexed owner, uint256 pending);
-    event PurchaserRewarded(address indexed buyer, uint256 amount);
+    event PurchaseRecorded(address indexed buyer, uint256 indexed day);
+    event PurchaserDayClaimed(address indexed account, uint256 indexed day, uint256 amount);
     event Claimed(address indexed account, uint256 amount);
 
     modifier onlyPool() {
@@ -87,7 +93,7 @@ contract FWAEmitter is IFWAEmitter, Ownable {
         emit PoolUpdated(pool_);
     }
 
-    function configure(uint256 startTime_, uint256 endTime_, uint256 depositorRatePerSec_, uint256 purchaserRewardPerAcq_)
+    function configure(uint256 startTime_, uint256 endTime_, uint256 depositorRatePerSec_, uint256 purchaserDailyPot_)
         external
         onlyOwner
     {
@@ -95,9 +101,18 @@ contract FWAEmitter is IFWAEmitter, Ownable {
         startTime = startTime_;
         endTime = endTime_;
         depositorRatePerSec = depositorRatePerSec_;
-        purchaserRewardPerAcq = purchaserRewardPerAcq_;
+        purchaserDailyPot = purchaserDailyPot_;
         lastUpdate = startTime_;
-        emit Configured(startTime_, endTime_, depositorRatePerSec_, purchaserRewardPerAcq_);
+        emit Configured(startTime_, endTime_, depositorRatePerSec_, purchaserDailyPot_);
+    }
+
+    /// @notice Day index (0-based) of a timestamp within the emission window.
+    function dayOf(uint256 ts) public view returns (uint256) {
+        return ts < startTime ? 0 : (ts - startTime) / SECONDS_PER_DAY;
+    }
+
+    function currentDay() external view returns (uint256) {
+        return dayOf(block.timestamp);
     }
 
     /// @notice Reserve $FWA for purchaser rewards. The owner is responsible for
@@ -141,16 +156,32 @@ contract FWAEmitter is IFWAEmitter, Ownable {
     }
 
     /// @inheritdoc IFWAEmitter
+    /// @dev Records the acquisition against the current day's pot. The pro-rata
+    ///      reward is materialized later via claimDay (once the day has closed).
     function onPurchase(address buyer) external onlyPool {
         if (block.timestamp < startTime || block.timestamp > endTime) return;
-        uint256 r = purchaserRewardPerAcq;
-        // Bounded by the reserved purchaser budget; skip once exhausted so
-        // purchaser rewards can never strand depositor emissions. Safe to no-op
-        // because the pool wraps this hook in try/catch.
-        if (r == 0 || purchaserBudget < r) return;
-        purchaserBudget -= r;
-        rewardCredit[buyer] += r;
-        emit PurchaserRewarded(buyer, r);
+        uint256 day = dayOf(block.timestamp);
+        dayTotalAcq[day] += 1;
+        dayUserAcq[day][buyer] += 1;
+        emit PurchaseRecorded(buyer, day);
+    }
+
+    /// @notice Claim `account`'s pro-rata share of a CLOSED day's purchaser pot.
+    ///         reward = purchaserDailyPot * userAcquisitions / totalAcquisitions,
+    ///         capped by the remaining purchaserBudget (segregation guard).
+    function claimDay(uint256 day, address account) external {
+        require(block.timestamp >= startTime + (day + 1) * SECONDS_PER_DAY, "EM: day still open");
+        require(!dayClaimed[day][account], "EM: already claimed");
+        uint256 total = dayTotalAcq[day];
+        uint256 userAcq = dayUserAcq[day][account];
+        require(userAcq > 0, "EM: no acquisitions");
+        dayClaimed[day][account] = true;
+
+        uint256 reward = (purchaserDailyPot * userAcq) / total;
+        if (reward > purchaserBudget) reward = purchaserBudget;
+        purchaserBudget -= reward;
+        rewardCredit[account] += reward;
+        emit PurchaserDayClaimed(account, day, reward);
     }
 
     /// @notice Realize a position's pending depositor rewards without closing it.
