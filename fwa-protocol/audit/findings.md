@@ -9,11 +9,13 @@
 | Randomness router + adapters (skeletons) | ✅ | ✅ | ✅ | partial |
 | FWAToken / FWAClaim / FeeRouter / Whitelist | ✅ | ✅ | ✅ | ✅ |
 | FWAEmitter (√backing + budget) | ✅ | ✅ | ✅ | ✅ |
-| **Crown / tithe** | ❌ (skipped) | ✅ | ✅ | ✅ |
-| **Daily-pot purchaser rewards** | ❌ (skipped) | ✅ | ✅ | ✅ |
+| **Crown / tithe** | ❌ (see note) | ✅ | ✅✅ | ✅ |
+| **Daily-pot purchaser rewards** | ❌ (see note) | ✅ | ✅✅ | ✅ |
 
-The two ❌ areas received Slither + manual review but not the multi-agent
-adversarial pass; auditors should prioritize them.
+The two ❌ areas did not get the multi-agent adversarial pass, but received a
+**documented manual adversarial review** (`crown-daily-pot-review.md`, 16 attack
+vectors) in addition to Slither and regression tests. Auditors should still give
+them focused attention.
 
 ## Confirmed findings from adversarial review (all fixed)
 

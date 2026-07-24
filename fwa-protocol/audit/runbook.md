@@ -20,8 +20,9 @@ especially:
 6. `FWAToken(cap, admin, feeWallet)`; `FWAEmitter(fwa, owner)`; `emitter.setPool(pool)`;
    `pool.setEmitter(emitter)`; `fwa.setFeeExempt(emitter, true)`;
    `emitter.configure(start, end, depositorRatePerSec, purchaserDailyPot)`;
-   `emitter.setPurchaserBudget(x)`; fund the emitter with
-   `depositorCap + purchaserBudget` $FWA.
+   `emitter.setPurchaserBudget(x)` with `x >= EMISSION_DAYS * purchaserDailyPot`
+   (under-funding causes intra-day purchaser claim races — see review note C-N1);
+   fund the emitter with at least `depositorCap + purchaserBudget` $FWA.
 7. Verify all contracts on Blockscout (`forge verify-contract --verifier blockscout`
    or hardhat-verify against the `robinhood-*` networks).
 
