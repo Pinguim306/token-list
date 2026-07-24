@@ -16,6 +16,7 @@ Source-of-truth brand assets for **Fake World Assets** on RobinhoodChain.
 
 | File | What it is |
 |---|---|
+| `fwa-brand-board.svg` / `.png` | **Brand board** — the one-page reference: palette (with hex + roles), Bungee/Inter type specimens, emblem, and usage notes. Mirror these values when setting up the Canva Brand Kit. |
 | `fwa-emblem.svg` | **Source** of the square app icon — geometric white "FWA" on a near-black badge with a rose glow, accent shelf, and gem. No font dependency (letters are vector paths). |
 | `fwa-emblem-512.png` | 512px raster of the emblem (reference). |
 | `fwa-launch-twitter-1600x900.png` | Launch/announcement banner for X/Twitter (Canva). |
