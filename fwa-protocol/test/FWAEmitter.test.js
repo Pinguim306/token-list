@@ -69,6 +69,7 @@ describe("FWAEmitter", function () {
     const ctx = await loadFixture(deploy);
     const now = await time.latest();
     await ctx.emitter.configure(now - 10, now + 100_000, 0n, 5n * WAD); // purchaserReward = 5 FWA
+    await ctx.emitter.setPurchaserBudget(100n * WAD); // reserve budget for purchaser rewards
 
     await deposit(ctx, ctx.alice, 1, 100n * WAD);
     await ctx.pool.connect(ctx.buyer).startDraw(ethers.MaxUint256);
@@ -77,6 +78,35 @@ describe("FWAEmitter", function () {
     await ctx.pool.connect(ctx.buyer).settle(drawId, 0); // Keep
 
     expect(await ctx.emitter.rewardCredit(ctx.buyer.address)).to.equal(5n * WAD);
+    expect(await ctx.emitter.purchaserBudget()).to.equal(95n * WAD); // decremented
+  });
+
+  it("purchaser rewards stop once the reserved budget is exhausted (no stranding of depositor rewards)", async () => {
+    const ctx = await loadFixture(deploy);
+    const now = await time.latest();
+    await ctx.emitter.configure(now - 10, now + 100_000, 0n, 5n * WAD);
+    await ctx.emitter.setPurchaserBudget(5n * WAD); // only enough for ONE acquisition
+
+    await deposit(ctx, ctx.alice, 1, 100n * WAD);
+    // first acquisition consumes the whole budget
+    await ctx.pool.connect(ctx.buyer).startDraw(ethers.MaxUint256);
+    let drawId = await ctx.pool.drawCount();
+    await ctx.adapter.fulfill(await ctx.router.requestCounter(), 0n);
+    await ctx.pool.connect(ctx.buyer).settle(drawId, 0);
+    expect(await ctx.emitter.rewardCredit(ctx.buyer.address)).to.equal(5n * WAD);
+    expect(await ctx.emitter.purchaserBudget()).to.equal(0n);
+
+    // buyer keeps the NFT; re-deposit a fresh position and draw again
+    await ctx.nft.connect(ctx.buyer).transferFrom(ctx.buyer.address, ctx.alice.address, 1);
+    await ctx.nft.connect(ctx.alice).approve(await ctx.pool.getAddress(), 1);
+    await ctx.pool.connect(ctx.alice).deposit(await ctx.nft.getAddress(), 1, 100n * WAD);
+    await ctx.pool.connect(ctx.buyer).startDraw(ethers.MaxUint256);
+    drawId = await ctx.pool.drawCount();
+    await ctx.adapter.fulfill(await ctx.router.requestCounter(), 0n);
+    await expect(ctx.pool.connect(ctx.buyer).settle(drawId, 0)).to.not.be.reverted;
+    // budget exhausted -> no further purchaser credit accrued (still exactly one reward)
+    expect(await ctx.emitter.rewardCredit(ctx.buyer.address)).to.equal(5n * WAD);
+    expect(await ctx.emitter.purchaserBudget()).to.equal(0n);
   });
 
   it("a reverting emitter can never brick the pool (guarded hooks)", async () => {

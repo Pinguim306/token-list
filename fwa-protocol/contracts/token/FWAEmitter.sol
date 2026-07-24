@@ -16,7 +16,14 @@ import {IFWAEmitter} from "../interfaces/IFWAEmitter.sol";
 /// @dev The pool calls the on* hooks wrapped in try/catch. This contract is
 ///      therefore written to never need to revert the pool: hooks no-op on
 ///      out-of-range/zero cases rather than reverting. Rewards are pull-based
-///      via claim(); accounting can never pay out more than the funded balance.
+///      via claim().
+///
+///      The two reward streams are SEGREGATED so they cannot cannibalize each
+///      other. Depositor emissions are bounded by depositorRatePerSec*(end-start);
+///      purchaser rewards are bounded by an explicit `purchaserBudget` that the
+///      owner funds and that `onPurchase` decrements (skipping once exhausted).
+///      Fund the contract with at least (depositor emission cap + purchaserBudget)
+///      $FWA so no legitimately-accrued reward is ever stranded.
 ///
 ///      Simplification vs. the original FWA: purchaser rewards are a fixed
 ///      per-acquisition amount instead of a pro-rata daily pot. Documented as a
@@ -49,11 +56,16 @@ contract FWAEmitter is IFWAEmitter, Ownable {
 
     // Purchaser side.
     uint256 public purchaserRewardPerAcq;
+    /// @notice $FWA reserved for purchaser rewards. Decremented per acquisition;
+    ///         once exhausted, onPurchase no-ops so it can never eat into the
+    ///         depositor emission allocation.
+    uint256 public purchaserBudget;
 
     mapping(address => uint256) public rewardCredit; // claimable $FWA
 
     event PoolUpdated(address indexed pool);
     event Configured(uint256 startTime, uint256 endTime, uint256 depositorRatePerSec, uint256 purchaserRewardPerAcq);
+    event PurchaserBudgetSet(uint256 amount);
     event Staked(uint256 indexed positionId, address indexed owner, uint256 shares);
     event Unstaked(uint256 indexed positionId, address indexed owner, uint256 pending);
     event Harvested(uint256 indexed positionId, address indexed owner, uint256 pending);
@@ -86,6 +98,14 @@ contract FWAEmitter is IFWAEmitter, Ownable {
         purchaserRewardPerAcq = purchaserRewardPerAcq_;
         lastUpdate = startTime_;
         emit Configured(startTime_, endTime_, depositorRatePerSec_, purchaserRewardPerAcq_);
+    }
+
+    /// @notice Reserve $FWA for purchaser rewards. The owner is responsible for
+    ///         funding the contract with at least this amount on top of the
+    ///         depositor emission cap.
+    function setPurchaserBudget(uint256 amount) external onlyOwner {
+        purchaserBudget = amount;
+        emit PurchaserBudgetSet(amount);
     }
 
     function _accrue() internal {
@@ -124,7 +144,11 @@ contract FWAEmitter is IFWAEmitter, Ownable {
     function onPurchase(address buyer) external onlyPool {
         if (block.timestamp < startTime || block.timestamp > endTime) return;
         uint256 r = purchaserRewardPerAcq;
-        if (r == 0) return;
+        // Bounded by the reserved purchaser budget; skip once exhausted so
+        // purchaser rewards can never strand depositor emissions. Safe to no-op
+        // because the pool wraps this hook in try/catch.
+        if (r == 0 || purchaserBudget < r) return;
+        purchaserBudget -= r;
         rewardCredit[buyer] += r;
         emit PurchaserRewarded(buyer, r);
     }
