@@ -1,0 +1,200 @@
+'npx hardhat clean' running (wd: /home/user/token-list/fwa-protocol)
+'npx hardhat clean --global' running (wd: /home/user/token-list/fwa-protocol)
+'npx hardhat compile --force' running (wd: /home/user/token-list/fwa-protocol)
+Detector: divide-before-multiply
+FWAPool.deposit(address,uint256,uint256) (contracts/core/FWAPool.sol#183-211) performs a multiplication on the result of a division:
+	- weight = INVERSE_WEIGHT_NUMERATOR / backing (contracts/core/FWAPool.sol#188)
+	- weightedBackingTotal += weight * backing (contracts/core/FWAPool.sol#205)
+FWAPool.acquisitionPrice() (contracts/core/FWAPool.sol#245-250) performs a multiplication on the result of a division:
+	- ev = weightedBackingTotal / tw (contracts/core/FWAPool.sol#248)
+	- (ev * (BPS + surchargeBps)) / BPS (contracts/core/FWAPool.sol#249)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#divide-before-multiply
+Detector: incorrect-equality
+FWAEmitter.pendingOf(uint256) (contracts/token/FWAEmitter.sol#209-218) uses a dangerous strict equality:
+	- s.shares == 0 (contracts/token/FWAEmitter.sol#211)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#dangerous-strict-equalities
+Detector: reentrancy-no-eth
+Reentrancy in FWAPool.startDraw(uint256) (contracts/core/FWAPool.sol#254-280):
+	External calls:
+	- backingToken.safeTransferFrom(msg.sender,address(this),price) (contracts/core/FWAPool.sol#261)
+	State variables written after the call(s):
+	- drawInFlight = true (contracts/core/FWAPool.sol#275)
+	FWAPool.drawInFlight (contracts/core/FWAPool.sol#129) can be used in cross function reentrancies:
+	- FWAPool.drawInFlight (contracts/core/FWAPool.sol#129)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#reentrancy-vulnerabilities-2
+Detector: uninitialized-local
+FeeRouter.distribute(IERC20).distributed (contracts/core/FeeRouter.sol#59) is a local variable never initialized
+FeeRouter._setRecipients(address[],uint256[]).sum (contracts/core/FeeRouter.sol#38) is a local variable never initialized
+FWAToken._update(address,address,uint256).fee (contracts/token/FWAToken.sol#74) is a local variable never initialized
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#uninitialized-local-variables
+Detector: unused-return
+FWAPool.startDraw(uint256) (contracts/core/FWAPool.sol#254-280) ignores return value by router.requestRandom(drawId) (contracts/core/FWAPool.sol#279)
+RandomnessRouter.requestRandom(uint256) (contracts/randomness/RandomnessRouter.sol#43-50) ignores return value by adapter.requestRandomness(routerRequestId) (contracts/randomness/RandomnessRouter.sol#49)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#unused-return
+Detector: missing-zero-check
+FWAPool.setEmitter(address).emitter_ (contracts/core/FWAPool.sol#564) lacks a zero-check on :
+		- emitter = emitter_ (contracts/core/FWAPool.sol#565)
+ReentrantToken.setTarget(address).t (contracts/mocks/ReentrantToken.sol#22) lacks a zero-check on :
+		- target = t (contracts/mocks/ReentrantToken.sol#23)
+CCIPVRFAdapter.configure(ICCIPRouterClient,uint64,address,address).vrfRequester_ (contracts/randomness/CCIPVRFAdapter.sol#43) lacks a zero-check on :
+		- vrfRequester = vrfRequester_ (contracts/randomness/CCIPVRFAdapter.sol#49)
+CCIPVRFAdapter.configure(ICCIPRouterClient,uint64,address,address).feeToken_ (contracts/randomness/CCIPVRFAdapter.sol#43) lacks a zero-check on :
+		- feeToken = feeToken_ (contracts/randomness/CCIPVRFAdapter.sol#50)
+CCIPVRFAdapter.rescueETH(address,uint256).to (contracts/randomness/CCIPVRFAdapter.sol#93) lacks a zero-check on :
+		- (ok,None) = to.call{value: amount}() (contracts/randomness/CCIPVRFAdapter.sol#94)
+MockRandomnessAdapter.constructor(address).router_ (contracts/randomness/MockRandomnessAdapter.sol#15) lacks a zero-check on :
+		- router = router_ (contracts/randomness/MockRandomnessAdapter.sol#16)
+VRFRequester.configure(ICCIPRouterClient,IVRFCoordinatorV2Plus,bytes32,uint256,uint64,address,address).adapter_ (contracts/randomness/VRFRequester.sol#61) lacks a zero-check on :
+		- adapter = adapter_ (contracts/randomness/VRFRequester.sol#69)
+VRFRequester.configure(ICCIPRouterClient,IVRFCoordinatorV2Plus,bytes32,uint256,uint64,address,address).feeToken_ (contracts/randomness/VRFRequester.sol#62) lacks a zero-check on :
+		- feeToken = feeToken_ (contracts/randomness/VRFRequester.sol#70)
+VRFRequester.rescueETH(address,uint256).to (contracts/randomness/VRFRequester.sol#116) lacks a zero-check on :
+		- (ok,None) = to.call{value: amount}() (contracts/randomness/VRFRequester.sol#117)
+FWAEmitter.setPool(address).pool_ (contracts/token/FWAEmitter.sol#91) lacks a zero-check on :
+		- pool = pool_ (contracts/token/FWAEmitter.sol#92)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#missing-zero-address-validation
+Detector: reentrancy-benign
+Reentrancy in FWAPool._deliver(address,address,uint256) (contracts/core/FWAPool.sol#399-406):
+	External calls:
+	- IERC721(asset).transferFrom(address(this),to,tokenId) (contracts/core/FWAPool.sol#400-405)
+	State variables written after the call(s):
+	- nftClaims[keccak256(bytes)(abi.encodePacked(asset,tokenId))] = to (contracts/core/FWAPool.sol#403)
+Reentrancy in VRFRequester.ccipReceive(CCIP.Any2EVMMessage) (contracts/randomness/VRFRequester.sol#75-93):
+	External calls:
+	- vrfRequestId = coordinator.requestRandomWords(VRFV2Plus.RandomWordsRequest({keyHash:keyHash,subId:subId,requestConfirmations:requestConfirmations,callbackGasLimit:callbackGasLimit,numWords:1,extraArgs:})) (contracts/randomness/VRFRequester.sol#81-90)
+	State variables written after the call(s):
+	- vrfToRouterRequest[vrfRequestId] = routerRequestId (contracts/randomness/VRFRequester.sol#91)
+Reentrancy in FWAPool.deposit(address,uint256,uint256) (contracts/core/FWAPool.sol#183-211):
+	External calls:
+	- IERC721(asset).transferFrom(msg.sender,address(this),tokenId) (contracts/core/FWAPool.sol#191)
+	- backingToken.safeTransferFrom(msg.sender,address(this),backing) (contracts/core/FWAPool.sol#192)
+	State variables written after the call(s):
+	- activeCount += 1 (contracts/core/FWAPool.sol#204)
+	- _claimTopSpot(id) (contracts/core/FWAPool.sol#209)
+		- backingCredit[positions[topListingId].depositor] += pot (contracts/core/FWAPool.sol#514)
+	- id = ++ positionCount (contracts/core/FWAPool.sol#194)
+	- positions[id] = Position({depositor:msg.sender,asset:asset,tokenId:tokenId,backing:backing,weight:weight,active:true,feeDebt:accFeePerPosition}) (contracts/core/FWAPool.sol#195-203)
+	- _claimTopSpot(id) (contracts/core/FWAPool.sol#209)
+		- topBacking = p.backing (contracts/core/FWAPool.sol#509)
+		- topBacking = p.backing (contracts/core/FWAPool.sol#517)
+	- _claimTopSpot(id) (contracts/core/FWAPool.sol#209)
+		- topListingId = id (contracts/core/FWAPool.sol#508)
+		- topListingId = id (contracts/core/FWAPool.sol#516)
+	- _claimTopSpot(id) (contracts/core/FWAPool.sol#209)
+		- topPot = 0 (contracts/core/FWAPool.sol#513)
+	- weightedBackingTotal += weight * backing (contracts/core/FWAPool.sol#205)
+Reentrancy in FWAPool.startDraw(uint256) (contracts/core/FWAPool.sol#254-280):
+	External calls:
+	- backingToken.safeTransferFrom(msg.sender,address(this),price) (contracts/core/FWAPool.sol#261)
+	State variables written after the call(s):
+	- currentDrawId = drawId (contracts/core/FWAPool.sol#276)
+	- drawId = ++ drawCount (contracts/core/FWAPool.sol#263)
+	- draws[drawId] = Draw({buyer:msg.sender,price:price,totalWeightSnapshot:tw,randomWord:0,requestedAt:block.timestamp,fulfilledAt:0,selectedId:0,state:DrawState.Requested}) (contracts/core/FWAPool.sol#265-274)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#reentrancy-vulnerabilities-3
+Detector: reentrancy-events
+Reentrancy in VRFRequester.ccipReceive(CCIP.Any2EVMMessage) (contracts/randomness/VRFRequester.sol#75-93):
+	External calls:
+	- vrfRequestId = coordinator.requestRandomWords(VRFV2Plus.RandomWordsRequest({keyHash:keyHash,subId:subId,requestConfirmations:requestConfirmations,callbackGasLimit:callbackGasLimit,numWords:1,extraArgs:})) (contracts/randomness/VRFRequester.sol#81-90)
+	Event emitted after the call(s):
+	- RequestForwarded(routerRequestId,vrfRequestId) (contracts/randomness/VRFRequester.sol#92)
+Reentrancy in FWAClaim.claim(uint256,address,uint256,bytes32[]) (contracts/token/FWAClaim.sol#47-54):
+	External calls:
+	- fwa.safeTransfer(account,amount) (contracts/token/FWAClaim.sol#52)
+	Event emitted after the call(s):
+	- Claimed(index,account,amount) (contracts/token/FWAClaim.sol#53)
+Reentrancy in FWAEmitter.claim() (contracts/token/FWAEmitter.sol#200-206):
+	External calls:
+	- fwa.safeTransfer(msg.sender,amt) (contracts/token/FWAEmitter.sol#204)
+	Event emitted after the call(s):
+	- Claimed(msg.sender,amt) (contracts/token/FWAEmitter.sol#205)
+Reentrancy in FeeRouter.collect(address) (contracts/core/FeeRouter.sol#50-53):
+	External calls:
+	- IPoolCredit(pool).withdrawCredit() (contracts/core/FeeRouter.sol#51)
+	Event emitted after the call(s):
+	- Collected(pool) (contracts/core/FeeRouter.sol#52)
+Reentrancy in FeeRouter.distribute(IERC20) (contracts/core/FeeRouter.sol#56-66):
+	External calls:
+	- token.safeTransfer(recipients[i],amt) (contracts/core/FeeRouter.sol#63)
+	Event emitted after the call(s):
+	- Distributed(address(token),bal) (contracts/core/FeeRouter.sol#65)
+Reentrancy in VRFRequester.fulfillRandomWords(uint256,uint256[]) (contracts/randomness/VRFRequester.sol#96-112):
+	External calls:
+	- msgId = ccipRouter.ccipSend{value: fee}(srcChainSelector,message) (contracts/randomness/VRFRequester.sol#110)
+	- msgId = ccipRouter.ccipSend{value: 0}(srcChainSelector,message) (contracts/randomness/VRFRequester.sol#110)
+	Event emitted after the call(s):
+	- RandomnessRelayed(routerRequestId,randomWords[0],msgId) (contracts/randomness/VRFRequester.sol#111)
+Reentrancy in CCIPVRFAdapter.requestRandomness(uint256) (contracts/randomness/CCIPVRFAdapter.sol#55-71):
+	External calls:
+	- messageId = ccipRouter.ccipSend{value: fee}(destChainSelector,message) (contracts/randomness/CCIPVRFAdapter.sol#69)
+	- messageId = ccipRouter.ccipSend{value: 0}(destChainSelector,message) (contracts/randomness/CCIPVRFAdapter.sol#69)
+	Event emitted after the call(s):
+	- RandomnessRequested(routerRequestId,messageId) (contracts/randomness/CCIPVRFAdapter.sol#70)
+Reentrancy in FWAClaim.sweep(address,uint256) (contracts/token/FWAClaim.sol#57-60):
+	External calls:
+	- fwa.safeTransfer(to,amount) (contracts/token/FWAClaim.sol#58)
+	Event emitted after the call(s):
+	- Swept(to,amount) (contracts/token/FWAClaim.sol#59)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#reentrancy-vulnerabilities-4
+Detector: timestamp
+FWAPool.settle(uint256,FWAPool.Choice) (contracts/core/FWAPool.sol#299-305) uses timestamp for comparisons
+	Dangerous comparisons:
+	- require(bool,string)(d.state == DrawState.Fulfilled,FWA: not fulfilled) (contracts/core/FWAPool.sol#301)
+	- require(bool,string)(msg.sender == d.buyer,FWA: only buyer) (contracts/core/FWAPool.sol#302)
+	- require(bool,string)(block.timestamp <= d.fulfilledAt + settlementWindow,FWA: window passed) (contracts/core/FWAPool.sol#303)
+FWAPool.finalize(uint256) (contracts/core/FWAPool.sol#309-314) uses timestamp for comparisons
+	Dangerous comparisons:
+	- require(bool,string)(d.state == DrawState.Fulfilled,FWA: not fulfilled) (contracts/core/FWAPool.sol#311)
+	- require(bool,string)(block.timestamp > d.fulfilledAt + settlementWindow,FWA: too early) (contracts/core/FWAPool.sol#312)
+FWAPool.expireDraw(uint256) (contracts/core/FWAPool.sol#318-326) uses timestamp for comparisons
+	Dangerous comparisons:
+	- require(bool,string)(d.state == DrawState.Requested,FWA: not pending) (contracts/core/FWAPool.sol#320)
+	- require(bool,string)(block.timestamp > d.requestedAt + requestTimeout,FWA: not expired) (contracts/core/FWAPool.sol#321)
+FWAEmitter.dayOf(uint256) (contracts/token/FWAEmitter.sol#110-112) uses timestamp for comparisons
+	Dangerous comparisons:
+	- ts < startTime (contracts/token/FWAEmitter.sol#111)
+FWAEmitter._accrue() (contracts/token/FWAEmitter.sol#126-134) uses timestamp for comparisons
+	Dangerous comparisons:
+	- nowClamped <= lastUpdate (contracts/token/FWAEmitter.sol#128)
+	- block.timestamp < endTime (contracts/token/FWAEmitter.sol#127)
+FWAEmitter.onClose(uint256) (contracts/token/FWAEmitter.sol#147-156) uses timestamp for comparisons
+	Dangerous comparisons:
+	- pending > 0 (contracts/token/FWAEmitter.sol#152)
+FWAEmitter.onPurchase(address) (contracts/token/FWAEmitter.sol#161-167) uses timestamp for comparisons
+	Dangerous comparisons:
+	- block.timestamp < startTime || block.timestamp > endTime (contracts/token/FWAEmitter.sol#162)
+FWAEmitter.claimDay(uint256,address) (contracts/token/FWAEmitter.sol#172-185) uses timestamp for comparisons
+	Dangerous comparisons:
+	- require(bool,string)(block.timestamp >= startTime + (day + 1) * SECONDS_PER_DAY,EM: day still open) (contracts/token/FWAEmitter.sol#173)
+FWAEmitter.harvest(uint256) (contracts/token/FWAEmitter.sol#188-197) uses timestamp for comparisons
+	Dangerous comparisons:
+	- require(bool,string)(s.owner == msg.sender,EM: not owner) (contracts/token/FWAEmitter.sol#191)
+	- pending > 0 (contracts/token/FWAEmitter.sol#195)
+FWAEmitter.claim() (contracts/token/FWAEmitter.sol#200-206) uses timestamp for comparisons
+	Dangerous comparisons:
+	- require(bool,string)(amt > 0,EM: nothing) (contracts/token/FWAEmitter.sol#202)
+FWAEmitter.pendingOf(uint256) (contracts/token/FWAEmitter.sol#209-218) uses timestamp for comparisons
+	Dangerous comparisons:
+	- s.shares == 0 (contracts/token/FWAEmitter.sol#211)
+	- nowClamped > lastUpdate && totalShares > 0 (contracts/token/FWAEmitter.sol#214)
+	- block.timestamp < endTime (contracts/token/FWAEmitter.sol#213)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#block-timestamp
+Detector: low-level-calls
+Low level call in CCIPVRFAdapter.rescueETH(address,uint256) (contracts/randomness/CCIPVRFAdapter.sol#93-96):
+	- (ok,None) = to.call{value: amount}() (contracts/randomness/CCIPVRFAdapter.sol#94)
+Low level call in VRFRequester.rescueETH(address,uint256) (contracts/randomness/VRFRequester.sol#116-119):
+	- (ok,None) = to.call{value: amount}() (contracts/randomness/VRFRequester.sol#117)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#low-level-calls
+Detector: missing-inheritance
+FWAPool (contracts/core/FWAPool.sol#34-576) should inherit from IPoolCredit (contracts/core/FeeRouter.sol#8-10)
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#missing-inheritance
+Detector: unindexed-event-address
+Event CCIPVRFAdapter.Configured(address,uint64,address,address) (contracts/randomness/CCIPVRFAdapter.sol#35) has address parameters but no indexed parameters
+Event VRFRequester.Configured(address,address,uint64,address) (contracts/randomness/VRFRequester.sol#49) has address parameters but no indexed parameters
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#unindexed-event-address-parameters
+Detector: constable-states
+VRFRequester.callbackGasLimit (contracts/randomness/VRFRequester.sol#42) should be constant 
+VRFRequester.requestConfirmations (contracts/randomness/VRFRequester.sol#41) should be constant 
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#state-variables-that-could-be-declared-constant
+Detector: immutable-states
+MockRandomnessAdapter.router (contracts/randomness/MockRandomnessAdapter.sol#11) should be immutable 
+Reference: https://github.com/crytic/slither/wiki/Detector-Documentation#state-variables-that-could-be-declared-immutable

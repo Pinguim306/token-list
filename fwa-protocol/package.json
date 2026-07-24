@@ -1,0 +1,19 @@
+{
+  "name": "fwa-protocol",
+  "version": "0.1.0",
+  "description": "Fake World Assets (FWA) — randomized on-chain asset-acquisition protocol for RobinhoodChain",
+  "license": "MIT",
+  "scripts": {
+    "build": "hardhat compile",
+    "test": "hardhat test",
+    "coverage": "hardhat coverage",
+    "clean": "hardhat clean"
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
+    "hardhat": "^2.22.15"
+  },
+  "dependencies": {
+    "@openzeppelin/contracts": "5.0.2"
+  }
+}

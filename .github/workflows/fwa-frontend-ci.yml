@@ -1,0 +1,41 @@
+name: fwa-frontend CI
+
+on:
+  push:
+    branches: ["**"]
+    paths: ["fwa-app/**", "fwa-indexer/**", ".github/workflows/fwa-frontend-ci.yml"]
+  pull_request:
+    paths: ["fwa-app/**", "fwa-indexer/**", ".github/workflows/fwa-frontend-ci.yml"]
+
+jobs:
+  app:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: fwa-app
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: fwa-app/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run build
+
+  indexer:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: fwa-indexer
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: fwa-indexer/package-lock.json
+      - run: npm ci
+      - run: npm run codegen
+      - run: npm run typecheck
