@@ -4,3 +4,8 @@ out/
 next-env.d.ts
 .env.local
 *.tsbuildinfo
+
+# e2e build outputs
+.next-e2e-*
+test-results/
+playwright-report/
