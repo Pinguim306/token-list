@@ -4,6 +4,7 @@ import { useAccount, useReadContract, useReadContracts } from "wagmi";
 import { pool, backing, emitter } from "@/lib/contracts";
 import { fmt, bpsToPct, short, BPS } from "@/lib/format";
 import { DEMO, demo } from "@/lib/demo";
+import { ErrorNote, SkeletonRows } from "@/components/States";
 
 type PositionTuple = {
   depositor: `0x${string}`;
@@ -49,7 +50,12 @@ export default function Portfolio() {
   });
   const dec = DEMO ? demo.decimals : decimals ?? 18;
 
-  const { data: count } = useReadContract({
+  const {
+    data: count,
+    isLoading: countLoading,
+    isError: countError,
+    refetch: refetchCount,
+  } = useReadContract({
     ...pool,
     functionName: "positionCount",
     query: { enabled: live, refetchInterval: 10000 },
@@ -57,7 +63,12 @@ export default function Portfolio() {
   const n = count ? Number(count) : 0;
   const ids = Array.from({ length: n }, (_, i) => BigInt(i + 1));
 
-  const { data: rowData } = useReadContracts({
+  const {
+    data: rowData,
+    isLoading: rowsLoading,
+    isError: rowsError,
+    refetch: refetchRows,
+  } = useReadContracts({
     contracts: ids.flatMap((id) => [
       { ...pool, functionName: "positions", args: [id] } as const,
       { ...pool, functionName: "selectionOddsBps", args: [id] } as const,
@@ -88,6 +99,14 @@ export default function Portfolio() {
           return isMine ? { id, tokenId: p!.tokenId, backing: p!.backing, odds } : null;
         })
         .filter(Boolean) as { id: bigint; tokenId: bigint; backing: bigint; odds: bigint | undefined }[]);
+
+  // "no positions" and "the read failed" are different facts — keep them apart.
+  const loading = DEMO ? false : countLoading || (n > 0 && rowsLoading);
+  const failed = DEMO ? false : countError || rowsError;
+  const refetch = () => {
+    refetchCount();
+    refetchRows();
+  };
 
   const credit = DEMO ? demo.credit : (balances?.[0]?.result as bigint | undefined);
   const bid = DEMO ? demo.bidBps : (balances?.[1]?.result as bigint | undefined);
@@ -153,7 +172,15 @@ export default function Portfolio() {
 
       <div className="mt-8">
         <Card title={`Your positions (${mine.length})`}>
-          {mine.length === 0 ? (
+          {failed ? (
+            <ErrorNote
+              title="Could not load your positions"
+              detail="Reading the pool failed, so this list may be incomplete."
+              onRetry={refetch}
+            />
+          ) : loading ? (
+            <SkeletonRows rows={2} cols={3} />
+          ) : mine.length === 0 ? (
             <p className="m-0 font-body text-sm text-muted">
               You have no open positions. Deposit an NFT plus backing from the pool page to open one.
             </p>
