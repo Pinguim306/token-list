@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useAccount, useReadContract, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { pool, backing } from "@/lib/contracts";
+import { parseInteger } from "@/lib/parse";
 import { fmt } from "@/lib/format";
 import { DEMO, demo } from "@/lib/demo";
 
@@ -18,6 +19,8 @@ export function CreditsPanel() {
   });
   const credit = DEMO ? demo.credit : (creditData as bigint | undefined);
   const [posId, setPosId] = useState("");
+  // Never BigInt() raw input — it throws, and a throw here unmounts the card.
+  const parsedPos = parseInteger(posId, "Position id");
   const { writeContract, data: hash, isPending } = useWriteContract();
   const { isLoading: mining } = useWaitForTransactionReceipt({ hash });
   const busy = isPending || mining || DEMO;
@@ -32,14 +35,23 @@ export function CreditsPanel() {
           Withdraw credit
         </button>
       </div>
-      <label>Claim earnings for position id</label>
+      <label htmlFor="claim-position">Claim earnings for position id</label>
       <div className="row">
-        <input value={posId} onChange={(e) => setPosId(e.target.value)} placeholder="1" style={{ maxWidth: 120 }} />
-        <button className="btn" disabled={busy || !posId}
-          onClick={() => writeContract({ ...pool, functionName: "claimEarnings", args: [BigInt(posId || "0")] })}>
+        <input
+          id="claim-position"
+          value={posId}
+          inputMode="numeric"
+          onChange={(e) => setPosId(e.target.value)}
+          placeholder="1"
+          style={{ maxWidth: 120 }}
+          aria-invalid={parsedPos.error ? true : undefined}
+        />
+        <button className="btn" disabled={busy || parsedPos.value === null}
+          onClick={() => writeContract({ ...pool, functionName: "claimEarnings", args: [parsedPos.value!] })}>
           Claim earnings
         </button>
       </div>
+      {parsedPos.error ? <p className="field-error" role="alert">{parsedPos.error}</p> : null}
       <p className="muted">All payouts are pull-based: earnings, refunds, sell-back proceeds, and crown tithes accrue as credit you withdraw here.</p>
     </div>
   );

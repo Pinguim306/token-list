@@ -6,6 +6,7 @@ import { explorer } from "@/lib/contracts";
 import { fmt, bpsToPct, short, BPS } from "@/lib/format";
 import { DEMO, demo } from "@/lib/demo";
 import { usePositions, groupByCollection } from "@/lib/usePositions";
+import { SkeletonRows, ErrorNote, EmptyNote } from "@/components/States";
 import { Erc721Abi } from "@/lib/abis";
 
 function Stat({ label, value, hint, tone }: { label: string; value: string; hint?: string; tone?: string }) {
@@ -30,7 +31,7 @@ export default function CollectionDetail() {
   const raw = (params?.address ?? "").toLowerCase();
   const valid = /^0x[0-9a-f]{40}$/.test(raw);
 
-  const { positions, decimals, bidBps, crownId } = usePositions();
+  const { positions, decimals, bidBps, crownId, isLoading, isError, refetch } = usePositions();
   const items = valid ? groupByCollection(positions).get(raw) ?? [] : [];
 
   const { data: meta } = useReadContracts({
@@ -110,10 +111,22 @@ export default function CollectionDetail() {
         Items ({items.length})
       </h2>
 
-      {items.length === 0 ? (
-        <p className="mt-4 mb-0 font-body text-sm text-muted">
-          No active positions hold this collection right now.
-        </p>
+      {isError ? (
+        <div className="mt-5">
+          <ErrorNote
+            title="Could not load this collection"
+            detail="Reading positions from the pool failed."
+            onRetry={refetch}
+          />
+        </div>
+      ) : isLoading ? (
+        <div className="mt-5 overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
+          <SkeletonRows rows={3} cols={3} />
+        </div>
+      ) : items.length === 0 ? (
+        <div className="mt-4">
+          <EmptyNote>No active positions hold this collection right now.</EmptyNote>
+        </div>
       ) : (
         <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {items

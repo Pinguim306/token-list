@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useAccount, useReadContracts, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { emitter, addresses } from "@/lib/contracts";
+import { parseInteger } from "@/lib/parse";
 import { fmt } from "@/lib/format";
 import { DEMO, demo } from "@/lib/demo";
 
@@ -23,6 +24,7 @@ export function RewardsPanel() {
   const budget = DEMO ? demo.purchaserBudget : (data?.[2]?.result as bigint | undefined);
 
   const [claimDayInput, setClaimDayInput] = useState("");
+  const parsedDay = parseInteger(claimDayInput, "Day");
   const { writeContract, data: hash, isPending } = useWriteContract();
   const { isLoading: mining } = useWaitForTransactionReceipt({ hash });
   const busy = isPending || mining || DEMO;
@@ -48,14 +50,23 @@ export function RewardsPanel() {
           Claim $FWA
         </button>
       </div>
-      <label>Claim a closed day&apos;s purchaser pot</label>
+      <label htmlFor="claim-day">Claim a closed day&apos;s purchaser pot</label>
       <div className="row">
-        <input value={claimDayInput} onChange={(e) => setClaimDayInput(e.target.value)} placeholder="0" style={{ maxWidth: 120 }} />
-        <button className="btn" disabled={busy || !address || claimDayInput === ""}
-          onClick={() => writeContract({ ...emitter, functionName: "claimDay", args: [BigInt(claimDayInput || "0"), address!] })}>
+        <input
+          id="claim-day"
+          value={claimDayInput}
+          inputMode="numeric"
+          onChange={(e) => setClaimDayInput(e.target.value)}
+          placeholder="0"
+          style={{ maxWidth: 120 }}
+          aria-invalid={parsedDay.error ? true : undefined}
+        />
+        <button className="btn" disabled={busy || !address || parsedDay.value === null}
+          onClick={() => writeContract({ ...emitter, functionName: "claimDay", args: [parsedDay.value!, address!] })}>
           Claim day pot
         </button>
       </div>
+      {parsedDay.error ? <p className="field-error" role="alert">{parsedDay.error}</p> : null}
       <p className="muted">Depositor emissions accrue on √backing; purchasers share each day&apos;s pot pro-rata, claimable once the day closes.</p>
     </div>
   );

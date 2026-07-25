@@ -23,6 +23,13 @@ a:hover { text-decoration: underline; }
   display: flex; align-items: center; justify-content: space-between; gap: 16px;
   padding: 14px 0 22px;
 }
+/* Inline validation under a form field. */
+.field-error {
+  margin: 6px 0 0; font-size: 13px; color: var(--danger); font-weight: 500;
+}
+input[aria-invalid="true"] { border-color: var(--danger); }
+.notice.ok { border-color: var(--success); color: var(--ink); }
+
 .nav-actions { display: flex; align-items: center; gap: 14px; }
 .nav-link {
   font-size: 14px; font-weight: 600; color: var(--muted); text-decoration: none;

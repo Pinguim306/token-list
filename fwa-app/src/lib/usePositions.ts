@@ -35,7 +35,12 @@ export function usePositions() {
     query: { enabled: !DEMO },
   });
 
-  const { data: count } = useReadContract({
+  const {
+    data: count,
+    isLoading: countLoading,
+    isError: countError,
+    refetch: refetchCount,
+  } = useReadContract({
     ...pool,
     functionName: "positionCount",
     query: { enabled: !DEMO, refetchInterval: 10000 },
@@ -44,7 +49,12 @@ export function usePositions() {
   const n = count ? Number(count) : 0;
   const ids = Array.from({ length: n }, (_, i) => BigInt(i + 1));
 
-  const { data } = useReadContracts({
+  const {
+    data,
+    isLoading: rowsLoading,
+    isError: rowsError,
+    refetch: refetchRows,
+  } = useReadContracts({
     contracts: ids.flatMap((id) => [
       { ...pool, functionName: "positions", args: [id] } as const,
       { ...pool, functionName: "selectionOddsBps", args: [id] } as const,
@@ -84,6 +94,15 @@ export function usePositions() {
     decimals: DEMO ? demo.decimals : decimals ?? 18,
     crownId: DEMO ? demo.topListingId : (poolMeta?.[0]?.result as bigint | undefined),
     bidBps: DEMO ? demo.bidBps : (poolMeta?.[1]?.result as bigint | undefined),
+    // Loading and error are surfaced so screens can tell "nothing here" apart
+    // from "we could not find out" — collapsing them hides an RPC outage behind
+    // what looks like an empty pool.
+    isLoading: DEMO ? false : countLoading || (n > 0 && rowsLoading),
+    isError: DEMO ? false : countError || rowsError,
+    refetch: () => {
+      refetchCount();
+      refetchRows();
+    },
   };
 }
 

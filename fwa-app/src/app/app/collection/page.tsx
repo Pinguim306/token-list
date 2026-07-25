@@ -5,10 +5,11 @@ import { nft } from "@/lib/contracts";
 import { fmt, short, BPS } from "@/lib/format";
 import { DEMO, demo } from "@/lib/demo";
 import { usePositions, groupByCollection } from "@/lib/usePositions";
+import { SkeletonRows, ErrorNote, EmptyNote } from "@/components/States";
 import { Erc721Abi } from "@/lib/abis";
 
 export default function CollectionIndex() {
-  const { positions, decimals, bidBps, crownId } = usePositions();
+  const { positions, decimals, bidBps, crownId, isLoading, isError, refetch } = usePositions();
   const groups = groupByCollection(positions);
   const assets = Array.from(groups.keys());
 
@@ -44,10 +45,22 @@ export default function CollectionIndex() {
         than one whitelisted collection can sit in the same pool.
       </p>
 
-      {assets.length === 0 ? (
-        <p className="mt-8 mb-0 font-body text-sm text-muted">
-          No active positions yet, so no collections are represented in the pool.
-        </p>
+      {isError ? (
+        <div className="mt-8">
+          <ErrorNote
+            title="Could not load collections"
+            detail="Reading positions from the pool failed, so the collections in it are unknown."
+            onRetry={refetch}
+          />
+        </div>
+      ) : isLoading ? (
+        <div className="mt-8 overflow-hidden rounded-lg border border-border bg-surface shadow-sm">
+          <SkeletonRows rows={3} cols={4} />
+        </div>
+      ) : assets.length === 0 ? (
+        <div className="mt-8">
+          <EmptyNote>No active positions yet, so no collections are represented in the pool.</EmptyNote>
+        </div>
       ) : (
         <div className="mt-8 grid gap-5 md:grid-cols-2">
           {assets.map((asset, i) => {
