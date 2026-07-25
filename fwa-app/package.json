@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "e2e": "node e2e/build-variants.mjs && playwright test",
+    "e2e:demo": "node e2e/build-variants.mjs && playwright test --project=demo"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.62.7",
@@ -18,6 +20,7 @@
     "wagmi": "^2.14.6"
   },
   "devDependencies": {
+    "@playwright/test": "^1.56.1",
     "@tailwindcss/postcss": "^4.3.3",
     "@types/node": "^20.17.10",
     "@types/react": "^18.3.18",

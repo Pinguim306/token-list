@@ -36,7 +36,10 @@ function Stat({
       <p className="m-0 font-body text-[11px] font-semibold tracking-[0.14em] text-muted uppercase">
         {label}
       </p>
-      <p className={`m-0 mt-2 font-display text-2xl tabular-nums ${valueTone}`}>
+      <p
+        data-testid={`stat-${label.toLowerCase().replace(/\s+/g, "-")}`}
+        className={`m-0 mt-2 font-display text-2xl tabular-nums ${valueTone}`}
+      >
         {value}
         {unit ? <span className="ml-1.5 font-body text-sm text-muted">{unit}</span> : null}
       </p>
