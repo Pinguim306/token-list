@@ -22,13 +22,20 @@ and heavily-backed ones are rare.
 RobinhoodChain lacks two pillars the original FWA relies on:
 
 1. **No Chainlink VRF on-chain.** Randomness is abstracted behind a
-   `RandomnessRouter` + swappable adapter. The production path is
-   **Chainlink VRF v2.5 requested cross-chain from Arbitrum One over CCIP**
-   (`CCIPVRFAdapter`); a native provider (Pyth Entropy) is the target fallback.
-   A `MockRandomnessAdapter` drives the flow deterministically in tests.
+   `RandomnessRouter` + swappable adapter. The **launch path** is the
+   `KeeperHashChainAdapter`: a keeper commit-reveal hash chain mixed with a
+   future blockhash — the same oracle-free scheme StockRip runs in production on
+   Robinhood Chain, needing nothing but a funded keeper. **Chainlink VRF v2.5
+   over CCIP** (`CCIPVRFAdapter`) remains the stronger-trust upgrade, swappable
+   at the router with zero pool changes; a `MockRandomnessAdapter` drives the
+   flow deterministically in tests.
 2. **No blue-chip NFTs / ERC-721 bridge.** The core is **collection-agnostic and
    backing-token-agnostic** (any whitelisted ERC-721, backed by any ERC-20 such as
-   USDG), so the prize layer can pivot without touching pool accounting.
+   USDG), so the prize layer can pivot without touching pool accounting. The
+   `EquityBasket` wrapper extends the prize layer to **fungible tokenized
+   equities** (Robinhood tokenized stocks): shares wrap into an ERC-721 basket
+   that the pool treats like any whitelisted collection, and the draw winner
+   unwraps back into the underlying tokens.
 
 ## Security model — the lesson of the 2026-07-03 FWA exploit
 
@@ -62,13 +69,15 @@ work.
 | `core/FeeRouter.sol` | Splits protocol fees across recipients by basis-point shares |
 | `libraries/FenwickTree.sol` | O(log n) weighted random selection (fixed capacity for correct dynamic growth) |
 | `randomness/RandomnessRouter.sol` | Consumer ⇄ adapter indirection; minimal fulfill callback |
+| `randomness/KeeperHashChainAdapter.sol` | **Launch randomness**: keeper commit-reveal hash chain × future blockhash (StockRip-parity), one serialized request, permissionless stale-skip, slashable keeper bond |
 | `randomness/MockRandomnessAdapter.sol` | Deterministic randomness for tests / local |
 | `randomness/CCIPVRFAdapter.sol` | Production skeleton: VRF v2.5 request from Arbitrum One over CCIP (RH Chain side) |
 | `randomness/VRFRequester.sol` | Production skeleton: Arbitrum One counterpart — draws VRF, relays back over CCIP |
 | `token/FWAToken.sol` | `$FWA` reward token: capped, role-gated mint, launch gate, 1% DEX-trade fee |
 | `token/FWAEmitter.sol` | `$FWA` emissions (MasterChef-style): depositor rewards on √backing + pro-rata daily-pot purchaser rewards; guarded pool hooks |
 | `token/FWAClaim.sol` | Merkle-gated `$FWA` distribution (snapshot allocation) |
-| `mocks/*` | ERC-20/721 + pausable-721 + reverting-emitter + Fenwick + reentrancy harnesses (test-only) |
+| `basket/EquityBasket.sol` | Wraps allowlisted fungible tokenized equities into an ERC-721 basket (internal ledger, balance-delta deposits, burn-before-payout unwrap) so they enter the pool unchanged |
+| `mocks/*` | ERC-20/721 + pausable-721 + reverting-emitter + Fenwick + reentrancy + randomness-consumer harnesses (test-only) |
 
 The pool notifies the emitter via **guarded (try/catch) hooks** (`onDeposit` /
 `onClose` / `onPurchase`), so a buggy or malicious emitter can never revert or
@@ -97,8 +106,9 @@ to stay portable until Fase 0 confirms the chain's ArbOS opcode support.
 ```bash
 npm install
 npm run build          # hardhat compile
-npm test               # 37 tests: Fenwick, pool, freeze, DoS, crown, emitter,
-                       #           claim, periphery, + randomized invariants
+npm test               # 56 tests: Fenwick, pool, freeze, DoS, crown, emitter,
+                       #           claim, periphery, keeper randomness, equity
+                       #           baskets, + randomized invariants
 
 # Fase 0 — inventory the real testnet before committing further:
 npx hardhat run scripts/probe-chain.js --network robinhood-testnet
@@ -116,5 +126,10 @@ Networks are preconfigured in `hardhat.config.js` (`robinhood-testnet` = 46630,
 Before investing in Fase 1+, the probe + a CCIP round-trip spike must confirm:
 measured VRF-via-CCIP latency (p95) and per-draw cost are acceptable, contract
 deployment/verification works, ArbOS supports the chosen opcodes, and the mainnet
-ToS carries no blocker. If VRF-via-CCIP is unviable **and** no native provider
-onboards, the randomness requirement is unmet — stop.
+ToS carries no blocker.
+
+**The randomness leg of G0 is now satisfiable without any external provider:**
+the `KeeperHashChainAdapter` reproduces the scheme StockRip already runs live on
+Robinhood Chain mainnet, at a documented (weaker-than-VRF) trust level — see
+`audit/threat-model.md`. VRF-via-CCIP becomes an upgrade decision rather than a
+launch blocker.
