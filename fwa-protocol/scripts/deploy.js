@@ -3,10 +3,18 @@
  *
  *   npx hardhat run scripts/deploy.js --network robinhood-testnet
  *
- * Wiring: RandomnessRouter -> (Mock|CCIPVRF) adapter, FWAWhitelist, FeeRouter,
- * FWAFactory -> FWAPool. On testnet a MockRandomnessAdapter is used by default so
- * the flow is drivable end-to-end; set USE_CCIP=1 to deploy the CCIPVRFAdapter
- * skeleton instead (still requires configure() with real CCIP/VRF params).
+ * Wiring: RandomnessRouter -> adapter, FWAWhitelist, FeeRouter,
+ * FWAFactory -> FWAPool, EquityBasket (whitelisted), $FWA token + emitter.
+ *
+ * Adapter selection via ADAPTER=
+ *   keeper (default) — KeeperHashChainAdapter, the launch randomness path.
+ *                      KEEPER=0x... overrides the keeper address (defaults to
+ *                      the deployer). After deploy, run scripts/keeper-bot.js
+ *                      to commit the first chain and serve draws.
+ *   mock             — MockRandomnessAdapter, manually drivable (local/demo).
+ *   ccip             — CCIPVRFAdapter skeleton (still requires configure()
+ *                      with real CCIP/VRF params). USE_CCIP=1 also works for
+ *                      backward compatibility.
  */
 const hre = require("hardhat");
 
@@ -25,11 +33,19 @@ async function main() {
   const router = await (await E.getContractFactory("RandomnessRouter")).deploy(deployer.address);
   await router.waitForDeployment();
 
+  const kind = process.env.USE_CCIP === "1" ? "ccip" : (process.env.ADAPTER ?? "keeper");
   let adapter;
-  if (process.env.USE_CCIP === "1") {
+  if (kind === "ccip") {
     adapter = await (await E.getContractFactory("CCIPVRFAdapter")).deploy(deployer.address, await router.getAddress());
-  } else {
+  } else if (kind === "mock") {
     adapter = await (await E.getContractFactory("MockRandomnessAdapter")).deploy(await router.getAddress());
+  } else if (kind === "keeper") {
+    const keeper = process.env.KEEPER ?? deployer.address;
+    adapter = await (await E.getContractFactory("KeeperHashChainAdapter")).deploy(
+      await router.getAddress(), keeper, deployer.address
+    );
+  } else {
+    throw new Error(`Unknown ADAPTER="${kind}" (expected keeper | mock | ccip)`);
   }
   await adapter.waitForDeployment();
   await (await router.setAdapter(await adapter.getAddress())).wait();
@@ -53,6 +69,13 @@ async function main() {
   const pool = (await factory.allPools(0));
   await (await router.setConsumer(pool, true)).wait();
 
+  // Equity baskets: tokenized stocks wrap into an ERC-721 the pool already
+  // understands. The basket collection itself is whitelisted here; which
+  // equity tokens may be wrapped is curated later via basket.setTokenAllowed.
+  const basket = await (await E.getContractFactory("EquityBasket")).deploy(deployer.address);
+  await basket.waitForDeployment();
+  await (await whitelist.setAllowed(await basket.getAddress(), true)).wait();
+
   // $FWA token + emissions (Fase 2).
   const CAP = 1_000_000_000n * 10n ** 18n;
   const fwa = await (await E.getContractFactory("FWAToken")).deploy(CAP, deployer.address, deployer.address);
@@ -65,6 +88,7 @@ async function main() {
   await (await fwa.setFeeExempt(await emitter.getAddress(), true)).wait();
 
   console.log(JSON.stringify({
+    adapterKind: kind,
     backing: await backing.getAddress(),
     whitelist: await whitelist.getAddress(),
     router: await router.getAddress(),
@@ -72,9 +96,18 @@ async function main() {
     feeRouter: await feeRouter.getAddress(),
     factory: await factory.getAddress(),
     pool,
+    basket: await basket.getAddress(),
     fwa: await fwa.getAddress(),
     emitter: await emitter.getAddress(),
   }, null, 2));
+
+  if (kind === "keeper") {
+    console.log(
+      "\nNext: start the keeper bot so draws can resolve:\n" +
+        `  ADAPTER=${await adapter.getAddress()} KEEPER_MASTER_SECRET=0x<32 bytes> \\\n` +
+        "  npx hardhat run scripts/keeper-bot.js --network <network>"
+    );
+  }
 }
 
 main().catch((e) => { console.error(e); process.exitCode = 1; });

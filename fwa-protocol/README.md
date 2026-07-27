@@ -106,15 +106,20 @@ to stay portable until Fase 0 confirms the chain's ArbOS opcode support.
 ```bash
 npm install
 npm run build          # hardhat compile
-npm test               # 56 tests: Fenwick, pool, freeze, DoS, crown, emitter,
-                       #           claim, periphery, keeper randomness, equity
-                       #           baskets, + randomized invariants
+npm test               # 63 tests: Fenwick, pool, freeze, DoS, crown, emitter,
+                       #           claim, periphery, keeper randomness + bot,
+                       #           equity baskets, + randomized invariants
 
 # Fase 0 — inventory the real testnet before committing further:
 npx hardhat run scripts/probe-chain.js --network robinhood-testnet
 
-# Deploy the full stack (Mock adapter by default; USE_CCIP=1 for the CCIP skeleton):
+# Deploy the full stack. ADAPTER=keeper (default) | mock | ccip:
 npx hardhat run scripts/deploy.js --network robinhood-testnet
+
+# Run the keeper bot (required for draws to resolve on the keeper adapter).
+# Stateless: every tick re-derives the chain from the secret + on-chain state.
+ADAPTER=0x... KEEPER_MASTER_SECRET=0x<32 bytes> \
+  npx hardhat run scripts/keeper-bot.js --network robinhood-testnet
 ```
 
 Networks are preconfigured in `hardhat.config.js` (`robinhood-testnet` = 46630,
