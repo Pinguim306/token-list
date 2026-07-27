@@ -48,7 +48,7 @@ World Assets (FWA) protocol on RobinhoodChain.
 cd ..                       # fwa-protocol/
 npm install
 npm run build               # solc 0.8.26, evmVersion paris
-npm test                    # 56 tests, incl. randomized invariants (freeze-at-request, DoS, crown, emitter)
+npm test                    # 63 tests, incl. randomized invariants (freeze-at-request, DoS, crown, emitter)
 slither . --config-file slither.config.json   # static analysis (see audit/slither-output.txt)
 ```
 
