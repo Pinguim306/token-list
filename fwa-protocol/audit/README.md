@@ -18,6 +18,8 @@ World Assets (FWA) protocol on RobinhoodChain.
 | `contracts/token/FWAEmitter.sol` | ~220 | Emissions: √backing depositor rewards + daily-pot purchaser rewards. |
 | `contracts/token/FWAClaim.sol` | ~60 | Merkle distribution. |
 | `contracts/randomness/RandomnessRouter.sol` | ~70 | Consumer ⇄ adapter indirection. |
+| `contracts/randomness/KeeperHashChainAdapter.sol` | ~180 | **Launch randomness backend**: keeper commit-reveal hash chain × future blockhash, stale-skip liveness, slashable bond. Weaker-than-VRF trust model documented in `threat-model.md` — review the selective-abort analysis. |
+| `contracts/basket/EquityBasket.sol` | ~120 | ERC-721 wrapper over allowlisted fungible tokenized equities (internal ledger). Review wrap/unwrap CEI and balance-delta accounting. |
 
 **Out of scope / lower priority:**
 - `contracts/randomness/CCIPVRFAdapter.sol`, `VRFRequester.sol` — production
@@ -46,7 +48,7 @@ World Assets (FWA) protocol on RobinhoodChain.
 cd ..                       # fwa-protocol/
 npm install
 npm run build               # solc 0.8.26, evmVersion paris
-npm test                    # 37 tests, incl. randomized invariants (freeze-at-request, DoS, crown, emitter)
+npm test                    # 56 tests, incl. randomized invariants (freeze-at-request, DoS, crown, emitter)
 slither . --config-file slither.config.json   # static analysis (see audit/slither-output.txt)
 ```
 
@@ -58,5 +60,9 @@ slither . --config-file slither.config.json   # static analysis (see audit/slith
 - **Crown/tithe + daily-pot** (core completion) had **Slither static analysis +
   manual review**, but NOT the multi-agent adversarial pass. **Auditors should
   focus extra attention here** — see `findings.md` for the exact coverage matrix.
+- **`KeeperHashChainAdapter` + `EquityBasket`** are covered by unit + pool
+  integration tests and a documented threat analysis, but have had **no
+  multi-agent adversarial pass yet** — treat both as elevated-attention targets
+  alongside crown/daily-pot.
 
 See `invariants.md`, `threat-model.md`, `findings.md`, and `runbook.md`.

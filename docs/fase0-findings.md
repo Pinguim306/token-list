@@ -28,7 +28,7 @@ Chainlink CCIP, Data Feeds, LINK, Uniswap, or USDG addresses.**
 
 | # | Item | Why it blocks | How to close |
 |---|---|---|---|
-| 1 | **CCIP↔VRF round-trip cost/latency** | The whole randomness design rests on it; unmeasured | Deploy `CCIPVRFAdapter` (RH testnet) + `VRFRequester` (Arbitrum Sepolia), fund a deployer + a VRF subscription + LINK/ETH, fire ≥20 draws, measure p50/p95 latency and per-draw cost. **Needs a funded key + Chainlink subscription — cannot be done autonomously here.** Tooling is ready: `fwa-protocol/scripts/spike-randomness.js` fires N draws, measures p50/p95 latency and per-draw request cost, self-heals a hung draw via `expireDraw`, and writes a JSON report. |
+| 1 | **CCIP↔VRF round-trip cost/latency** | ~~The whole randomness design rests on it~~ **Downgraded from blocker to upgrade decision (2026-07-27):** `fwa-protocol/contracts/randomness/KeeperHashChainAdapter.sol` now implements the oracle-free keeper hash-chain × future-blockhash scheme that StockRip runs live on RH Chain mainnet — the pool can launch on native randomness with no CCIP/VRF dependency (trust trade-off documented in `fwa-protocol/audit/threat-model.md`). | Still worth measuring for the VRF upgrade path: deploy `CCIPVRFAdapter` (RH testnet) + `VRFRequester` (Arbitrum Sepolia), fund a deployer + a VRF subscription + LINK/ETH, fire ≥20 draws, measure p50/p95 latency and per-draw cost. **Needs a funded key + Chainlink subscription — cannot be done autonomously here.** Tooling is ready: `fwa-protocol/scripts/spike-randomness.js` fires N draws, measures p50/p95 latency and per-draw request cost, self-heals a hung draw via `expireDraw`, and writes a JSON report. |
 | 2 | **Chainlink CCIP Router address on RH Chain** | Needed to wire the adapter | Not in RH docs (and the Chainlink `ccip/directory/.../robinhood` URL 404'd). Obtain from Chainlink's CCIP directory / RH partner docs, then re-run the probe to confirm bytecode. |
 | 3 | **Pyth Entropy availability (fallback randomness)** | The target native fallback | Pyth Entropy contract-addresses page did not list chainId 4663/46630 (404 on the probed URL). Confirm on Pyth's chainlist; if absent, open onboarding with Pyth. |
 | 4 | **Uniswap v4 PoolManager presence** | Gates the `$FWA` fee-hook design (we already fell back to a native ERC-20 fee, so this is now non-blocking but worth confirming) | Find the address on Blockscout and probe. |
@@ -38,12 +38,13 @@ Chainlink CCIP, Data Feeds, LINK, Uniswap, or USDG addresses.**
 ## G0 go/no-go recommendation
 
 The **chain is a clean EVM deployment target** and the opcode/precompile/tooling
-risks are now cleared. The **decision-critical unknown is item #1** (VRF-via-CCIP
-economics) together with #2/#3 (whether any verifiable randomness provider is
-actually reachable on RH Chain today). Until a funded testnet spike measures the
-round-trip and a provider address is confirmed, **G0 stays open** and further
-investment beyond the already-built, framework-agnostic contracts should be
-gated. Everything built so far (Fase 1 core + Fase 2 tokenomics) is independent
-of that outcome and deployable the moment a randomness adapter is confirmed.
+risks are now cleared. **The randomness leg of G0 is satisfiable today**: the
+`KeeperHashChainAdapter` (keeper commit-reveal × future blockhash) needs only a
+funded keeper — no CCIP router, no VRF subscription, no Pyth onboarding — and is
+the exact scheme StockRip already operates on RH Chain mainnet, which is strong
+existence proof for the deployment path. Items #1–#3 remain open only as the
+**verifiable-randomness upgrade track** (swap adapters at the router, zero pool
+changes). The remaining G0 gates are operational/legal (#5 ToS, #6 prize
+sourcing), not technical.
 
 *Reproduce:* `cd fwa-protocol && npx hardhat run scripts/probe-chain.js --network robinhood-testnet`
