@@ -49,4 +49,27 @@ export const demo = {
   reward: 250n * WAD,
   currentDay: 3n,
   purchaserBudget: 4500n * WAD,
+
+  /** Sample allowlisted tokenized equities (EquityBasket wrap candidates). */
+  equities: [
+    { address: "0xE9010000000000000000000000000000000000a1", symbol: "rAAPL", name: "Tokenized Apple" },
+    { address: "0xE9010000000000000000000000000000000000b2", symbol: "rTSLA", name: "Tokenized Tesla" },
+    { address: "0xE9010000000000000000000000000000000000c3", symbol: "rNVDA", name: "Tokenized Nvidia" },
+  ],
+  /** Sample baskets owned by the preview wallet. Amounts are 18-decimals. */
+  baskets: [
+    {
+      id: 1n,
+      contents: [
+        { token: "0xE9010000000000000000000000000000000000a1", symbol: "rAAPL", amount: 10n * WAD, decimals: 18 },
+        { token: "0xE9010000000000000000000000000000000000b2", symbol: "rTSLA", amount: 2n * WAD, decimals: 18 },
+      ],
+    },
+    {
+      id: 2n,
+      contents: [
+        { token: "0xE9010000000000000000000000000000000000c3", symbol: "rNVDA", amount: 5n * WAD, decimals: 18 },
+      ],
+    },
+  ],
 };

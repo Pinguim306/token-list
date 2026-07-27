@@ -45,6 +45,7 @@ export function Hero() {
         <div className="nav-actions">
           <a className="nav-link" href="/app/collection">Collections</a>
           <a className="nav-link" href="/app/draws">Draws</a>
+          <a className="nav-link" href="/app/baskets">Baskets</a>
           <a className="nav-link" href="/app/portfolio">Portfolio</a>
           <ConnectButton />
         </div>

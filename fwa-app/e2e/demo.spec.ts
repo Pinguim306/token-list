@@ -29,7 +29,7 @@ test.describe("pool", () => {
 
   test("nav reaches the other screens", async ({ page }) => {
     await page.goto("/app");
-    await expect(page.locator(".nav-link")).toHaveText(["Collections", "Draws", "Portfolio"]);
+    await expect(page.locator(".nav-link")).toHaveText(["Collections", "Draws", "Baskets", "Portfolio"]);
   });
 });
 
