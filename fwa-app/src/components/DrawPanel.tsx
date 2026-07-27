@@ -5,6 +5,8 @@ import { maxUint256 } from "viem";
 import { pool, backing } from "@/lib/contracts";
 import { DRAW_STATE, fmt, short } from "@/lib/format";
 import { DEMO, demo } from "@/lib/demo";
+import { collectionSymbol } from "@/lib/usePositions";
+import { RipReveal, type RipSelected } from "@/components/RipReveal";
 
 type Draw = {
   buyer: `0x${string}`; price: bigint; totalWeightSnapshot: bigint; randomWord: bigint;
@@ -44,19 +46,37 @@ export function DrawPanel() {
   const fulfilled = d?.state === 2;
   const requested = d?.state === 1;
 
+  // The revealed card needs the selected position's collection + tokenId.
+  const { data: selPos } = useReadContract({
+    ...pool,
+    functionName: "positions",
+    args: fulfilled && d ? [d.selectedId] : undefined,
+    query: { enabled: !DEMO && fulfilled },
+  });
+  const selected: RipSelected | undefined = DEMO
+    ? (() => {
+        const p = demo.positions.find((p) => p.id === BigInt(demo.draw.selectedId));
+        return p
+          ? { positionId: p.id.toString(), symbol: collectionSymbol(p.asset), tokenId: p.tokenId.toString() }
+          : undefined;
+      })()
+    : selPos && d
+      ? (() => {
+          // positions(id) tuple: [depositor, asset, tokenId, backing, weight, active, feeDebt]
+          const t = selPos as unknown as [string, string, bigint, bigint, bigint, boolean, bigint];
+          return { positionId: d.selectedId.toString(), symbol: collectionSymbol(t[1]), tokenId: t[2].toString() };
+        })()
+      : undefined;
+
   return (
     <div className="card feature">
-      <h2><span className="ic">◈</span> Draw</h2>
+      <h2><span className="ic">◈</span> Draw <span className="badge hot" style={{ marginLeft: 8 }}>{stateName}</span></h2>
 
-      <div className={`gacha${requested ? " inflight" : ""}`}>
-        <div className="ring"><span>Ξ</span></div>
-        <div className="state">{stateName}</div>
-        <div className="sub">
-          {fulfilled ? `Position #${d?.selectedId?.toString()} selected — keep it or sell it back`
-            : requested ? "Randomness in flight — pool frozen"
-            : "Pay the pool price to acquire a random position"}
-        </div>
-      </div>
+      <RipReveal
+        demo={DEMO}
+        state={fulfilled ? "fulfilled" : requested ? "requested" : "idle"}
+        selected={selected}
+      />
 
       {d && <div className="stat"><span>Buyer</span><b className="mono">{short(d.buyer)}</b></div>}
       {d && <div className="stat"><span>Escrowed price</span><b>{fmt(d.price, dec)}</b></div>}
@@ -87,8 +107,9 @@ export function DrawPanel() {
         </button>
       </div>
       <p className="muted" style={{ marginTop: 12 }}>
-        Randomness settles via Chainlink VRF over CCIP. While “Requested”, the pool is frozen (freeze-at-request);
-        once “Fulfilled”, the buyer keeps the NFT or sells it back for the standing bid.
+        Randomness mixes a keeper commit-reveal chain with a future blockhash (VRF-upgradable at the
+        router). While “Requested”, the pool is frozen (freeze-at-request); once “Fulfilled”, the
+        buyer keeps the NFT or sells it back for the standing bid.
       </p>
     </div>
   );

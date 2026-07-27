@@ -173,3 +173,123 @@
   .pcard-flip { transition-duration: .05s; }
   .orbit-dot { transition: none; }
 }
+
+/* ================= sealed-pack draw reveal ================= */
+
+.pack-stage {
+  position: relative; display: flex; flex-direction: column; align-items: center;
+  padding: 18px 12px 8px; min-height: 300px;
+}
+.pack-stage[role="button"] { cursor: pointer; }
+.pack-stage[role="button"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 12px; }
+
+.pack {
+  position: relative; width: 170px; height: 232px; border-radius: 10px;
+  background:
+    radial-gradient(120% 90% at 30% 12%, rgba(255, 255, 255, .14), transparent 55%),
+    linear-gradient(152deg, #2a2430 0%, #17131b 42%, #221c26 70%, #120e15 100%);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, .55), inset 0 0 0 1px rgba(255, 255, 255, .07);
+  transition: transform .5s ease, opacity .5s ease, filter .5s ease;
+  overflow: visible;
+}
+/* moving foil sheen while sealed */
+.pack::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
+  background: linear-gradient(115deg, transparent 30%, rgba(255, 255, 255, .16) 46%, rgba(236, 123, 147, .12) 52%, transparent 64%);
+  background-size: 260% 100%;
+  animation: pack-sheen 3.2s ease-in-out infinite;
+}
+[data-rip-phase="revealed"] .pack::after,
+[data-rip-phase="idle"] .pack::after { animation-play-state: paused; }
+
+@keyframes pack-sheen {
+  0%, 15% { background-position: 120% 0; }
+  55%, 100% { background-position: -60% 0; }
+}
+
+.pack-crimp {
+  position: absolute; left: -5px; right: -5px; height: 16px; border-radius: 3px;
+  background: repeating-linear-gradient(90deg, #241e29 0 5px, #171219 5px 10px);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .45);
+}
+.pack-crimp.top { top: -6px; }
+.pack-crimp.bottom { bottom: -6px; }
+
+/* the strip that tears away; jagged lower edge */
+.pack-tear {
+  position: absolute; top: 8px; left: 0; right: 0; height: 34px; z-index: 3;
+  background: linear-gradient(160deg, #322a38, #1b151f);
+  clip-path: polygon(0 0, 100% 0, 100% 68%, 94% 100%, 88% 66%, 81% 96%, 74% 64%, 67% 98%, 60% 66%, 53% 94%, 46% 62%, 39% 96%, 32% 64%, 25% 98%, 18% 66%, 11% 94%, 5% 64%, 0 92%);
+  opacity: 0; transition: opacity .3s ease;
+}
+[data-rip-phase="locking"] .pack-tear,
+[data-rip-phase="tearing"] .pack-tear { opacity: 1; }
+[data-rip-phase="tearing"] .pack-tear { animation: pack-tear-off .8s ease-in forwards; }
+
+@keyframes pack-tear-off {
+  0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(-46px) rotate(-9deg); opacity: 0; }
+}
+
+.pack-body {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 8px; padding: 18px 14px;
+  text-align: center;
+}
+.pack-brand { font-family: var(--font-display); font-size: 34px; color: #f5eef1; letter-spacing: .02em; }
+.pack-brand span { color: var(--accent); }
+.pack-rule { width: 72px; height: 2px; background: linear-gradient(90deg, transparent, var(--accent), transparent); }
+.pack-sub { font-size: 10px; letter-spacing: .22em; text-transform: uppercase; color: rgba(245, 238, 241, .72); }
+.pack-fine {
+  position: absolute; bottom: 14px; left: 0; right: 0;
+  font-size: 8px; letter-spacing: .18em; text-transform: uppercase; color: rgba(245, 238, 241, .38);
+}
+
+/* pack recedes once torn */
+[data-rip-phase="tearing"] .pack { transform: scale(.96); filter: brightness(1.15); }
+[data-rip-phase="revealed"] .pack { opacity: .14; transform: scale(.9) translateY(6px); filter: saturate(.6); }
+
+/* the revealed position card */
+.pack-card {
+  position: absolute; top: 18px; z-index: 5; width: 150px;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  opacity: 0; pointer-events: none;
+}
+[data-rip-phase="tearing"] .pack-card { animation: pack-card-out 1s .35s ease forwards; }
+[data-rip-phase="revealed"] .pack-card { opacity: 1; animation: none; }
+.pack-card-art { width: 150px; height: 150px; border-radius: 12px; box-shadow: 0 16px 36px rgba(0, 0, 0, .55), 0 0 0 1px rgba(255, 255, 255, .12); }
+.pack-card-name { font-family: var(--font-display); font-size: 13px; color: var(--ink); letter-spacing: .04em; }
+
+@keyframes pack-card-out {
+  0% { opacity: 0; transform: translateY(46px) scale(.72); }
+  60% { opacity: 1; transform: translateY(-6px) scale(1.04); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.pack-status {
+  margin-top: 16px; font-size: 11px; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--muted); text-align: center;
+}
+[data-rip-phase="revealed"] .pack-status { color: var(--ink); }
+
+.pack-progress {
+  width: 180px; height: 3px; margin-top: 10px; border-radius: 2px;
+  background: rgba(255, 255, 255, .09); overflow: hidden; opacity: 0; transition: opacity .3s;
+}
+.pack-progress[data-active="true"] { opacity: 1; }
+.pack-progress i {
+  display: block; height: 100%; width: 40%; border-radius: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  animation: pack-progress-slide 1.3s ease-in-out infinite;
+}
+@keyframes pack-progress-slide {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(350%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pack::after { animation: none; }
+  .pack, .pack-tear, .pack-card { transition: none; animation: none; }
+  [data-rip-phase="revealed"] .pack-card { opacity: 1; }
+  .pack-progress i { animation: none; width: 100%; }
+}
