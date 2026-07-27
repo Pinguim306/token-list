@@ -5,6 +5,8 @@ import { useReadContract, useReadContracts } from "wagmi";
 import { pool, backing } from "@/lib/contracts";
 import { fmt, bpsToPct, short, BPS } from "@/lib/format";
 import { DEMO, demo } from "@/lib/demo";
+import { NftArt } from "@/components/nft/NftArt";
+import { collectionSymbol } from "@/lib/usePositions";
 
 type PositionTuple = {
   depositor: `0x${string}`;
@@ -118,7 +120,16 @@ export default function PositionDetail() {
         ← Back to the pool
       </a>
 
-      <div className="mt-6 flex flex-wrap items-center gap-3">
+      <div className="mt-6 flex flex-wrap items-center gap-4">
+        {position ? (
+          <div className="h-20 w-20 overflow-hidden rounded-lg border border-border-strong shadow-sm">
+            <NftArt
+              symbol={DEMO && demoRow ? collectionSymbol(demoRow.asset) : "NFT"}
+              tokenId={position.tokenId.toString()}
+              className="block h-full w-full"
+            />
+          </div>
+        ) : null}
         <h1 className="m-0 font-display text-3xl text-ink">Position #{raw}</h1>
         {isCrown ? (
           <span className="rounded-pill bg-crown-soft px-3 py-1 font-body text-[11px] font-bold tracking-[0.12em] text-crown uppercase">

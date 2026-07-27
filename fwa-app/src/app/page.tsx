@@ -1,4 +1,7 @@
 import type { Metadata } from "next";
+import { OrbitCarousel } from "@/components/cards/OrbitCarousel";
+import { demo } from "@/lib/demo";
+import { fmt, bpsToPct, BPS } from "@/lib/format";
 
 export const metadata: Metadata = {
   title: "Fake World Assets — Randomized on-chain NFT acquisition",
@@ -120,6 +123,22 @@ const FAQ = [
   },
 ];
 
+/** Demo positions rendered as trading cards. Serialized to plain strings here
+ *  because BigInt cannot cross the server→client component boundary. */
+const CARDS = demo.positions.map((p) => {
+  const c = demo.collections.find((c) => c.address === p.asset);
+  return {
+    id: p.id.toString(),
+    tokenId: p.tokenId.toString(),
+    collection: c?.name ?? "Collection",
+    symbol: c?.symbol ?? "—",
+    backing: fmt(p.backing, demo.decimals),
+    bid: fmt((p.backing * demo.bidBps) / BPS, demo.decimals),
+    odds: bpsToPct(p.oddsBps),
+    crown: p.id === demo.topListingId,
+  };
+});
+
 function Section({
   id,
   eyebrow,
@@ -184,8 +203,8 @@ export default function LandingPage() {
       </header>
 
       <main className="mx-auto max-w-6xl px-5">
-        {/* ---------- hero ---------- */}
-        <section className="py-20 sm:py-28">
+        {/* ---------- hero: the cards ARE the hero ---------- */}
+        <section id="cards" className="pt-10 pb-4 text-center sm:pt-14">
           <span className="inline-flex items-center gap-2 rounded-pill border border-border bg-surface px-3 py-1.5 font-body text-xs font-semibold tracking-wide text-muted uppercase shadow-sm">
             <span className="relative flex h-2 w-2">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-pill bg-success opacity-70 motion-reduce:hidden" />
@@ -194,20 +213,21 @@ export default function LandingPage() {
             Live on RobinhoodChain testnet
           </span>
 
-          <h1 className="mt-7 mb-0 max-w-4xl font-display text-[clamp(2.5rem,7vw,5.25rem)] leading-[0.96] tracking-tight text-ink">
-            Real stakes.
-            <br />
-            <span className="text-accent">Fake world</span>
-            <br />
-            assets.
+          <h1 className="mx-auto mt-5 mb-0 max-w-3xl font-display text-[clamp(2rem,4.6vw,3.4rem)] leading-[1.02] tracking-tight text-ink">
+            Real stakes. <span className="text-accent">Fake world</span> assets.
           </h1>
 
-          <p className="mt-7 mb-0 max-w-xl font-body text-lg text-muted">
-            Acquire a randomly selected NFT position backed by a depositor-funded standing bid — or
-            provide the backing and earn from every draw.
+          <p className="mx-auto mt-4 mb-0 max-w-xl font-body text-base text-muted sm:text-lg">
+            Drag through the pool — every position is a card. Click the front one to flip it: odds
+            and standing bid live on the holographic back.
           </p>
 
-          <div className="mt-9 flex flex-wrap items-center gap-3">
+          {/* The centrepiece, above the fold. */}
+          <div className="mt-2">
+            <OrbitCarousel cards={CARDS} />
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
             <a
               href="/app"
               className="rounded-pill bg-accent px-6 py-3 font-body text-sm font-semibold text-accent-ink no-underline shadow-accent transition-transform hover:scale-[1.03] motion-reduce:transform-none"
@@ -221,8 +241,11 @@ export default function LandingPage() {
               How it works
             </a>
           </div>
+        </section>
 
-          <dl className="mt-16 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border lg:grid-cols-4">
+        {/* ---------- stats ---------- */}
+        <section className="pt-12 pb-4 sm:pt-16">
+          <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-border bg-border lg:grid-cols-4">
             {STATS.map((s) => (
               <div key={s.k} className="bg-surface px-5 py-6">
                 <dt className="m-0 font-body text-xs font-semibold tracking-wide text-muted uppercase">

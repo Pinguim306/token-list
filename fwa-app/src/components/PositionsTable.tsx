@@ -1,7 +1,8 @@
 "use client";
 
 import { fmt, bpsToPct, short } from "@/lib/format";
-import { usePositions } from "@/lib/usePositions";
+import { usePositions, collectionSymbol } from "@/lib/usePositions";
+import { NftArt } from "@/components/nft/NftArt";
 
 export function PositionsTable() {
   const { positions, decimals } = usePositions();
@@ -25,7 +26,14 @@ export function PositionsTable() {
                   </a>
                 </td>
                 <td className="mono">{short(r.depositor)}</td>
-                <td className="mono">#{r.tokenId.toString()}</td>
+                <td className="mono">
+                  <span className="token-cell">
+                    <span className="token-thumb">
+                      <NftArt symbol={collectionSymbol(r.asset)} tokenId={r.tokenId.toString()} />
+                    </span>
+                    #{r.tokenId.toString()}
+                  </span>
+                </td>
                 <td>{fmt(r.backing, decimals)}</td>
                 <td><span className="odds">{r.odds !== undefined ? bpsToPct(r.odds) : "—"}</span></td>
               </tr>
