@@ -5,13 +5,17 @@ import { NftArt } from "@/components/nft/NftArt";
 import { prefersReducedMotion } from "@/components/cards/spring";
 
 export type RipSelected = { positionId: string; symbol: string; tokenId: string };
-type Phase = "idle" | "sealed" | "locking" | "tearing" | "revealed";
+type Phase = "idle" | "sealed" | "locking" | "tearing" | "emerging" | "revealed";
 
 /**
  * The sealed-pack draw reveal: while randomness is in flight the draw is a
  * foil pack (grade unknown by construction — the word does not exist yet);
- * fulfillment tears it open and the selected position slides out. Pure CSS,
- * driven by a data-rip-phase attribute.
+ * fulfillment tears the strip off and the selected position slides out of the
+ * pack's mouth like a card from a sticker pack. The emergence illusion is
+ * plain z-ordering: during "emerging" the card sits BEHIND the opaque pack
+ * face and translates upward, so only the part above the mouth shows; once
+ * mostly out it jumps in front ("revealed") and settles center-stage. Pure
+ * CSS, driven by a data-rip-phase attribute.
  *
  * Live mode follows the on-chain draw state. Demo mode makes the pack itself
  * clickable and runs a scripted timeline, so the animation can be experienced
@@ -44,7 +48,8 @@ export function RipReveal({
     if (state === "fulfilled") {
       if (prevLive.current === "requested" && !prefersReducedMotion()) {
         setPhase("tearing");
-        later(900, () => setPhase("revealed"));
+        later(750, () => setPhase("emerging"));
+        later(2000, () => setPhase("revealed"));
       } else {
         setPhase("revealed");
       }
@@ -65,7 +70,8 @@ export function RipReveal({
     setPhase("sealed");
     later(1100, () => setPhase("locking"));
     later(2300, () => setPhase("tearing"));
-    later(3100, () => setPhase("revealed"));
+    later(3050, () => setPhase("emerging"));
+    later(4300, () => setPhase("revealed"));
   };
 
   const status =
@@ -79,7 +85,9 @@ export function RipReveal({
           ? "Randomness locks in ~1s · seed block +5"
           : phase === "tearing"
             ? "Sealed no more…"
-            : selected
+            : phase === "emerging"
+              ? "Here it comes…"
+              : selected
               ? `Position #${selected.positionId} revealed — keep it or sell it back`
               : "Position revealed — keep it or sell it back";
 

@@ -178,13 +178,14 @@
 
 .pack-stage {
   position: relative; display: flex; flex-direction: column; align-items: center;
-  padding: 18px 12px 8px; min-height: 300px;
+  /* top padding is headroom for the card that rises out of the pack's mouth */
+  padding: 96px 12px 8px; min-height: 380px;
 }
 .pack-stage[role="button"] { cursor: pointer; }
 .pack-stage[role="button"]:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 12px; }
 
 .pack {
-  position: relative; width: 170px; height: 232px; border-radius: 10px;
+  position: relative; z-index: 2; width: 170px; height: 232px; border-radius: 10px;
   background:
     radial-gradient(120% 90% at 30% 12%, rgba(255, 255, 255, .14), transparent 55%),
     linear-gradient(152deg, #2a2430 0%, #17131b 42%, #221c26 70%, #120e15 100%);
@@ -245,25 +246,57 @@
   font-size: 8px; letter-spacing: .18em; text-transform: uppercase; color: rgba(245, 238, 241, .38);
 }
 
-/* pack recedes once torn */
-[data-rip-phase="tearing"] .pack { transform: scale(.96); filter: brightness(1.15); }
-[data-rip-phase="revealed"] .pack { opacity: .14; transform: scale(.9) translateY(6px); filter: saturate(.6); }
+/* pack reacts to the rip: opens on tear, is held + jiggles while the card
+   slides out, then drops away once the card is free */
+[data-rip-phase="tearing"] .pack { transform: scale(.97); filter: brightness(1.15); }
+[data-rip-phase="emerging"] .pack { animation: pack-jiggle 1.3s ease-in-out; }
+[data-rip-phase="revealed"] .pack { opacity: .12; transform: scale(.9) translateY(16px); filter: saturate(.6); }
 
-/* the revealed position card */
-.pack-card {
-  position: absolute; top: 18px; z-index: 5; width: 150px;
-  display: flex; flex-direction: column; align-items: center; gap: 8px;
-  opacity: 0; pointer-events: none;
+@keyframes pack-jiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-1.4deg); }
+  55% { transform: rotate(1.2deg); }
+  80% { transform: rotate(-.6deg); }
 }
-[data-rip-phase="tearing"] .pack-card { animation: pack-card-out 1s .35s ease forwards; }
-[data-rip-phase="revealed"] .pack-card { opacity: 1; animation: none; }
-.pack-card-art { width: 150px; height: 150px; border-radius: 12px; box-shadow: 0 16px 36px rgba(0, 0, 0, .55), 0 0 0 1px rgba(255, 255, 255, .12); }
-.pack-card-name { font-family: var(--font-display); font-size: 13px; color: var(--ink); letter-spacing: .04em; }
 
-@keyframes pack-card-out {
-  0% { opacity: 0; transform: translateY(46px) scale(.72); }
-  60% { opacity: 1; transform: translateY(-6px) scale(1.04); }
-  100% { opacity: 1; transform: translateY(0) scale(1); }
+/* The card lives INSIDE the pack: absolutely positioned so its start sits
+   fully behind the opaque pack face (z-index 1 < pack's 2). While "emerging"
+   it translates upward — only the part above the pack's mouth is visible,
+   which is the whole sticker-pack illusion. On "revealed" it jumps in front
+   (z-index 5) and settles center-stage while the pack drops away. */
+.pack-card {
+  position: absolute; top: 120px; z-index: 1; width: 150px;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  opacity: 0; transform: translateY(46px) scale(.86);
+  pointer-events: none;
+}
+[data-rip-phase="emerging"] .pack-card {
+  opacity: 1;
+  animation: pack-card-emerge 1.25s cubic-bezier(.33, .1, .3, 1) forwards;
+}
+[data-rip-phase="revealed"] .pack-card {
+  z-index: 5; opacity: 1; transform: translateY(-96px) scale(1);
+  animation: pack-card-pop .55s ease forwards;
+}
+.pack-card-art { width: 150px; height: 150px; border-radius: 12px; box-shadow: 0 16px 36px rgba(0, 0, 0, .55), 0 0 0 1px rgba(255, 255, 255, .12); }
+.pack-card-name {
+  font-family: var(--font-display); font-size: 13px; color: var(--ink); letter-spacing: .04em;
+  opacity: 0; transition: opacity .35s ease .15s;
+}
+[data-rip-phase="revealed"] .pack-card-name { opacity: 1; }
+
+/* out of the mouth: rise with a hint of side-to-side drag */
+@keyframes pack-card-emerge {
+  0% { transform: translateY(46px) scale(.86) rotate(0deg); }
+  35% { transform: translateY(6px) scale(.86) rotate(-1.6deg); }
+  70% { transform: translateY(-64px) scale(.88) rotate(1.3deg); }
+  100% { transform: translateY(-112px) scale(.88) rotate(0deg); }
+}
+/* free of the pack: overshoot, then settle */
+@keyframes pack-card-pop {
+  0% { transform: translateY(-112px) scale(.88); }
+  55% { transform: translateY(-88px) scale(1.05); }
+  100% { transform: translateY(-96px) scale(1); }
 }
 
 .pack-status {
@@ -289,7 +322,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .pack::after { animation: none; }
-  .pack, .pack-tear, .pack-card { transition: none; animation: none; }
-  [data-rip-phase="revealed"] .pack-card { opacity: 1; }
+  .pack, .pack-tear, .pack-card { transition: none; animation: none !important; }
+  [data-rip-phase="revealed"] .pack-card { opacity: 1; transform: translateY(-96px) scale(1); }
+  .pack-card-name { transition: none; }
   .pack-progress i { animation: none; width: 100%; }
 }
