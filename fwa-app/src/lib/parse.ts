@@ -21,6 +21,18 @@ export function parseInteger(input: string, label = "Value"): Parsed {
   return { value: BigInt(v), error: null };
 }
 
+export type ParsedAddress = { value: `0x${string}` | null; error: string | null };
+
+/** EVM address (0x + 40 hex chars). Same never-throw contract as the others. */
+export function parseAddress(input: string, label = "Address"): ParsedAddress {
+  const v = input.trim();
+  if (v === "") return { value: null, error: null };
+  if (!/^0x[0-9a-fA-F]{40}$/.test(v)) {
+    return { value: null, error: `${label} must be a 0x… address (40 hex characters).` };
+  }
+  return { value: v as `0x${string}`, error: null };
+}
+
 /** Decimal token amount, scaled by `decimals`. */
 export function parseAmount(input: string, decimals: number, label = "Amount"): Parsed {
   const v = input.trim();

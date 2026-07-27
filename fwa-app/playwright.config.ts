@@ -45,7 +45,7 @@ export default defineConfig({
   projects: [
     {
       name: "demo",
-      testMatch: /(demo|forms|cards)\.spec\.ts/,
+      testMatch: /(demo|forms|cards|baskets)\.spec\.ts/,
       use: { ...devices["Desktop Chrome"], baseURL: "http://127.0.0.1:4500" },
     },
     {

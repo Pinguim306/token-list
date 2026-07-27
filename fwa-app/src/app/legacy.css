@@ -178,6 +178,17 @@ td .odds { font-weight: 700; color: var(--success); }
 .badge.hot { background: var(--accent-soft); border-color: transparent; color: var(--accent-strong); }
 
 .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+/* ---- basket wrap form ---- */
+.wrap-row {
+  display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;
+  padding: 10px 12px; margin-top: 10px;
+  border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-2);
+}
+.wrap-row-fields { display: grid; grid-template-columns: minmax(220px, 2fr) minmax(110px, 1fr); gap: 12px; flex: 1; }
+.wrap-row-fields label { margin-top: 0; }
+.wrap-row-actions { display: flex; gap: 8px; padding-bottom: 2px; }
+@media (max-width: 560px) { .wrap-row-fields { grid-template-columns: 1fr; } }
 .muted { color: var(--muted); font-size: 13px; }
 .mono { font-family: var(--font-mono); }
 .notice {
