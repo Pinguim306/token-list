@@ -82,10 +82,10 @@
   color: var(--accent-strong);
 }
 .pcard-art {
-  flex: 1; display: grid; place-items: center; margin: 12px 0;
-  border-radius: 12px; background: var(--surface-3); color: var(--muted);
+  flex: 1; margin: 12px 0;
+  border-radius: 12px; overflow: hidden; background: var(--surface-3);
 }
-.pcard-art svg { width: 64px; height: 64px; }
+.pcard-art-img { display: block; width: 100%; height: 100%; }
 .pcard-title { font-family: var(--font-display); font-size: 26px; line-height: 1; }
 .pcard-subtitle { color: var(--muted); font-size: 12px; margin-top: 4px; }
 .pcard-foot {

@@ -8,6 +8,7 @@ import { DEMO, demo } from "@/lib/demo";
 import { usePositions, groupByCollection } from "@/lib/usePositions";
 import { SkeletonRows, ErrorNote, EmptyNote } from "@/components/States";
 import { Erc721Abi } from "@/lib/abis";
+import { NftArt } from "@/components/nft/NftArt";
 
 function Stat({ label, value, hint, tone }: { label: string; value: string; hint?: string; tone?: string }) {
   return (
@@ -141,6 +142,9 @@ export default function CollectionDetail() {
                   href={`/app/position/${p.id.toString()}`}
                   className="block rounded-lg border border-border bg-surface p-5 no-underline shadow-sm transition-shadow hover:shadow-md"
                 >
+                  <div className="mb-4 h-28 overflow-hidden rounded-md">
+                    <NftArt symbol={symbol} tokenId={p.tokenId.toString()} className="block h-full w-full" />
+                  </div>
                   <div className="flex items-start justify-between gap-3">
                     <div>
                       <p className="m-0 font-display text-lg text-ink">#{p.tokenId.toString()}</p>

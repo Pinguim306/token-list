@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { stepSpring, isSettled, prefersReducedMotion, type SpringState } from "./spring";
+import { NftArt } from "@/components/nft/NftArt";
 
 export type CardData = {
   id: string;
@@ -112,11 +113,7 @@ export function PositionCard({
               {card.crown ? <span aria-hidden="true">👑</span> : null}
             </span>
             <span className="pcard-art" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.4">
-                <rect x="4" y="4" width="16" height="16" rx="3" />
-                <path d="M4 15l4.2-4.2a1.5 1.5 0 0 1 2.1 0L16 16.5M14 13.5l1.9-1.9a1.5 1.5 0 0 1 2.1 0L20 13.5" />
-                <circle cx="9.5" cy="8.5" r="1.4" />
-              </svg>
+              <NftArt symbol={card.symbol} tokenId={card.tokenId} className="pcard-art-img" />
             </span>
             <span className="pcard-title">#{card.tokenId}</span>
             <span className="pcard-subtitle">{card.collection}</span>

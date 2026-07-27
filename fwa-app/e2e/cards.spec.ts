@@ -79,3 +79,29 @@ test.describe("orbit carousel", () => {
     expect(parseFloat(holoX)).toBeGreaterThan(50);
   });
 });
+
+test.describe("generative NFT art", () => {
+  test("every screen renders artwork for its tokens", async ({ page }) => {
+    await page.goto("/#cards");
+    await expect(page.locator("[data-nft-art]")).toHaveCount(5);
+
+    await page.goto("/app");
+    await expect(page.locator("table [data-nft-art]")).toHaveCount(5);
+
+    await page.goto("/app/collection/0xC0113c7100000000000000000000000000000001");
+    await expect(page.locator("[data-nft-art]")).toHaveCount(3);
+
+    await page.goto("/app/position/3");
+    await expect(page.locator("[data-nft-art]")).toHaveCount(1);
+  });
+
+  test("art is deterministic — the same token renders identically everywhere", async ({ page }) => {
+    await page.goto("/#cards");
+    const onLanding = await page.locator('[data-nft-art="FPUNK-4242"] rect').count();
+    expect(onLanding).toBeGreaterThan(4); // an actual figure, not an empty grid
+
+    await page.goto("/app/collection/0xC0113c7100000000000000000000000000000001");
+    const onCollection = await page.locator('[data-nft-art="FPUNK-4242"] rect').count();
+    expect(onCollection).toBe(onLanding);
+  });
+});

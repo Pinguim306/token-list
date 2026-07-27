@@ -106,6 +106,13 @@ export function usePositions() {
   };
 }
 
+/** Demo-aware collection symbol for an asset address ("NFT" when unknown —
+ *  NftArt then falls back to its default palette). */
+export function collectionSymbol(asset: string): string {
+  const c = demo.collections.find((c) => c.address.toLowerCase() === asset.toLowerCase());
+  return c?.symbol ?? "NFT";
+}
+
 /** Group active positions by their ERC-721 contract. */
 export function groupByCollection(positions: PoolPosition[]) {
   const map = new Map<string, PoolPosition[]>();
