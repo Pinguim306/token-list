@@ -22,13 +22,15 @@ const DRAG_THRESHOLD_PX = 6;
  */
 export function OrbitCarousel({ cards }: { cards: CardData[] }) {
   const max = cards.length - 1;
+  // Start on the middle card so the fan spreads symmetrically on first paint.
+  const mid = Math.floor(max / 2);
 
-  const [active, setActive] = useState(0); // settled integer index (for a11y + window)
+  const [active, setActive] = useState(mid); // settled integer index (for a11y + window)
   const [flippedId, setFlippedId] = useState<string | null>(null);
 
   const trackRef = useRef<HTMLDivElement>(null);
-  const spring = useRef<SpringState>({ x: 0, v: 0 });
-  const targetIdx = useRef(0);
+  const spring = useRef<SpringState>({ x: mid, v: 0 });
+  const targetIdx = useRef(mid);
   const raf = useRef(0);
   const last = useRef(0);
   const drag = useRef<{ pointerId: number; startX: number; startIdx: number; moved: boolean } | null>(null);

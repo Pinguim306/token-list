@@ -15,14 +15,15 @@ test.describe("orbit carousel", () => {
 
   test("renders every demo position as a card", async ({ page }) => {
     await expect(page.locator("[data-carousel-card]")).toHaveCount(5);
-    await expect(page.locator("[data-carousel-orbit]")).toHaveAttribute("data-active", "0");
+    // starts on the middle of 5 cards so the fan is symmetric
+    await expect(page.locator("[data-carousel-orbit]")).toHaveAttribute("data-active", "2");
   });
 
   test("clicking the active card flips it, and the page survives", async ({ page }) => {
     const crashes: string[] = [];
     page.on("pageerror", (e) => crashes.push(e.message));
 
-    const flip = page.locator('[data-logical-index="0"] .pcard-flip');
+    const flip = page.locator('[data-logical-index="2"] .pcard-flip');
     await flip.click();
     await expect(flip).toHaveAttribute("data-flipped", "true");
 
@@ -41,7 +42,8 @@ test.describe("orbit carousel", () => {
     await page.mouse.move(box.x + box.width / 2 - 340, box.y + box.height / 2, { steps: 10 });
     await page.mouse.up();
 
-    await expect(page.locator("[data-carousel-orbit]")).toHaveAttribute("data-active", "2");
+    // two card-widths of drag from the middle (2) lands on 4
+    await expect(page.locator("[data-carousel-orbit]")).toHaveAttribute("data-active", "4");
   });
 
   test("a drag that ends on a card does not flip it", async ({ page }) => {
@@ -61,13 +63,13 @@ test.describe("orbit carousel", () => {
     const orbit = page.locator("[data-carousel-orbit]");
     await orbit.focus();
     await page.keyboard.press("ArrowRight");
-    await expect(orbit).toHaveAttribute("data-active", "1");
+    await expect(orbit).toHaveAttribute("data-active", "3");
     await page.keyboard.press("ArrowLeft");
-    await expect(orbit).toHaveAttribute("data-active", "0");
+    await expect(orbit).toHaveAttribute("data-active", "2");
   });
 
   test("pointer movement over the active card drives tilt and holo position", async ({ page }) => {
-    const tilt = page.locator('[data-logical-index="0"] .pcard-tilt');
+    const tilt = page.locator('[data-logical-index="2"] .pcard-tilt');
     const box = (await tilt.boundingBox())!;
 
     await page.mouse.move(box.x + box.width * 0.8, box.y + box.height * 0.25);
