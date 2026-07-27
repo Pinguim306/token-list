@@ -1,0 +1,175 @@
+/* ============================================================================
+   fwa.fun-style card effects — pure DOM + GPU-accelerated CSS 3D.
+   No canvas, no WebGL: perspective + preserve-3d + backface-visibility for the
+   flip, springs (JS) for tilt/snap, and blend-mode gradient stacks for the
+   holographic back. Imported by globals.css into the `legacy` layer.
+   ========================================================================== */
+
+/* ---- orbit carousel ---- */
+.orbit { outline: none; }
+.orbit:focus-visible { border-radius: var(--radius-lg); box-shadow: 0 0 0 3px var(--accent-soft), 0 0 0 5px var(--accent); }
+
+.orbit-track {
+  position: relative;
+  height: 400px;
+  perspective: 1200px;
+  touch-action: pan-y;          /* horizontal drag is ours; vertical scroll stays native */
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.orbit-track:active { cursor: grabbing; }
+
+.orbit-item {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  will-change: transform, opacity;
+}
+
+.orbit-dots { display: flex; justify-content: center; gap: 8px; margin-top: 6px; }
+.orbit-dot {
+  width: 8px; height: 8px; border-radius: 999px; border: 0; padding: 0;
+  background: var(--border-strong); cursor: pointer;
+  transition: background .2s, transform .2s;
+}
+.orbit-dot[data-current="true"] { background: var(--accent); transform: scale(1.35); }
+
+/* ---- card ---- */
+.pcard { width: 232px; height: 332px; }
+
+.pcard-tilt {
+  width: 100%; height: 100%;
+  transform-style: preserve-3d;
+  will-change: transform;
+  --holo-x: 50%;
+  --holo-y: 50%;
+}
+
+.pcard-flip {
+  display: block; width: 100%; height: 100%;
+  position: relative;
+  padding: 0; border: 0; background: none; cursor: pointer;
+  transform-style: preserve-3d;
+  transition: transform .5s cubic-bezier(.2, .7, .2, 1);
+  text-align: left;
+  font: inherit;
+}
+.pcard-flip[data-flipped="true"] { transform: rotateY(180deg); }
+.pcard-flip:disabled { cursor: default; }
+.pcard-flip:focus-visible { outline: 3px solid var(--accent); outline-offset: 4px; border-radius: 18px; }
+
+.pcard-face {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  border-radius: 18px;
+  overflow: hidden;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border: 1px solid var(--border-strong);
+  box-shadow: var(--shadow);
+}
+
+/* front */
+.pcard-front {
+  padding: 16px;
+  background: linear-gradient(165deg, var(--surface), var(--surface-2));
+  color: var(--ink);
+}
+.pcard-head {
+  display: flex; justify-content: space-between; align-items: center;
+  font-family: var(--font-display); font-size: 12px; letter-spacing: .06em;
+  color: var(--accent-strong);
+}
+.pcard-art {
+  flex: 1; display: grid; place-items: center; margin: 12px 0;
+  border-radius: 12px; background: var(--surface-3); color: var(--muted);
+}
+.pcard-art svg { width: 64px; height: 64px; }
+.pcard-title { font-family: var(--font-display); font-size: 26px; line-height: 1; }
+.pcard-subtitle { color: var(--muted); font-size: 12px; margin-top: 4px; }
+.pcard-foot {
+  display: flex; justify-content: space-between; align-items: baseline;
+  margin-top: 12px; padding-top: 10px; border-top: 1px solid var(--border);
+  font-size: 12px; color: var(--muted);
+}
+.pcard-foot b { font-size: 15px; color: var(--ink); font-variant-numeric: tabular-nums; }
+
+/* back — starts pre-rotated so the flip reveals it */
+.pcard-back {
+  transform: rotateY(180deg);
+  background:
+    radial-gradient(140% 100% at 20% 0%, #2a1a20 0%, #17120f 55%),
+    #17120f;
+  color: #f5eef1;
+}
+
+/* holographic stack: rainbow (color-dodge) + foil microlines (color-dodge)
+   + pointer-tracking glow (soft-light). Layer order matters. */
+.holo-rainbow {
+  position: absolute; inset: 0;
+  background: linear-gradient(
+    115deg,
+    transparent 12%,
+    rgba(255, 60, 60, .45) 26%,
+    rgba(255, 176, 60, .45) 36%,
+    rgba(250, 245, 96, .45) 44%,
+    rgba(86, 230, 120, .45) 52%,
+    rgba(72, 210, 245, .45) 60%,
+    rgba(120, 110, 255, .45) 70%,
+    rgba(240, 90, 220, .45) 80%,
+    transparent 92%
+  );
+  background-size: 240% 240%;
+  background-position: var(--holo-x, 50%) var(--holo-y, 50%);
+  mix-blend-mode: color-dodge;
+  opacity: .5;
+  pointer-events: none;
+}
+.holo-lines {
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(
+    115deg,
+    rgba(255, 255, 255, .055) 0px,
+    rgba(255, 255, 255, .055) 1px,
+    transparent 1px,
+    transparent 4px
+  );
+  mix-blend-mode: color-dodge;
+  pointer-events: none;
+}
+.holo-glow {
+  position: absolute; inset: 0;
+  background: radial-gradient(
+    circle at var(--holo-x, 50%) var(--holo-y, 50%),
+    rgba(255, 255, 255, .55) 0%,
+    rgba(255, 255, 255, .12) 24%,
+    transparent 46%
+  );
+  mix-blend-mode: soft-light;
+  pointer-events: none;
+}
+
+.pcard-back-body {
+  position: relative; display: flex; flex-direction: column;
+  height: 100%; padding: 18px;
+}
+.pcard-back-title {
+  font-family: var(--font-display); font-size: 15px; letter-spacing: .03em;
+  margin-bottom: 14px;
+}
+.pcard-stat {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding: 8px 0; border-bottom: 1px solid rgba(255, 255, 255, .12);
+  font-size: 12px; color: rgba(245, 238, 241, .75);
+}
+.pcard-stat b { font-size: 15px; color: #fff; font-variant-numeric: tabular-nums; }
+.pcard-back-note {
+  margin-top: auto; font-size: 11px; letter-spacing: .04em; text-transform: uppercase;
+  color: rgba(245, 238, 241, .6);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pcard-flip { transition-duration: .05s; }
+  .orbit-dot { transition: none; }
+}

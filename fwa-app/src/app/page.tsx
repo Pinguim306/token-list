@@ -1,4 +1,7 @@
 import type { Metadata } from "next";
+import { OrbitCarousel } from "@/components/cards/OrbitCarousel";
+import { demo } from "@/lib/demo";
+import { fmt, bpsToPct, BPS } from "@/lib/format";
 
 export const metadata: Metadata = {
   title: "Fake World Assets — Randomized on-chain NFT acquisition",
@@ -120,6 +123,22 @@ const FAQ = [
   },
 ];
 
+/** Demo positions rendered as trading cards. Serialized to plain strings here
+ *  because BigInt cannot cross the server→client component boundary. */
+const CARDS = demo.positions.map((p) => {
+  const c = demo.collections.find((c) => c.address === p.asset);
+  return {
+    id: p.id.toString(),
+    tokenId: p.tokenId.toString(),
+    collection: c?.name ?? "Collection",
+    symbol: c?.symbol ?? "—",
+    backing: fmt(p.backing, demo.decimals),
+    bid: fmt((p.backing * demo.bidBps) / BPS, demo.decimals),
+    odds: bpsToPct(p.oddsBps),
+    crown: p.id === demo.topListingId,
+  };
+});
+
 function Section({
   id,
   eyebrow,
@@ -236,6 +255,16 @@ export default function LandingPage() {
             ))}
           </dl>
         </section>
+
+        {/* ---------- the cards ---------- */}
+        <Section
+          id="cards"
+          eyebrow="The cards"
+          title="Every position is a card."
+          lead="Drag through the pool. Click the front card to flip it — odds and standing bid live on the holographic back."
+        >
+          <OrbitCarousel cards={CARDS} />
+        </Section>
 
         {/* ---------- how it works ---------- */}
         <Section
