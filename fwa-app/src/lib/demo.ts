@@ -14,6 +14,8 @@ export const demo = {
   bidBps: 8500n,
   acquisitionCutBps: 2000n,
   topShareBps: 500n,
+  settlementWindow: 86_400n, // 24 h purchaser-only decision window
+  requestTimeout: 3_600n, // randomness liveness deadline
   topListingId: 3n,
   topPot: (124n * WAD) / 10n, // 12.4
   drawInFlight: false,

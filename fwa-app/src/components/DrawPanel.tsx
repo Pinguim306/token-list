@@ -1,9 +1,10 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { useAccount, useReadContract, useReadContracts, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { maxUint256 } from "viem";
 import { pool, backing } from "@/lib/contracts";
-import { DRAW_STATE, fmt, short } from "@/lib/format";
+import { DRAW_STATE, fmt, fmtDuration, short } from "@/lib/format";
 import { DEMO, demo } from "@/lib/demo";
 import { collectionSymbol } from "@/lib/usePositions";
 import { RipReveal, type RipSelected } from "@/components/RipReveal";
@@ -22,11 +23,15 @@ export function DrawPanel() {
     contracts: [
       { ...pool, functionName: "drawCount" },
       { ...pool, functionName: "drawInFlight" },
+      { ...pool, functionName: "settlementWindow" },
+      { ...pool, functionName: "requestTimeout" },
     ],
     query: { refetchInterval: 5000, enabled: !DEMO },
   });
   const drawCount = DEMO ? demo.draw.drawId : (data?.[0]?.result as bigint | undefined);
   const inFlight = DEMO ? demo.drawInFlight : (data?.[1]?.result as boolean | undefined);
+  const settlementWindow = DEMO ? demo.settlementWindow : ((data?.[2]?.result as bigint | undefined) ?? 86_400n);
+  const requestTimeout = DEMO ? demo.requestTimeout : ((data?.[3]?.result as bigint | undefined) ?? 3_600n);
 
   const hasDraw = !!drawCount && drawCount > 0n;
   const { data: draw } = useReadContract({
@@ -45,6 +50,48 @@ export function DrawPanel() {
   const isBuyer = !!d && !!address && d.buyer.toLowerCase() === address.toLowerCase();
   const fulfilled = d?.state === 2;
   const requested = d?.state === 1;
+
+  // A 1s clock, started client-side only so SSR markup never contains a
+  // wall-clock value (hydration would mismatch). Until the first tick the
+  // deadline UI simply doesn't render.
+  const [nowMs, setNowMs] = useState<number | null>(null);
+  // Demo anchor: pretend the draw was fulfilled 14 minutes ago, so the
+  // countdown reads "23h 46m" — the number from the settlement-window lesson.
+  const demoAnchor = useRef<number>(0);
+  useEffect(() => {
+    demoAnchor.current = Date.now() - 14 * 60_000;
+    const tick = () => setNowMs(Date.now());
+    tick();
+    const i = setInterval(tick, 1000);
+    return () => clearInterval(i);
+  }, []);
+
+  const fulfilledAtMs = DEMO ? demoAnchor.current : d ? Number(d.fulfilledAt) * 1000 : 0;
+  const requestedAtMs = DEMO ? demoAnchor.current : d ? Number(d.requestedAt) * 1000 : 0;
+  const settleDeadline = fulfilledAtMs + Number(settlementWindow) * 1000;
+  const expireDeadline = requestedAtMs + Number(requestTimeout) * 1000;
+  // Pre-hydration (nowMs null) nothing is considered expired.
+  const windowClosed = fulfilled && nowMs !== null && nowMs > settleDeadline;
+  const randomnessOverdue = requested && nowMs !== null && nowMs > expireDeadline;
+
+  const deadline =
+    nowMs === null
+      ? null
+      : fulfilled
+        ? windowClosed
+          ? { tone: "late", text: "Settlement window closed — anyone can finalize the default outcome (Keep)." }
+          : {
+              tone: settleDeadline - nowMs < 3_600_000 ? "warn" : "ok",
+              text: `${isBuyer ? "Yours alone" : "Buyer's call"} for ${fmtDuration(settleDeadline - nowMs)} — after that, anyone can finalize (default: Keep).`,
+            }
+        : requested
+          ? randomnessOverdue
+            ? { tone: "late", text: "Randomness overdue — anyone can expire the draw and refund the buyer." }
+            : {
+                tone: "ok",
+                text: `Randomness due within ${fmtDuration(expireDeadline - nowMs)} — the keeper answers on its own clock.`,
+              }
+          : null;
 
   // The revealed card needs the selected position's collection + tokenId.
   const { data: selPos } = useReadContract({
@@ -78,6 +125,13 @@ export function DrawPanel() {
         selected={selected}
       />
 
+      {deadline ? (
+        <p className={`deadline ${deadline.tone}`} data-draw-deadline role="status">
+          <span className="deadline-clock" aria-hidden="true">◷</span>
+          {deadline.text}
+        </p>
+      ) : null}
+
       {d && <div className="stat"><span>Buyer</span><b className="mono">{short(d.buyer)}</b></div>}
       {d && <div className="stat"><span>Escrowed price</span><b>{fmt(d.price, dec)}</b></div>}
       {hasDraw && <div className="stat"><span>Draw #</span><b>{drawCount!.toString()}</b></div>}
@@ -87,21 +141,26 @@ export function DrawPanel() {
           onClick={() => writeContract({ ...pool, functionName: "startDraw", args: [maxUint256] })}>
           Start draw
         </button>
-        <button className="btn" disabled={busy || !fulfilled || (!isBuyer && !DEMO)}
+        <button className="btn" disabled={busy || !fulfilled || windowClosed || (!isBuyer && !DEMO)}
           onClick={() => writeContract({ ...pool, functionName: "settle", args: [drawCount!, 0] })}>
           Keep NFT
         </button>
-        <button className="btn" disabled={busy || !fulfilled || (!isBuyer && !DEMO)}
+        <button className="btn" disabled={busy || !fulfilled || windowClosed || (!isBuyer && !DEMO)}
           onClick={() => writeContract({ ...pool, functionName: "settle", args: [drawCount!, 1] })}>
           Sell back
         </button>
       </div>
       <div className="row" style={{ marginTop: 8 }}>
-        <button className="btn ghost" disabled={busy || !fulfilled}
+        {/* Contract-mirrored gating: finalize only opens once the settlement
+            window has passed, expire only once randomness is overdue — the
+            user should never pay gas to learn "too early". */}
+        <button className="btn ghost" disabled={busy || !fulfilled || !windowClosed}
+          title={fulfilled && !windowClosed ? "Opens when the settlement window closes" : undefined}
           onClick={() => writeContract({ ...pool, functionName: "finalize", args: [drawCount!] })}>
           Finalize
         </button>
-        <button className="btn ghost" disabled={busy || !requested}
+        <button className="btn ghost" disabled={busy || !requested || !randomnessOverdue}
+          title={requested && !randomnessOverdue ? "Opens if randomness misses its deadline" : undefined}
           onClick={() => writeContract({ ...pool, functionName: "expireDraw", args: [drawCount!] })}>
           Expire · refund
         </button>
