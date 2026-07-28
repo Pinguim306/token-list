@@ -94,3 +94,53 @@ export function useIndexerDraws(limit: number, enabled: boolean) {
     },
   });
 }
+
+export type IndexedRandomness = {
+  id: bigint;
+  seedBlock: bigint;
+  status: string; // requested | revealed | skipped
+  randomWord: bigint | null;
+  requestedAt: bigint;
+  resolvedAt: bigint | null;
+};
+
+const RANDOMNESS_QUERY = `
+  query Randomness($limit: Int!) {
+    randomnessRequests(orderBy: "id", orderDirection: "desc", limit: $limit) {
+      items {
+        id
+        seedBlock
+        status
+        randomWord
+        requestedAt
+        resolvedAt
+      }
+      totalCount
+    }
+  }
+`;
+
+type RandomnessResponse = {
+  randomnessRequests: { items: Array<Record<string, unknown>>; totalCount?: number };
+};
+
+export function useIndexerRandomness(limit: number, enabled: boolean) {
+  return useQuery({
+    queryKey: ["indexer", "randomness", limit],
+    enabled: enabled && HAS_INDEXER,
+    refetchInterval: 10_000,
+    retry: 1,
+    queryFn: async () => {
+      const data = await gql<RandomnessResponse>(RANDOMNESS_QUERY, { limit });
+      const items: IndexedRandomness[] = (data.randomnessRequests?.items ?? []).map((r) => ({
+        id: BigInt(r.id as string),
+        seedBlock: BigInt(r.seedBlock as string),
+        status: String(r.status),
+        randomWord: toBig(r.randomWord),
+        requestedAt: BigInt(r.requestedAt as string),
+        resolvedAt: toBig(r.resolvedAt),
+      }));
+      return { items, totalCount: data.randomnessRequests?.totalCount ?? items.length };
+    },
+  });
+}

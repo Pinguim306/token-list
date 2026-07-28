@@ -7,6 +7,7 @@ import {
   Erc20Abi,
   Erc721Abi,
   EquityBasketAbi,
+  KeeperHashChainAdapterAbi,
 } from "./abis";
 
 const ZERO = "0x0000000000000000000000000000000000000000" as Address;
@@ -29,6 +30,7 @@ export const addresses = {
   fwaToken: addr(process.env.NEXT_PUBLIC_FWA_TOKEN),
   emitter: addr(process.env.NEXT_PUBLIC_EMITTER),
   basket: addr(process.env.NEXT_PUBLIC_BASKET_ADDRESS),
+  adapter: addr(process.env.NEXT_PUBLIC_ADAPTER_ADDRESS),
 };
 
 export const chainId = activeChain.id;
@@ -40,3 +42,4 @@ export const fwa = { address: addresses.fwaToken, abi: FWATokenAbi } as const;
 export const backing = { address: addresses.backingToken, abi: Erc20Abi } as const;
 export const nft = { address: addresses.nftCollection, abi: Erc721Abi } as const;
 export const basket = { address: addresses.basket, abi: EquityBasketAbi } as const;
+export const adapter = { address: addresses.adapter, abi: KeeperHashChainAdapterAbi } as const;
