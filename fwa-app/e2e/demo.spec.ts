@@ -31,6 +31,17 @@ test.describe("pool", () => {
     await page.goto("/app");
     await expect(page.locator(".nav-link")).toHaveText(["Collections", "Draws", "Baskets", "Portfolio"]);
   });
+
+  test("the settlement countdown shows the buyer's exclusive window", async ({ page }) => {
+    await page.goto("/app");
+    const dl = page.locator("[data-draw-deadline]");
+    await expect(dl).toBeVisible();
+    // demo anchors fulfillment 14 minutes ago on a 24h window -> "23h 4xm"
+    await expect(dl).toContainText(/Buyer's call for 23h \d+m/);
+    await expect(dl).toContainText(/anyone can finalize/);
+    // gating mirrors the contract: finalize stays closed while the window is open
+    await expect(page.getByRole("button", { name: "Finalize" })).toBeDisabled();
+  });
 });
 
 test.describe("position detail", () => {

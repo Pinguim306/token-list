@@ -179,6 +179,18 @@ td .odds { font-weight: 700; color: var(--success); }
 
 .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 
+/* ---- draw deadline countdown ---- */
+.deadline {
+  display: flex; align-items: baseline; gap: 8px; margin: 12px 0 0;
+  font-size: 13px; line-height: 1.45; color: var(--ink);
+  border: 1px solid var(--border); border-left-width: 4px; border-radius: var(--radius);
+  padding: 10px 12px; background: var(--surface-2);
+}
+.deadline .deadline-clock { color: var(--muted); }
+.deadline.ok { border-left-color: var(--accent); }
+.deadline.warn { border-left-color: var(--warning); background: var(--warning-soft); }
+.deadline.late { border-left-color: #ff8585; background: rgba(255, 92, 92, .1); }
+
 /* ---- deposit preview + backing health ---- */
 .lbl-hint { color: var(--muted); font-weight: 400; text-transform: none; letter-spacing: 0; }
 .dep-preview {
