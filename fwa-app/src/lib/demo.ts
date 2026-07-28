@@ -54,6 +54,28 @@ export const demo = {
   currentDay: 3n,
   purchaserBudget: 4500n * WAD,
 
+  /** Keeper randomness adapter — live on-chain state (KeeperHashChainAdapter). */
+  randomness: {
+    seedDelay: 5n,
+    blockhashWindow: 256n,
+    chainHead: "0x9f2c7d5e41ab88603be4c0a1e6d3f70915a2b8c4d6e0f1234567890abcdef1122",
+    revealsRemaining: 863n,
+    pendingRequestId: 0n, // 0 = idle (no draw in flight)
+    pendingSeedBlock: 0n,
+    keeper: "0xKEEPER00000000000000000000000000000keeper",
+    bond: 5n * WAD, // 5 ETH posted
+    slashableSkips: 0n,
+  },
+  /** Recent randomness requests (indexer's randomnessRequest table). Fixed
+   *  values keep the preview deterministic. status: requested|revealed|skipped. */
+  randomnessFeed: [
+    { id: 12n, seedBlock: 41_920_005n, status: "revealed", word: "0x7b4e…c1a9", requestedAt: 1784925000n, resolvedAt: 1784925042n },
+    { id: 11n, seedBlock: 41_916_408n, status: "revealed", word: "0x2f80…44de", requestedAt: 1784921400n, resolvedAt: 1784921455n },
+    { id: 10n, seedBlock: 41_912_810n, status: "revealed", word: "0xd311…9f02", requestedAt: 1784917800n, resolvedAt: 1784917861n },
+    { id: 9n,  seedBlock: 41_909_212n, status: "skipped",  word: null,          requestedAt: 1784914200n, resolvedAt: 1784918100n },
+    { id: 8n,  seedBlock: 41_905_614n, status: "revealed", word: "0x5a6c…07bb", requestedAt: 1784910600n, resolvedAt: 1784910648n },
+  ],
+
   /** Sample allowlisted tokenized equities (EquityBasket wrap candidates).
    *  Round demo prices keep the derived USD values legible and test-stable. */
   equities: [

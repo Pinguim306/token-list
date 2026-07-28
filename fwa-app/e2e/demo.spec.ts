@@ -33,6 +33,7 @@ test.describe("pool", () => {
       "Collections",
       "Draws",
       "Baskets",
+      "Fairness",
       "Portfolio",
       "How it works",
     ]);
@@ -48,6 +49,20 @@ test.describe("pool", () => {
     // settlement + randomness essentials
     await expect(page.getByText(/yours alone for 24 hours/i)).toBeVisible();
     await expect(page.getByText(/hash chain/)).toBeVisible();
+  });
+
+  test("the provably-fair page shows keeper state and the request feed", async ({ page }) => {
+    await page.goto("/app/randomness");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Provably fair");
+    // live adapter state (demo): committed chain head + reveals remaining
+    await expect(page.locator("[data-chain-head]")).toContainText(/0x[0-9a-f]{4,}…[0-9a-f]{4}/);
+    await expect(page.getByText("Reveals remaining")).toBeVisible();
+    // the request feed: 5 demo rows, one of them a stale skip
+    const rows = page.locator("[data-randomness-feed] tbody tr");
+    await expect(rows).toHaveCount(5);
+    await expect(page.getByText("skipped")).toBeVisible();
+    // the verify formula is present
+    await expect(page.getByText(/word\s+= keccak256\(preimage/)).toBeVisible();
   });
 
   test("the settlement countdown shows the buyer's exclusive window", async ({ page }) => {
