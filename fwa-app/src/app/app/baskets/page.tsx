@@ -4,6 +4,7 @@ import { useAccount, useReadContract, useReadContracts, useWriteContract, useWai
 import { basket } from "@/lib/contracts";
 import { Erc20Abi } from "@/lib/abis";
 import { fmt, short } from "@/lib/format";
+import { usdValue, fmtUsd } from "@/lib/prices";
 import { DEMO, demo } from "@/lib/demo";
 import { ErrorNote, SkeletonRows } from "@/components/States";
 import { BasketWrapForm } from "@/components/BasketWrapForm";
@@ -136,19 +137,34 @@ export default function Baskets() {
             </p>
           ) : (
             <ul className="m-0 list-none space-y-3 p-0">
-              {baskets.map((b) => (
+              {baskets.map((b) => {
+                // Total only when every leg is priced — a partial sum would
+                // read as the whole basket's worth.
+                const legValues = b.contents.map((h) => usdValue(h.token, h.amount, h.decimals));
+                const total = legValues.every((v) => v !== null)
+                  ? (legValues as number[]).reduce((a, v) => a + v, 0)
+                  : null;
+                return (
                 <li
                   key={b.id.toString()}
                   className="flex flex-wrap items-center justify-between gap-4 rounded-md border border-border bg-surface-2 px-4 py-3"
                   data-basket-item={b.id.toString()}
                 >
                   <div>
-                    <p className="m-0 font-display text-sm text-ink">Basket #{b.id.toString()}</p>
+                    <p className="m-0 font-display text-sm text-ink">
+                      Basket #{b.id.toString()}
+                      {total !== null ? (
+                        <span className="ml-2 font-body text-xs text-success" data-basket-value>
+                          ≈ {fmtUsd(total)}
+                        </span>
+                      ) : null}
+                    </p>
                     <ul className="m-0 mt-1 list-none space-y-0.5 p-0">
-                      {b.contents.map((h) => (
+                      {b.contents.map((h, i) => (
                         <li key={h.token} className="font-mono text-xs text-muted">
                           {fmt(h.amount, h.decimals)}{" "}
                           <span className="text-ink">{h.symbol ?? short(h.token as `0x${string}`)}</span>
+                          {legValues[i] !== null ? ` · ${fmtUsd(legValues[i])}` : ""}
                         </li>
                       ))}
                     </ul>
@@ -162,7 +178,8 @@ export default function Baskets() {
                     {busy ? "Confirming…" : "Unwrap"}
                   </button>
                 </li>
-              ))}
+                );
+              })}
             </ul>
           )}
 

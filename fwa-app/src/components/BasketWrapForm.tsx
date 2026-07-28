@@ -10,6 +10,7 @@ import {
 import { basket, addresses } from "@/lib/contracts";
 import { Erc20Abi, EquityBasketAbi } from "@/lib/abis";
 import { parseAddress, parseAmount } from "@/lib/parse";
+import { usdValue, fmtUsd } from "@/lib/prices";
 import { DEMO, demo } from "@/lib/demo";
 
 /** Mirrors EquityBasket.MAX_TOKENS. */
@@ -189,6 +190,23 @@ export function BasketWrapForm() {
           The same token appears twice — each equity can only be one leg of a basket.
         </p>
       ) : null}
+
+      {(() => {
+        // Contents valuation from the configured price map: shown only when
+        // every complete leg is priced, so a partial sum never reads as the
+        // basket's whole worth.
+        const legs = fields.filter((f) => f.addr.value !== null && f.amt.value !== null);
+        if (legs.length === 0) return null;
+        const values = legs.map((f) => usdValue(f.addr.value!, f.amt.value!, f.meta.decimals));
+        if (values.some((v) => v === null)) return null;
+        const total = (values as number[]).reduce((a, v) => a + v, 0);
+        return (
+          <p className="notice" data-wrap-value role="status">
+            Contents worth <b>≈ {fmtUsd(total)}</b> at configured prices — use this as your value
+            estimate when depositing the basket into the pool.
+          </p>
+        );
+      })()}
 
       <div className="row" style={{ marginTop: 12 }}>
         <button
