@@ -32,6 +32,7 @@ test.describe("pool", () => {
     await expect(page.locator(".nav-link")).toHaveText([
       "Collections",
       "Draws",
+      "Analytics",
       "Baskets",
       "Fairness",
       "Portfolio",
@@ -49,6 +50,18 @@ test.describe("pool", () => {
     // settlement + randomness essentials
     await expect(page.getByText(/yours alone for 24 hours/i)).toBeVisible();
     await expect(page.getByText(/hash chain/)).toBeVisible();
+  });
+
+  test("the analytics dashboard renders KPIs and charts", async ({ page }) => {
+    await page.goto("/app/analytics");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Pool analytics");
+    // KPI row + the four chart cards
+    await expect(page.getByText("Backing at work")).toBeVisible();
+    await expect(page.getByRole("img", { name: /Backing amount by position/ })).toBeVisible();
+    await expect(page.getByRole("img", { name: /Acquisition price per draw/ })).toBeVisible();
+    await expect(page.getByRole("img", { name: /Draw outcomes:/ })).toBeVisible();
+    // the crown position (#3 in demo) is emphasized on the backing chart
+    await expect(page.getByRole("img", { name: /Draw outcomes: 3 settled/ })).toBeVisible();
   });
 
   test("the provably-fair page shows keeper state and the request feed", async ({ page }) => {
