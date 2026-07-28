@@ -42,9 +42,11 @@ the VRF request and its callback).
 | | withhold a reveal it dislikes? | Yes (the real weakness): seeing the would-be word, it can go silent and let the draw expire. Cost: buyer refunded, incident recorded via `skipStale`, bond slashable, publicly visible. |
 | | brick the adapter by vanishing? | No — `skipStale` is permissionless after the blockhash window; the pool refunds via `expireDraw`. |
 | Sequencer + keeper (colluding) | grind the outcome? | Partially: on Arbitrum Orbit `blockhash` is chain-derived and sequencer-influenced, so collusion allows biased retries. Accepted launch risk (StockRip-parity); the VRF adapter is the remedy, swappable with zero pool changes. |
+| Paused/hostile basket leg (`EquityBasket`) | brick `unwrap` and lock the healthy legs? | No — `unwrap` delivers each leg via a non-reverting payout; a failing leg is escrowed to `stuckToken` and pulled later via `claimStuckToken`. The basket burns and healthy legs pay out regardless (`adversarial-review-keeper-basket.md`). |
 | Malicious emitter | brick pool operations? | No — guarded try/catch hooks (invariant 16). |
 | Malicious backing token | break accounting (fee-on-transfer/rebasing)? | Out of scope — backing is a trusted config-time ERC-20. |
-| Third party | claim someone's NFT/credit/reward? | Recipient checks on `claimStuckNFT`, `withdrawCredit`, `claimEarnings`, emitter `harvest`/`claim`. |
+| Rebasing basket token (`EquityBasket`) | strand a leg on unwrap? | Out of scope — wrapped tokens are a trusted, owner-allowlisted set assumed non-rebasing; a negative rebase escrows (never reverts) the short leg. |
+| Third party | claim someone's NFT/credit/reward? | Recipient checks on `claimStuckNFT`, `withdrawCredit`, `claimEarnings`, `claimStuckToken`, emitter `harvest`/`claim`. |
 
 ## KeeperHashChainAdapter — explicit trust downgrade
 

@@ -19,7 +19,7 @@ World Assets (FWA) protocol on RobinhoodChain.
 | `contracts/token/FWAClaim.sol` | ~60 | Merkle distribution. |
 | `contracts/randomness/RandomnessRouter.sol` | ~70 | Consumer ⇄ adapter indirection. |
 | `contracts/randomness/KeeperHashChainAdapter.sol` | ~180 | **Launch randomness backend**: keeper commit-reveal hash chain × future blockhash, stale-skip liveness, slashable bond. Weaker-than-VRF trust model documented in `threat-model.md` — review the selective-abort analysis. |
-| `contracts/basket/EquityBasket.sol` | ~120 | ERC-721 wrapper over allowlisted fungible tokenized equities (internal ledger). Review wrap/unwrap CEI and balance-delta accounting. |
+| `contracts/basket/EquityBasket.sol` | ~155 | ERC-721 wrapper over allowlisted fungible tokenized equities (internal ledger). Review wrap/unwrap CEI, balance-delta accounting, and the non-reverting payout + `claimStuckToken` escrow path. |
 
 **Out of scope / lower priority:**
 - `contracts/randomness/CCIPVRFAdapter.sol`, `VRFRequester.sol` — production
@@ -60,9 +60,12 @@ slither . --config-file slither.config.json   # static analysis (see audit/slith
 - **Crown/tithe + daily-pot** (core completion) had **Slither static analysis +
   manual review**, but NOT the multi-agent adversarial pass. **Auditors should
   focus extra attention here** — see `findings.md` for the exact coverage matrix.
-- **`KeeperHashChainAdapter` + `EquityBasket`** are covered by unit + pool
-  integration tests and a documented threat analysis, but have had **no
-  multi-agent adversarial pass yet** — treat both as elevated-attention targets
-  alongside crown/daily-pot.
+- **`KeeperHashChainAdapter` + `EquityBasket`** now have a focused adversarial
+  review — see `adversarial-review-keeper-basket.md`. It examined reentrancy,
+  double-serve, bond custody, and selection integrity (adapter) and reentrancy,
+  cross-basket isolation, and payout DoS (basket), fixed one issue (a hostile
+  basket leg could brick `unwrap`; now escrowed via non-reverting payout +
+  `claimStuckToken`), and records the residual trust assumptions. External audit
+  still recommended before mainnet.
 
 See `invariants.md`, `threat-model.md`, `findings.md`, and `runbook.md`.

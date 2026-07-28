@@ -153,4 +153,94 @@ describe("EquityBasket", function () {
       expect(await ctx.sortedTokens[i].balanceOf(ctx.buyer.address)).to.equal(ctx.sortedAmounts[i]);
     }
   });
+
+  // ------------------------------------------------------------------- //
+  //   Adversarial pass: non-reverting payout + cross-basket isolation   //
+  // ------------------------------------------------------------------- //
+
+  it("cross-basket balance isolation: unwrapping one basket leaves others intact", async () => {
+    const ctx = await loadFixture(deploy);
+    // two baskets share tokenA; balance-delta accounting must not conflate them
+    await ctx.basket.connect(ctx.alice).wrap([ctx.sortedAddrs[0]], [10n * WAD]);
+    await ctx.basket.connect(ctx.alice).wrap([ctx.sortedAddrs[0]], [5n * WAD]);
+    const held = await ctx.sortedTokens[0].balanceOf(await ctx.basket.getAddress());
+    expect(held).to.equal(15n * WAD);
+
+    await ctx.basket.connect(ctx.alice).unwrap(1, ctx.alice.address);
+    // basket #2 still owns its exact 5 tokens; the contract holds exactly that
+    expect((await ctx.basket.contentsOf(2))[0].amount).to.equal(5n * WAD);
+    expect(await ctx.sortedTokens[0].balanceOf(await ctx.basket.getAddress())).to.equal(5n * WAD);
+    await expect(ctx.basket.connect(ctx.alice).unwrap(2, ctx.alice.address)).to.not.be.reverted;
+    expect(await ctx.sortedTokens[0].balanceOf(await ctx.basket.getAddress())).to.equal(0n);
+  });
+
+  it("a delisted-but-healthy token still unwraps (allowlist gates wrap only)", async () => {
+    const ctx = await loadFixture(deploy);
+    await ctx.basket.connect(ctx.alice).wrap(ctx.sortedAddrs, ctx.sortedAmounts);
+    // owner revokes the token after it was wrapped
+    await ctx.basket.setTokenAllowed(ctx.sortedAddrs[0], false);
+    await expect(ctx.basket.connect(ctx.alice).unwrap(1, ctx.alice.address)).to.not.be.reverted;
+    expect(await ctx.sortedTokens[0].balanceOf(ctx.alice.address)).to.equal(
+      1_000n * WAD - ctx.sortedAmounts[0] + ctx.sortedAmounts[0]
+    );
+  });
+
+  describe("non-reverting unwrap when a leg is paused", () => {
+    async function withPausable() {
+      const [owner, alice] = await ethers.getSigners();
+      const good = await (await ethers.getContractFactory("MockERC20")).deploy("Tokenized Apple", "tAAPL", 18);
+      const pausable = await (await ethers.getContractFactory("PausableMockERC20")).deploy("Tokenized Tesla", "tTSLA");
+      const basket = await (await ethers.getContractFactory("EquityBasket")).deploy(owner.address);
+      await basket.setTokenAllowed(await good.getAddress(), true);
+      await basket.setTokenAllowed(await pausable.getAddress(), true);
+      for (const t of [good, pausable]) {
+        await t.mint(alice.address, 100n * WAD);
+        await t.connect(alice).approve(await basket.getAddress(), ethers.MaxUint256);
+      }
+      // build the strictly-ascending wrap args
+      const legs = [
+        { addr: await good.getAddress(), token: good, amount: 10n * WAD },
+        { addr: await pausable.getAddress(), token: pausable, amount: 4n * WAD },
+      ].sort((a, b) => (BigInt(a.addr) < BigInt(b.addr) ? -1 : 1));
+      await basket.connect(alice).wrap(legs.map((l) => l.addr), legs.map((l) => l.amount));
+      return { owner, alice, good, pausable, basket };
+    }
+
+    it("escrows the paused leg, still delivers the healthy one, and burns the basket", async () => {
+      const ctx = await withPausable();
+      await ctx.pausable.setPaused(true);
+
+      await expect(ctx.basket.connect(ctx.alice).unwrap(1, ctx.alice.address))
+        .to.emit(ctx.basket, "TokenEscrowed")
+        .withArgs(await ctx.pausable.getAddress(), ctx.alice.address, 4n * WAD);
+
+      // healthy leg delivered
+      expect(await ctx.good.balanceOf(ctx.alice.address)).to.equal(100n * WAD);
+      // paused leg escrowed, not delivered
+      expect(await ctx.pausable.balanceOf(ctx.alice.address)).to.equal(96n * WAD);
+      expect(await ctx.basket.stuckToken(await ctx.pausable.getAddress(), ctx.alice.address)).to.equal(4n * WAD);
+      // basket is gone regardless — no brick
+      await expect(ctx.basket.ownerOf(1)).to.be.revertedWithCustomError(ctx.basket, "ERC721NonexistentToken");
+    });
+
+    it("claimStuckToken pays out once the token can transfer again", async () => {
+      const ctx = await withPausable();
+      await ctx.pausable.setPaused(true);
+      await ctx.basket.connect(ctx.alice).unwrap(1, ctx.alice.address);
+
+      // still paused: the claim reverts and the balance is preserved
+      await expect(ctx.basket.connect(ctx.alice).claimStuckToken(await ctx.pausable.getAddress())).to.be.reverted;
+      expect(await ctx.basket.stuckToken(await ctx.pausable.getAddress(), ctx.alice.address)).to.equal(4n * WAD);
+
+      await ctx.pausable.setPaused(false);
+      await expect(ctx.basket.connect(ctx.alice).claimStuckToken(await ctx.pausable.getAddress()))
+        .to.emit(ctx.basket, "StuckTokenClaimed")
+        .withArgs(await ctx.pausable.getAddress(), ctx.alice.address, 4n * WAD);
+      expect(await ctx.pausable.balanceOf(ctx.alice.address)).to.equal(100n * WAD);
+      // a second claim finds nothing
+      await expect(
+        ctx.basket.connect(ctx.alice).claimStuckToken(await ctx.pausable.getAddress())
+      ).to.be.revertedWith("EB: nothing stuck");
+    });
+  });
 });
