@@ -29,7 +29,25 @@ test.describe("pool", () => {
 
   test("nav reaches the other screens", async ({ page }) => {
     await page.goto("/app");
-    await expect(page.locator(".nav-link")).toHaveText(["Collections", "Draws", "Baskets", "Portfolio"]);
+    await expect(page.locator(".nav-link")).toHaveText([
+      "Collections",
+      "Draws",
+      "Baskets",
+      "Portfolio",
+      "How it works",
+    ]);
+  });
+
+  test("the how-it-works deep dive covers the backing rule and settlement", async ({ page }) => {
+    await page.goto("/how-it-works");
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("How it works");
+    // the three-zone backing rule, verbatim from the economics
+    await expect(page.getByText("Sell-back trap")).toBeVisible();
+    await expect(page.getByText("Below-market exit")).toBeVisible();
+    await expect(page.getByText("value ≤ backing ≤ value ÷ 0.85")).toBeVisible();
+    // settlement + randomness essentials
+    await expect(page.getByText(/yours alone for 24 hours/i)).toBeVisible();
+    await expect(page.getByText(/hash chain/)).toBeVisible();
   });
 
   test("the settlement countdown shows the buyer's exclusive window", async ({ page }) => {
