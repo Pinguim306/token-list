@@ -47,6 +47,7 @@ export function Hero() {
           <a className="nav-link" href="/app/draws">Draws</a>
           <a className="nav-link" href="/app/baskets">Baskets</a>
           <a className="nav-link" href="/app/portfolio">Portfolio</a>
+          <a className="nav-link" href="/how-it-works">How it works</a>
           <ConnectButton />
         </div>
       </nav>
