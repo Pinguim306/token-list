@@ -179,6 +179,35 @@ td .odds { font-weight: 700; color: var(--success); }
 
 .row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 
+/* ---- deposit preview + backing health ---- */
+.lbl-hint { color: var(--muted); font-weight: 400; text-transform: none; letter-spacing: 0; }
+.dep-preview {
+  margin-top: 10px; padding: 2px 12px;
+  border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-2);
+}
+.dep-preview .stat { padding: 8px 0; }
+.backing-meter { margin-top: 12px; }
+.bm-track { position: relative; display: flex; height: 8px; }
+.bm-seg { height: 100%; }
+.bm-seg.under { width: 33%; background: var(--warning-soft); border-radius: 4px 0 0 4px; }
+.bm-seg.ok { width: 34%; background: var(--success-soft); }
+.bm-seg.trap { width: 33%; background: rgba(255, 92, 92, .22); border-radius: 0 4px 4px 0; }
+.bm-marker {
+  position: absolute; top: -3px; width: 3px; height: 14px; border-radius: 2px;
+  background: var(--ink); transform: translateX(-50%); transition: left .2s ease;
+}
+.bm-labels {
+  display: flex; justify-content: space-between; margin-top: 4px;
+  font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted);
+}
+.backing-note {
+  font-size: 12.5px; line-height: 1.5; border-radius: var(--radius);
+  padding: 10px 12px; margin: 8px 0 0; border: 1px solid;
+}
+.backing-note.balanced { color: var(--success); border-color: var(--success); background: var(--success-soft); }
+.backing-note.under { color: var(--warning); border-color: var(--warning); background: var(--warning-soft); }
+.backing-note.over { color: #ff8585; border-color: #ff8585; background: rgba(255, 92, 92, .1); }
+
 /* ---- basket wrap form ---- */
 .wrap-row {
   display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;

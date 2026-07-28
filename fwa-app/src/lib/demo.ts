@@ -12,6 +12,8 @@ export const demo = {
   activeCount: 5n,
   surchargeBps: 1000n,
   bidBps: 8500n,
+  acquisitionCutBps: 2000n,
+  topShareBps: 500n,
   topListingId: 3n,
   topPot: (124n * WAD) / 10n, // 12.4
   drawInFlight: false,

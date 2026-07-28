@@ -4,12 +4,18 @@ import { useState } from "react";
 import {
   useAccount,
   useReadContract,
+  useReadContracts,
   useWriteContract,
   useWaitForTransactionReceipt,
 } from "wagmi";
 import { pool, backing, nft, addresses } from "@/lib/contracts";
 import { parseInteger, parseAmount } from "@/lib/parse";
-import { DEMO } from "@/lib/demo";
+import { DEMO, demo } from "@/lib/demo";
+import { fmt, bpsToPct, BPS } from "@/lib/format";
+import { BackingHealth } from "@/components/BackingHealth";
+
+/** weight = 1e36 / backing (the pool's inverse-selection rule). */
+const NUM = 10n ** 36n;
 
 export function DepositForm() {
   const { isConnected } = useAccount();
@@ -22,6 +28,31 @@ export function DepositForm() {
 
   const [tokenId, setTokenId] = useState("");
   const [amount, setAmount] = useState("");
+  const [estimate, setEstimate] = useState("");
+
+  // Everything the live preview needs, in one batch.
+  const { data: poolStats } = useReadContracts({
+    contracts: [
+      { ...pool, functionName: "bidBps" } as const,
+      { ...pool, functionName: "totalWeight" } as const,
+      { ...pool, functionName: "activeCount" } as const,
+      { ...pool, functionName: "acquisitionPrice" } as const,
+      { ...pool, functionName: "acquisitionCutBps" } as const,
+      { ...pool, functionName: "topListingId" } as const,
+      { ...pool, functionName: "topShareBps" } as const,
+    ],
+    query: { enabled: !DEMO, refetchInterval: 10000 },
+  });
+  const stat = (i: number) => poolStats?.[i]?.result as bigint | undefined;
+  const bidBps = DEMO ? demo.bidBps : (stat(0) ?? 8500n);
+  const totalWeight = DEMO
+    ? demo.positions.reduce((a, p) => a + NUM / p.backing, 0n)
+    : (stat(1) ?? 0n);
+  const activeCount = DEMO ? demo.activeCount : (stat(2) ?? 0n);
+  const price = DEMO ? demo.price : (stat(3) ?? 0n);
+  const cutBps = DEMO ? demo.acquisitionCutBps : (stat(4) ?? 0n);
+  const crowned = DEMO ? demo.topListingId !== 0n : (stat(5) ?? 0n) !== 0n;
+  const topShareBps = DEMO ? demo.topShareBps : (stat(6) ?? 0n);
 
   const { writeContract, data: hash, isPending, error, reset } = useWriteContract();
   const { isLoading: mining, isSuccess: mined } = useWaitForTransactionReceipt({ hash });
@@ -38,6 +69,18 @@ export function DepositForm() {
   // render — an unguarded call unmounts the whole page on a stray keystroke.
   const id = parseInteger(tokenId, "Token id");
   const amt = parseAmount(amount, dec, "Backing amount");
+  const val = parseAmount(estimate, dec, "Estimated value");
+
+  // Live preview of what this exact backing buys.
+  const weight = amt.value ? NUM / amt.value : null;
+  const bid = amt.value ? (amt.value * bidBps) / BPS : null;
+  const oddsBps = weight ? (weight * BPS) / (totalWeight + weight) : null;
+  const oneIn = weight ? Math.max(1, Math.round(Number(totalWeight + weight) / Number(weight))) : null;
+  // Your equal share of each draw's distributable fee once you join (+1 position).
+  const feePerDraw =
+    price > 0n
+      ? (((price * (BPS - cutBps)) / BPS) * (crowned ? BPS - topShareBps : BPS)) / BPS / (activeCount + 1n)
+      : null;
 
   const frozen = drawInFlight === true;
   const busy = isPending || mining;
@@ -77,6 +120,42 @@ export function DepositForm() {
         aria-invalid={amt.error ? true : undefined}
       />
       {amt.error ? <p className="field-error" role="alert">{amt.error}</p> : null}
+
+      {amt.value !== null && bid !== null ? (
+        <div className="dep-preview" data-deposit-preview>
+          <div className="stat">
+            <span>Standing bid ({bpsToPct(bidBps)})</span>
+            <b>{fmt(bid, dec)}</b>
+          </div>
+          <div className="stat">
+            <span>Draw odds</span>
+            <b>
+              {oddsBps !== null ? bpsToPct(oddsBps) : "—"}
+              {oneIn !== null ? ` · 1 in ${oneIn}` : ""}
+            </b>
+          </div>
+          <div className="stat">
+            <span>Est. earnings per draw</span>
+            <b>{feePerDraw !== null ? `≈ ${fmt(feePerDraw, dec)}` : "—"}</b>
+          </div>
+        </div>
+      ) : null}
+
+      <label htmlFor="dep-value">
+        Estimated item value <span className="lbl-hint">(optional — checks your backing)</span>
+      </label>
+      <input
+        id="dep-value"
+        inputMode="decimal"
+        value={estimate}
+        onChange={(e) => setEstimate(e.target.value)}
+        placeholder="What would this sell for today?"
+        aria-invalid={val.error ? true : undefined}
+      />
+      {val.error ? <p className="field-error" role="alert">{val.error}</p> : null}
+      {amt.value !== null && val.value !== null ? (
+        <BackingHealth backing={amt.value} value={val.value} bidBps={bidBps} decimals={dec} />
+      ) : null}
 
       <div className="row" style={{ marginTop: 12 }}>
         <button
