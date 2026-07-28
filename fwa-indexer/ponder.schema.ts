@@ -43,3 +43,37 @@ export const crownEvent = onchainTable("crown_event", (t) => ({
   potPaid: t.bigint(),
   at: t.bigint().notNull(),
 }));
+
+/** One equity basket (ERC-721 wrapping tokenized equities). `contents` is a
+ *  JSON array of {token, amount} strings — amounts are stringified so bigint
+ *  values survive the column without precision loss. */
+export const basket = onchainTable("basket", (t) => ({
+  id: t.bigint().primaryKey(),
+  owner: t.hex().notNull(),
+  contents: t.json().notNull(),
+  wrapped: t.boolean().notNull(), // false once unwrapped/burned
+  createdAt: t.bigint().notNull(),
+  unwrappedAt: t.bigint(),
+}));
+
+/** A basket-unwrap payout that could not be delivered (paused token) and was
+ *  escrowed for a later `claimStuckToken`. Cleared when claimed. */
+export const basketEscrow = onchainTable("basket_escrow", (t) => ({
+  id: t.text().primaryKey(), // `${token}-${account}`
+  token: t.hex().notNull(),
+  account: t.hex().notNull(),
+  amount: t.bigint().notNull(),
+  updatedAt: t.bigint().notNull(),
+}));
+
+/** Keeper randomness lifecycle per router request id: request -> reveal, or a
+ *  permissionless stale skip. Lets the app show randomness latency/health
+ *  without the app itself watching the adapter. */
+export const randomnessRequest = onchainTable("randomness_request", (t) => ({
+  id: t.bigint().primaryKey(), // routerRequestId
+  seedBlock: t.bigint().notNull(),
+  status: t.text().notNull(), // requested | revealed | skipped
+  randomWord: t.bigint(),
+  requestedAt: t.bigint().notNull(),
+  resolvedAt: t.bigint(),
+}));

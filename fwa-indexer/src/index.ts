@@ -1,5 +1,15 @@
 import { ponder } from "ponder:registry";
-import { position, draw, purchase, crownEvent } from "ponder:schema";
+import {
+  position,
+  draw,
+  purchase,
+  crownEvent,
+  basket,
+  basketEscrow,
+  randomnessRequest,
+} from "ponder:schema";
+
+const ZERO_ADDR = "0x0000000000000000000000000000000000000000";
 
 const evId = (event: { transaction: { hash: string }; log: { logIndex: number } }) =>
   `${event.transaction.hash}-${event.log.logIndex}`;
@@ -104,4 +114,86 @@ ponder.on("FWAEmitter:PurchaseRecorded", async ({ event, context }) => {
     day: event.args.day,
     at: event.block.timestamp,
   });
+});
+
+// ---------------------------------------------------------- equity baskets
+ponder.on("EquityBasket:Wrapped", async ({ event, context }) => {
+  // Stringify amounts so bigints survive the JSON column without precision loss.
+  const contents = event.args.tokens.map((token, i) => ({
+    token,
+    amount: event.args.amounts[i]!.toString(),
+  }));
+  await context.db.insert(basket).values({
+    id: event.args.basketId,
+    owner: event.args.owner,
+    contents,
+    wrapped: true,
+    createdAt: event.block.timestamp,
+    unwrappedAt: null,
+  });
+});
+
+ponder.on("EquityBasket:Unwrapped", async ({ event, context }) => {
+  await context.db
+    .update(basket, { id: event.args.basketId })
+    .set({ wrapped: false, unwrappedAt: event.block.timestamp });
+});
+
+// Keep basket ownership current as the ERC-721 moves (e.g. into the pool, then
+// to the draw winner). Mint (from 0) is covered by Wrapped, burn (to 0) by
+// Unwrapped — skip both so we never touch a not-yet/no-longer-existing row.
+ponder.on("EquityBasket:Transfer", async ({ event, context }) => {
+  if (event.args.from === ZERO_ADDR || event.args.to === ZERO_ADDR) return;
+  await context.db.update(basket, { id: event.args.tokenId }).set({ owner: event.args.to });
+});
+
+ponder.on("EquityBasket:TokenEscrowed", async ({ event, context }) => {
+  const id = `${event.args.token}-${event.args.to}`.toLowerCase();
+  const existing = await context.db.find(basketEscrow, { id });
+  if (existing) {
+    await context.db
+      .update(basketEscrow, { id })
+      .set({ amount: existing.amount + event.args.amount, updatedAt: event.block.timestamp });
+  } else {
+    await context.db.insert(basketEscrow).values({
+      id,
+      token: event.args.token,
+      account: event.args.to,
+      amount: event.args.amount,
+      updatedAt: event.block.timestamp,
+    });
+  }
+});
+
+ponder.on("EquityBasket:StuckTokenClaimed", async ({ event, context }) => {
+  const id = `${event.args.token}-${event.args.account}`.toLowerCase();
+  await context.db
+    .update(basketEscrow, { id })
+    .set({ amount: 0n, updatedAt: event.block.timestamp });
+});
+
+// -------------------------------------------------------- keeper randomness
+ponder.on("KeeperHashChainAdapter:RandomnessRequested", async ({ event, context }) => {
+  await context.db.insert(randomnessRequest).values({
+    id: event.args.routerRequestId,
+    seedBlock: event.args.seedBlock,
+    status: "requested",
+    randomWord: null,
+    requestedAt: event.block.timestamp,
+    resolvedAt: null,
+  });
+});
+
+ponder.on("KeeperHashChainAdapter:Revealed", async ({ event, context }) => {
+  await context.db.update(randomnessRequest, { id: event.args.routerRequestId }).set({
+    status: "revealed",
+    randomWord: event.args.randomWord,
+    resolvedAt: event.block.timestamp,
+  });
+});
+
+ponder.on("KeeperHashChainAdapter:StaleSkipped", async ({ event, context }) => {
+  await context.db
+    .update(randomnessRequest, { id: event.args.routerRequestId })
+    .set({ status: "skipped", resolvedAt: event.block.timestamp });
 });
