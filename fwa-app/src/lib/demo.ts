@@ -54,11 +54,12 @@ export const demo = {
   currentDay: 3n,
   purchaserBudget: 4500n * WAD,
 
-  /** Sample allowlisted tokenized equities (EquityBasket wrap candidates). */
+  /** Sample allowlisted tokenized equities (EquityBasket wrap candidates).
+   *  Round demo prices keep the derived USD values legible and test-stable. */
   equities: [
-    { address: "0xE9010000000000000000000000000000000000a1", symbol: "rAAPL", name: "Tokenized Apple" },
-    { address: "0xE9010000000000000000000000000000000000b2", symbol: "rTSLA", name: "Tokenized Tesla" },
-    { address: "0xE9010000000000000000000000000000000000c3", symbol: "rNVDA", name: "Tokenized Nvidia" },
+    { address: "0xE9010000000000000000000000000000000000a1", symbol: "rAAPL", name: "Tokenized Apple", priceUsd: 200 },
+    { address: "0xE9010000000000000000000000000000000000b2", symbol: "rTSLA", name: "Tokenized Tesla", priceUsd: 300 },
+    { address: "0xE9010000000000000000000000000000000000c3", symbol: "rNVDA", name: "Tokenized Nvidia", priceUsd: 100 },
   ],
   /** Sample baskets owned by the preview wallet. Amounts are 18-decimals. */
   baskets: [

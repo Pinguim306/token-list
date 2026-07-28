@@ -59,6 +59,20 @@ test.describe("baskets page", () => {
     await expect(add).toBeDisabled();
   });
 
+  test("baskets are valued in USD from the configured prices", async ({ page }) => {
+    // demo prices are round on purpose: 10 rAAPL@200 + 2 rTSLA@300, 5 rNVDA@100
+    await expect(page.locator('[data-basket-item="1"] [data-basket-value]')).toHaveText("≈ $2,600.00");
+    await expect(page.locator('[data-basket-item="2"] [data-basket-value]')).toHaveText("≈ $500.00");
+    await expect(page.locator('[data-basket-item="1"]')).toContainText("$2,000.00");
+    await expect(page.locator('[data-basket-item="1"]')).toContainText("$600.00");
+  });
+
+  test("the wrap form totals the contents' USD value", async ({ page }) => {
+    await page.fill("#wrap-token-0", "0xE9010000000000000000000000000000000000a1");
+    await page.fill("#wrap-amount-0", "10");
+    await expect(page.locator("[data-wrap-value]")).toContainText("≈ $2,000.00");
+  });
+
   test("the app nav reaches baskets", async ({ page }) => {
     await page.goto("/app");
     await page.getByRole("link", { name: "Baskets" }).click();
