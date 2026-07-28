@@ -79,6 +79,58 @@ test.describe("deposit form input handling", () => {
   });
 });
 
+test.describe("deposit preview + backing health", () => {
+  test("typing an amount reveals bid, odds and fee previews", async ({ page }) => {
+    await page.goto("/app");
+    await expect(page.locator("[data-deposit-preview]")).toHaveCount(0);
+
+    await page.locator("#dep-amount").fill("100");
+    const preview = page.locator("[data-deposit-preview]");
+    await expect(preview).toBeVisible();
+    await expect(preview).toContainText("Standing bid (85.00%)");
+    await expect(preview).toContainText("85"); // 85% of 100
+    await expect(preview).toContainText(/1 in \d+/);
+    await expect(preview).toContainText("Est. earnings per draw");
+  });
+
+  test("the health meter flags all three backing zones", async ({ page }) => {
+    await page.goto("/app");
+    await page.locator("#dep-amount").fill("100");
+
+    // bid 85 > value 50 -> the sell-back trap from the StockRip analysis
+    await page.locator("#dep-value").fill("50");
+    const meter = page.locator("[data-health-zone]");
+    await expect(meter).toHaveAttribute("data-health-zone", "over");
+    await expect(meter).toContainText(/Sell-back trap/);
+
+    // value 100: bid 85 below it, backing at it -> healthy
+    await page.locator("#dep-value").fill("100");
+    await expect(meter).toHaveAttribute("data-health-zone", "balanced");
+    await expect(meter).toContainText(/Healthy/);
+
+    // value 120: backing 100 under it -> below-market exit
+    await page.locator("#dep-value").fill("120");
+    await expect(meter).toHaveAttribute("data-health-zone", "under");
+    await expect(meter).toContainText(/Below-market exit/);
+  });
+
+  test("a malformed estimate shows a field error, not a crash", async ({ page }) => {
+    const crashes: string[] = [];
+    page.on("pageerror", (e) => crashes.push(e.message));
+
+    await page.goto("/app");
+    await page.locator("#dep-amount").fill("100");
+    await page.locator("#dep-value").fill("abc");
+
+    await expect(page.getByText("Estimated value must be a number.")).toBeVisible();
+    await expect(page.locator("[data-health-zone]")).toHaveCount(0);
+    // advisory only: a bad estimate must not block the deposit itself
+    await page.locator("#dep-token").fill("42");
+    await expect(page.getByRole("button", { name: "Deposit", exact: true })).toBeEnabled();
+    expect(crashes).toEqual([]);
+  });
+});
+
 test.describe("other write panels survive bad input", () => {
   test("claim-earnings position id is validated", async ({ page }) => {
     const crashes: string[] = [];
