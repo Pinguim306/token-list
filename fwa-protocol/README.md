@@ -106,9 +106,10 @@ to stay portable until Fase 0 confirms the chain's ArbOS opcode support.
 ```bash
 npm install
 npm run build          # hardhat compile
-npm test               # 63 tests: Fenwick, pool, freeze, DoS, crown, emitter,
+npm test               # 69 tests: Fenwick, pool, freeze, DoS, crown, emitter,
                        #           claim, periphery, keeper randomness + bot,
-                       #           equity baskets, + randomized invariants
+                       #           equity baskets (+ adversarial pass), randomized
+                       #           invariants
 
 # Fase 0 — inventory the real testnet before committing further:
 npx hardhat run scripts/probe-chain.js --network robinhood-testnet

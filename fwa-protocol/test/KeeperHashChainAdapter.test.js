@@ -171,6 +171,38 @@ describe("KeeperHashChainAdapter", function () {
     expect(await ctx.consumer.lastDrawId()).to.equal(2n);
   });
 
+  it("no double-serve: a late reveal after skipStale cannot resurrect the request", async () => {
+    const ctx = await loadFixture(deploy);
+    await ctx.consumer.request(1);
+    await mine(270);
+    await ctx.adapter.connect(ctx.other).skipStale();
+
+    // keeper resurfaces and tries to reveal the skipped request — the pending
+    // slot is empty, so there is nothing to fulfil and the consumer is untouched.
+    await expect(ctx.adapter.connect(ctx.keeper).reveal(ctx.links[CHAIN_LEN - 1])).to.be.revertedWith(
+      "KHC: no pending"
+    );
+    expect(await ctx.consumer.fulfillments()).to.equal(0n);
+  });
+
+  it("each stale skip needs its own slash to unlock the bond", async () => {
+    const ctx = await loadFixture(deploy);
+    await ctx.adapter.connect(ctx.keeper).postBond({ value: WAD });
+
+    // two separate outages -> two recorded skips
+    for (let d = 1; d <= 2; d++) {
+      await ctx.consumer.request(d);
+      await mine(270);
+      await ctx.adapter.skipStale();
+    }
+    expect(await ctx.adapter.slashableSkips()).to.equal(2n);
+
+    await ctx.adapter.connect(ctx.owner).slash(ctx.buyer.address, 0n); // forgive one
+    await expect(ctx.adapter.connect(ctx.keeper).withdrawBond(WAD)).to.be.revertedWith("KHC: slashable skip");
+    await ctx.adapter.connect(ctx.owner).slash(ctx.buyer.address, 0n); // forgive the second
+    await expect(ctx.adapter.connect(ctx.keeper).withdrawBond(WAD)).to.not.be.reverted;
+  });
+
   it("bond: locked while a skip is unanswered, slashable by the owner", async () => {
     const ctx = await loadFixture(deploy);
     await expect(ctx.adapter.connect(ctx.other).postBond({ value: WAD })).to.be.revertedWith("KHC: not keeper");

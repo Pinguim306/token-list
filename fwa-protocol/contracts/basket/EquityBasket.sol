@@ -36,6 +36,17 @@ import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol
 ///          reentrancy window;
 ///        - token lists must be strictly ascending by address: canonical order
 ///          and duplicate rejection in one check.
+///        - NON-REVERTING PAYOUT. Tokenized equities are frequently
+///          pausable/upgradeable by their issuer. If one leg's transfer reverts
+///          at unwrap time, that leg is escrowed for a later pull-based
+///          `claimStuckToken` instead of bricking the whole basket — the same
+///          principle FWAPool applies to NFT delivery. The basket still burns
+///          and the healthy legs still pay out.
+///
+///      Trust assumptions (owner-curated allowlist): wrapped tokens are assumed
+///      NON-REBASING. A negative-rebasing token could leave the contract short
+///      of a recorded amount, escrowing that leg until (if ever) the balance
+///      recovers. Standard tokenized equities do not rebase.
 contract EquityBasket is ERC721, Ownable, ReentrancyGuard {
     using SafeERC20 for IERC20;
 
@@ -53,9 +64,16 @@ contract EquityBasket is ERC721, Ownable, ReentrancyGuard {
     uint256 public basketCount;
     mapping(uint256 => Holding[]) private _contents;
 
+    /// @notice token => account => amount escrowed because a payout transfer
+    ///          reverted (e.g. the token was paused at unwrap time). Pulled by
+    ///          the rightful recipient via `claimStuckToken` once transfers work.
+    mapping(address => mapping(address => uint256)) public stuckToken;
+
     event TokenAllowed(address indexed token, bool allowed);
     event Wrapped(uint256 indexed basketId, address indexed owner, address[] tokens, uint256[] amounts);
     event Unwrapped(uint256 indexed basketId, address indexed to);
+    event TokenEscrowed(address indexed token, address indexed to, uint256 amount);
+    event StuckTokenClaimed(address indexed token, address indexed account, uint256 amount);
 
     constructor(address initialOwner) ERC721("FWA Equity Basket", "FWAEB") Ownable(initialOwner) {}
 
@@ -103,6 +121,9 @@ contract EquityBasket is ERC721, Ownable, ReentrancyGuard {
     }
 
     /// @notice Burn a basket you own and release its underlying shares to `to`.
+    /// @dev A leg whose transfer reverts (e.g. a paused equity token) is escrowed
+    ///      for `to` rather than reverting the whole unwrap. The basket burns and
+    ///      the healthy legs pay out regardless.
     function unwrap(uint256 basketId, address to) external nonReentrant {
         require(ownerOf(basketId) == msg.sender, "EB: not owner");
         require(to != address(0), "EB: zero");
@@ -113,9 +134,37 @@ contract EquityBasket is ERC721, Ownable, ReentrancyGuard {
         _burn(basketId);
 
         for (uint256 i = 0; i < contents.length; i++) {
-            IERC20(contents[i].token).safeTransfer(to, contents[i].amount);
+            _payOrEscrow(contents[i].token, to, contents[i].amount);
         }
         emit Unwrapped(basketId, to);
+    }
+
+    /// @notice Pull tokens escrowed for you when an unwrap payout could not be
+    ///         delivered (e.g. the token was paused). Reverts if the token still
+    ///         cannot transfer — the balance is preserved, try again later.
+    function claimStuckToken(address token) external nonReentrant {
+        uint256 amount = stuckToken[token][msg.sender];
+        require(amount > 0, "EB: nothing stuck");
+        stuckToken[token][msg.sender] = 0;
+        IERC20(token).safeTransfer(msg.sender, amount);
+        emit StuckTokenClaimed(token, msg.sender, amount);
+    }
+
+    /// @dev Non-reverting delivery: attempt the transfer; on any failure (revert
+    ///      or a non-conforming false return) record the amount for a later pull.
+    ///      Mirrors OpenZeppelin's SafeERC20 success criterion without reverting.
+    function _payOrEscrow(address token, address to, uint256 amount) internal {
+        (bool ok, bytes memory data) = token.call(
+            abi.encodeWithSelector(IERC20.transfer.selector, to, amount)
+        );
+        // Success = call ok AND (no return data OR a full 32-byte word decoding
+        // to true). A short/odd return length is treated as failure, never
+        // decoded — so a hostile token cannot revert this helper and re-brick
+        // the unwrap.
+        bool delivered = ok && (data.length == 0 || (data.length >= 32 && abi.decode(data, (bool))));
+        if (delivered) return;
+        stuckToken[token][to] += amount;
+        emit TokenEscrowed(token, to, amount);
     }
 
     /// @notice What a basket owns. Empty for burned or never-minted ids.
