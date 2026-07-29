@@ -95,6 +95,47 @@ export function useIndexerDraws(limit: number, enabled: boolean) {
   });
 }
 
+export type IndexedEscrow = {
+  token: `0x${string}`;
+  account: `0x${string}`;
+  amount: bigint;
+};
+
+const ESCROWS_QUERY = `
+  query Escrows($account: String!) {
+    basketEscrows(where: { account: $account }, limit: 50) {
+      items {
+        token
+        account
+        amount
+      }
+    }
+  }
+`;
+
+type EscrowsResponse = { basketEscrows: { items: Array<Record<string, unknown>> } };
+
+/** Basket-unwrap payouts escrowed for `account` (claimStuckToken recovers them).
+ *  Zero-amount rows are already-claimed history — filtered out here. */
+export function useIndexerEscrows(account: string | undefined, enabled: boolean) {
+  return useQuery({
+    queryKey: ["indexer", "escrows", account],
+    enabled: enabled && HAS_INDEXER && !!account,
+    refetchInterval: 15_000,
+    retry: 1,
+    queryFn: async () => {
+      const data = await gql<EscrowsResponse>(ESCROWS_QUERY, { account: account!.toLowerCase() });
+      return (data.basketEscrows?.items ?? [])
+        .map((e) => ({
+          token: e.token as `0x${string}`,
+          account: e.account as `0x${string}`,
+          amount: BigInt(e.amount as string),
+        }))
+        .filter((e) => e.amount > 0n);
+    },
+  });
+}
+
 export type IndexedRandomness = {
   id: bigint;
   seedBlock: bigint;

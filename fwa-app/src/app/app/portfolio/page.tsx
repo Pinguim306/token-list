@@ -1,10 +1,11 @@
 "use client";
 
-import { useAccount, useReadContract, useReadContracts } from "wagmi";
+import { useAccount, useReadContract, useReadContracts, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
 import { pool, backing, emitter } from "@/lib/contracts";
 import { fmt, bpsToPct, short, BPS } from "@/lib/format";
 import { DEMO, demo } from "@/lib/demo";
 import { ErrorNote, SkeletonRows } from "@/components/States";
+import { StuckNftClaim } from "@/components/StuckNftClaim";
 
 type PositionTuple = {
   depositor: `0x${string}`;
@@ -83,9 +84,14 @@ export default function Portfolio() {
       // rewardCredit is keyed by account; the emitter's pendingOf takes a
       // positionId, not an address — different thing entirely.
       { ...emitter, functionName: "rewardCredit", args: [address ?? "0x0"] } as const,
+      { ...pool, functionName: "drawInFlight" } as const,
     ],
     query: { enabled: live, refetchInterval: 10000 },
   });
+
+  const { writeContract, data: txHash, isPending, error: txError, reset } = useWriteContract();
+  const { isLoading: mining, isSuccess: mined } = useWaitForTransactionReceipt({ hash: txHash });
+  const busy = isPending || mining || DEMO;
 
   const mine = DEMO
     ? demo.positions
@@ -111,6 +117,16 @@ export default function Portfolio() {
   const credit = DEMO ? demo.credit : (balances?.[0]?.result as bigint | undefined);
   const bid = DEMO ? demo.bidBps : (balances?.[1]?.result as bigint | undefined);
   const reward = DEMO ? demo.reward : (balances?.[2]?.result as bigint | undefined);
+  const drawInFlight = DEMO ? demo.drawInFlight : (balances?.[3]?.result as boolean | undefined) === true;
+
+  // Pending $FWA emissions per owned position (harvest realizes them into
+  // rewardCredit without closing the position).
+  const { data: pendingData } = useReadContracts({
+    contracts: mine.map((p) => ({ ...emitter, functionName: "pendingOf", args: [p.id] }) as const),
+    query: { enabled: live && mine.length > 0, refetchInterval: 10000 },
+  });
+  const pendingOf = (id: bigint, i: number): bigint | undefined =>
+    DEMO ? demo.pendingEmissions.get(id) ?? 0n : (pendingData?.[i]?.result as bigint | undefined);
 
   const totalBacking = mine.reduce((a, p) => a + p.backing, 0n);
   const totalExposure = bid !== undefined ? (totalBacking * bid) / BPS : undefined;
@@ -186,10 +202,13 @@ export default function Portfolio() {
             </p>
           ) : (
             <ul className="m-0 list-none space-y-3 p-0">
-              {mine.map((p) => (
+              {mine.map((p, i) => {
+                const pending = pendingOf(p.id, i);
+                return (
                 <li
                   key={p.id.toString()}
                   className="flex flex-wrap items-center justify-between gap-4 rounded-md border border-border bg-surface-2 px-4 py-3"
+                  data-portfolio-position={p.id.toString()}
                 >
                   <div>
                     <a
@@ -202,7 +221,7 @@ export default function Portfolio() {
                       NFT #{p.tokenId.toString()}
                     </p>
                   </div>
-                  <div className="flex gap-6">
+                  <div className="flex flex-wrap items-center gap-6">
                     <div className="text-right">
                       <p className="m-0 font-body text-[10px] tracking-wide text-muted uppercase">
                         Backing
@@ -219,12 +238,67 @@ export default function Portfolio() {
                         {p.odds !== undefined ? bpsToPct(p.odds) : "—"}
                       </p>
                     </div>
+                    <div className="text-right">
+                      <p className="m-0 font-body text-[10px] tracking-wide text-muted uppercase">
+                        Pending $FWA
+                      </p>
+                      <p className="m-0 font-body text-sm tabular-nums text-ink">
+                        {pending !== undefined ? fmt(pending, 18) : "—"}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        className="btn"
+                        disabled={busy || !pending}
+                        title={DEMO ? "Preview mode" : "Realize this position's pending $FWA without closing it"}
+                        onClick={() => {
+                          reset();
+                          writeContract({ ...emitter, functionName: "harvest", args: [p.id] });
+                        }}
+                      >
+                        Harvest
+                      </button>
+                      <button
+                        className="btn"
+                        disabled={busy || drawInFlight}
+                        title={
+                          DEMO
+                            ? "Preview mode"
+                            : drawInFlight
+                              ? "A draw is in flight — the pool is frozen until it settles"
+                              : "Close this position: NFT + backing + earnings come back to you"
+                        }
+                        onClick={() => {
+                          reset();
+                          writeContract({ ...pool, functionName: "withdraw", args: [p.id] });
+                        }}
+                      >
+                        Withdraw
+                      </button>
+                    </div>
                   </div>
                 </li>
-              ))}
+                );
+              })}
             </ul>
           )}
         </Card>
+      </div>
+
+      {txError ? (
+        <p className="mt-4 field-error" role="alert">
+          Transaction failed: {(txError as { shortMessage?: string }).shortMessage ?? txError.message}
+        </p>
+      ) : null}
+      {mined ? <p className="mt-4 notice ok" role="status">Confirmed.</p> : null}
+      {drawInFlight ? (
+        <p className="mt-4 mb-0 rounded-md border border-warning bg-warning-soft px-4 py-3 font-body text-xs text-muted" role="status">
+          A draw is in flight — withdrawals are paused until it settles (freeze-at-request).
+        </p>
+      ) : null}
+
+      <div className="mt-8">
+        <StuckNftClaim />
       </div>
 
       {DEMO ? (

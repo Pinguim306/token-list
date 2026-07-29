@@ -66,6 +66,17 @@ export const basketEscrow = onchainTable("basket_escrow", (t) => ({
   updatedAt: t.bigint().notNull(),
 }));
 
+/** An NFT the pool escrowed because settlement delivery reverted, awaiting
+ *  `claimStuckNFT` by its rightful recipient. `claimed` flips on recovery. */
+export const nftEscrow = onchainTable("nft_escrow", (t) => ({
+  id: t.text().primaryKey(), // `${asset}-${tokenId}`
+  asset: t.hex().notNull(),
+  tokenId: t.bigint().notNull(),
+  account: t.hex().notNull(),
+  claimed: t.boolean().notNull(),
+  updatedAt: t.bigint().notNull(),
+}));
+
 /** Keeper randomness lifecycle per router request id: request -> reveal, or a
  *  permissionless stale skip. Lets the app show randomness latency/health
  *  without the app itself watching the adapter. */
