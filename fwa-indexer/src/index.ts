@@ -6,6 +6,7 @@ import {
   crownEvent,
   basket,
   basketEscrow,
+  nftEscrow,
   randomnessRequest,
 } from "ponder:schema";
 
@@ -114,6 +115,29 @@ ponder.on("FWAEmitter:PurchaseRecorded", async ({ event, context }) => {
     day: event.args.day,
     at: event.block.timestamp,
   });
+});
+
+// ------------------------------------------------------- stuck NFT escrows
+ponder.on("FWAPool:NFTEscrowed", async ({ event, context }) => {
+  const id = `${event.args.asset}-${event.args.tokenId}`.toLowerCase();
+  const values = {
+    asset: event.args.asset,
+    tokenId: event.args.tokenId,
+    account: event.args.to,
+    claimed: false,
+    updatedAt: event.block.timestamp,
+  };
+  // The same NFT can re-escrow after a failed claim cycle — upsert, not insert.
+  const existing = await context.db.find(nftEscrow, { id });
+  if (existing) await context.db.update(nftEscrow, { id }).set(values);
+  else await context.db.insert(nftEscrow).values({ id, ...values });
+});
+
+ponder.on("FWAPool:StuckNFTClaimed", async ({ event, context }) => {
+  const id = `${event.args.asset}-${event.args.tokenId}`.toLowerCase();
+  await context.db
+    .update(nftEscrow, { id })
+    .set({ claimed: true, updatedAt: event.block.timestamp });
 });
 
 // ---------------------------------------------------------- equity baskets

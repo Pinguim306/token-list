@@ -54,6 +54,22 @@ export const demo = {
   currentDay: 3n,
   purchaserBudget: 4500n * WAD,
 
+  /** Basket-unwrap payouts that could not be delivered (paused token) and sit
+   *  in escrow awaiting claimStuckToken. */
+  stuckPayouts: [
+    { token: "0xE9010000000000000000000000000000000000b2", symbol: "rTSLA", amount: 4n * WAD, decimals: 18 },
+  ],
+  /** NFTs escrowed by the pool because settlement delivery reverted
+   *  (pool.claimStuckNFT recovers them). */
+  stuckNfts: [
+    { asset: "0xC0113c7100000000000000000000000000000001", symbol: "FPUNK", tokenId: 77n },
+  ],
+  /** Pending $FWA emissions per owned position (emitter.pendingOf). */
+  pendingEmissions: new Map<bigint, bigint>([
+    [1n, 12n * WAD],
+    [4n, 3n * WAD],
+  ]),
+
   /** Keeper randomness adapter — live on-chain state (KeeperHashChainAdapter). */
   randomness: {
     seedDelay: 5n,

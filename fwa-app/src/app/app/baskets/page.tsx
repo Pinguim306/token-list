@@ -8,6 +8,7 @@ import { usdValue, fmtUsd } from "@/lib/prices";
 import { DEMO, demo } from "@/lib/demo";
 import { ErrorNote, SkeletonRows } from "@/components/States";
 import { BasketWrapForm } from "@/components/BasketWrapForm";
+import { StuckPayouts } from "@/components/StuckPayouts";
 
 type Holding = { token: `0x${string}`; amount: bigint };
 type BasketView = {
@@ -191,6 +192,10 @@ export default function Baskets() {
           {mined ? <p className="notice ok" role="status">Confirmed.</p> : null}
         </div>
       </section>
+
+      <div className="mt-8">
+        <StuckPayouts />
+      </div>
 
       {DEMO ? (
         <p className="mt-8 mb-0 rounded-md border border-accent/40 bg-accent-soft px-4 py-3 font-body text-xs text-muted">

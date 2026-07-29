@@ -52,6 +52,41 @@ test.describe("pool", () => {
     await expect(page.getByText(/hash chain/)).toBeVisible();
   });
 
+  test("portfolio exposes withdraw + harvest per position and the NFT recovery card", async ({ page }) => {
+    await page.goto("/app/portfolio");
+    // both demo-owned positions get their management actions
+    const row1 = page.locator('[data-portfolio-position="1"]');
+    await expect(row1.getByRole("button", { name: "Withdraw" })).toBeVisible();
+    await expect(row1.getByRole("button", { name: "Harvest" })).toBeVisible();
+    await expect(row1).toContainText("Pending $FWA");
+    await expect(row1).toContainText("12");
+    // recovery card for escrowed NFTs, with the demo sample
+    const recovery = page.locator("[data-stuck-nfts]");
+    await expect(recovery).toContainText("Escrowed NFTs");
+    await expect(recovery.locator('[data-stuck-nft="FPUNK-77"]')).toBeVisible();
+  });
+
+  test("baskets page exposes escrowed-payout recovery (claimStuckToken)", async ({ page }) => {
+    await page.goto("/app/baskets");
+    const card = page.locator("[data-stuck-payouts]");
+    await expect(card).toContainText("Escrowed payouts");
+    // the demo sample: 4 rTSLA stuck from a paused-token unwrap
+    await expect(card).toContainText("rTSLA");
+    await expect(card.getByRole("button", { name: "Claim" })).toBeVisible();
+  });
+
+  test("position detail shows the crown challenge with contract-mirrored eligibility", async ({ page }) => {
+    // position 5 (backing 210) cannot dethrone the crown (400 + 10% = 440)
+    await page.goto("/app/position/5");
+    const challenge = page.locator("[data-crown-challenge]");
+    await expect(challenge).toContainText("Crown challenge");
+    await expect(challenge).toContainText("not enough");
+    await expect(challenge.getByRole("button", { name: "Claim crown" })).toBeDisabled();
+    // the crown holder itself gets no challenge card
+    await page.goto("/app/position/3");
+    await expect(page.locator("[data-crown-challenge]")).toHaveCount(0);
+  });
+
   test("the analytics dashboard renders KPIs and charts", async ({ page }) => {
     await page.goto("/app/analytics");
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Pool analytics");
