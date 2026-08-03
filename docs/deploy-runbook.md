@@ -20,9 +20,10 @@ faucet). The rest is mechanical.
   `VRFDirectAdapter`; `configure()` it with the BNB coordinator/keyHash/subId
   and fund the subscription. Keeper remains the zero-dependency launch path;
   VRF is the verifiable upgrade (one `setAdapter` swap).
-- **Pack contents**: allowlist real tokenized stocks on BSC (e.g. xStocks
-  tickers) in `EquityBasket.setTokenAllowed`; private-market names (SpaceX
-  et al) only via a vetted issuer. Curation is the owner's responsibility.
+- **Pack contents**: allowlist the real **Binance Stocks (bStocks)** token
+  addresses in `EquityBasket.setTokenAllowed` — TSLAB, NVDAB, APPLB, SPYB,
+  QQQB, XAUT, SPCXB, SKHYB. Confirm each token address on BscScan before
+  allowlisting; curation is the owner's responsibility.
 - **Dynamic pricing** is off by default; enable with
   `pool.setDynamicPricing(dispersionFactorBps, maxExtraSurchargeBps)` — e.g.
   `(5000, 2000)` = add 50% of the dispersion, capped at +20%.
@@ -90,7 +91,7 @@ The pool ships with an **empty** collection whitelist and the basket with an
 Then seed the pool in bundles via the **PackVault**: fund it with stock tokens
 + backing, `setTemplate(tokens, amounts, backingPerPack)`,
 `setPolicy(floor, bundleSize, cooldown)`, and `mintBundle(count)` for launch.
-Mocks are fine for the testnet beta; real xStocks addresses gate mainnet.
+Mocks are fine for the testnet beta; the real bStocks token addresses gate mainnet.
 
 ## 4. Start the keeper (required — draws don't resolve without it)
 
