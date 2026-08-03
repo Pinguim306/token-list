@@ -15,8 +15,8 @@ test.describe("baskets page", () => {
     await expect(page.locator("[data-basket-wrap]")).toBeVisible();
     // two demo baskets with their contents listed
     await expect(page.locator("[data-basket-item]")).toHaveCount(2);
-    await expect(page.locator('[data-basket-item="1"]')).toContainText("APPLB");
     await expect(page.locator('[data-basket-item="1"]')).toContainText("TSLAB");
+    await expect(page.locator('[data-basket-item="1"]')).toContainText("SPCXB");
     await expect(page.locator('[data-basket-item="2"]')).toContainText("NVDAB");
   });
 
@@ -37,13 +37,13 @@ test.describe("baskets page", () => {
   });
 
   test("recognizes a demo equity token and flags duplicates", async ({ page }) => {
-    const APPLB = "0xE9010000000000000000000000000000000000a1";
-    await page.fill("#wrap-token-0", APPLB);
-    await expect(page.locator("[data-token-symbol]")).toHaveText("APPLB");
+    const TSLAB = "0xE9010000000000000000000000000000000000b2";
+    await page.fill("#wrap-token-0", TSLAB);
+    await expect(page.locator("[data-token-symbol]")).toHaveText("TSLAB");
 
     await page.locator("[data-add-leg]").click();
     await expect(page.locator("[data-wrap-row]")).toHaveCount(2);
-    await page.fill("#wrap-token-1", APPLB.toLowerCase());
+    await page.fill("#wrap-token-1", TSLAB.toLowerCase());
     await expect(page.getByText(/appears twice/)).toBeVisible();
 
     // removing the duplicate row clears the error
@@ -60,17 +60,17 @@ test.describe("baskets page", () => {
   });
 
   test("baskets are valued in USD from the configured prices", async ({ page }) => {
-    // demo prices are round on purpose: 10 APPLB@200 + 2 TSLAB@300, 5 NVDAB@100
-    await expect(page.locator('[data-basket-item="1"] [data-basket-value]')).toHaveText("≈ $2,600.00");
+    // demo prices are round on purpose: 2 TSLAB@300 + 4 SPCXB@100, 5 NVDAB@100
+    await expect(page.locator('[data-basket-item="1"] [data-basket-value]')).toHaveText("≈ $1,000.00");
     await expect(page.locator('[data-basket-item="2"] [data-basket-value]')).toHaveText("≈ $500.00");
-    await expect(page.locator('[data-basket-item="1"]')).toContainText("$2,000.00");
     await expect(page.locator('[data-basket-item="1"]')).toContainText("$600.00");
+    await expect(page.locator('[data-basket-item="1"]')).toContainText("$400.00");
   });
 
   test("the wrap form totals the contents' USD value", async ({ page }) => {
-    await page.fill("#wrap-token-0", "0xE9010000000000000000000000000000000000a1");
+    await page.fill("#wrap-token-0", "0xE9010000000000000000000000000000000000b2");
     await page.fill("#wrap-amount-0", "10");
-    await expect(page.locator("[data-wrap-value]")).toContainText("≈ $2,000.00");
+    await expect(page.locator("[data-wrap-value]")).toContainText("≈ $3,000.00");
   });
 
   test("the app nav reaches baskets", async ({ page }) => {

@@ -92,26 +92,23 @@ export const demo = {
     { id: 8n,  seedBlock: 41_905_614n, status: "revealed", word: "0x5a6c…07bb", requestedAt: 1784910600n, resolvedAt: 1784910648n },
   ],
 
-  /** Allowlisted tokenized stocks — Binance Stocks (bStocks). Round demo
-   *  prices keep the derived USD values legible and test-stable. On mainnet
-   *  these become the real bStock token addresses via EquityBasket.setTokenAllowed. */
+  /** Allowlisted tokenized stocks — Binance Stocks (bStocks). Curated to the
+   *  three the product ships with: Tesla, NVIDIA, SpaceX. Round demo prices
+   *  keep the derived USD values legible and test-stable. On mainnet these
+   *  become the real bStock token addresses via EquityBasket.setTokenAllowed
+   *  (see docs/deploy-runbook.md for the verified BNB Chain addresses). */
   equities: [
-    { address: "0xE9010000000000000000000000000000000000a1", symbol: "APPLB", name: "Apple · bStocks", priceUsd: 200 },
     { address: "0xE9010000000000000000000000000000000000b2", symbol: "TSLAB", name: "Tesla · bStocks", priceUsd: 300 },
     { address: "0xE9010000000000000000000000000000000000c3", symbol: "NVDAB", name: "Nvidia · bStocks", priceUsd: 100 },
-    { address: "0xE9010000000000000000000000000000000000d4", symbol: "SPYB", name: "S&P 500 · bStocks", priceUsd: 600 },
-    { address: "0xE9010000000000000000000000000000000000e5", symbol: "QQQB", name: "Nasdaq 100 · bStocks", priceUsd: 500 },
-    { address: "0xE9010000000000000000000000000000000000f6", symbol: "XAUT", name: "Tether Gold", priceUsd: 2400 },
     { address: "0xE901000000000000000000000000000000000007", symbol: "SPCXB", name: "SpaceX · bStocks", priceUsd: 100 },
-    { address: "0xE901000000000000000000000000000000000008", symbol: "SKHYB", name: "SK Hynix · bStocks", priceUsd: 150 },
   ],
   /** Sample baskets owned by the preview wallet. Amounts are 18-decimals. */
   baskets: [
     {
       id: 1n,
       contents: [
-        { token: "0xE9010000000000000000000000000000000000a1", symbol: "APPLB", amount: 10n * WAD, decimals: 18 },
         { token: "0xE9010000000000000000000000000000000000b2", symbol: "TSLAB", amount: 2n * WAD, decimals: 18 },
+        { token: "0xE901000000000000000000000000000000000007", symbol: "SPCXB", amount: 4n * WAD, decimals: 18 },
       ],
     },
     {
