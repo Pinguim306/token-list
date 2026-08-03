@@ -192,7 +192,7 @@ export default function HowItWorks() {
 
       <H2 id="baskets">Stock packs</H2>
       <P>
-        A pack is how tokenized stocks — Binance Stocks (bStocks): TSLAB, NVDAB, APPLB, SPYB, QQQB, XAUT, SPCXB, SKHYB — enter the pool: fungible shares wrap into an ERC-721
+        A pack is how tokenized stocks — Binance Stocks (bStocks): Tesla (TSLAB), NVIDIA (NVDAB) and SpaceX (SPCXB) — enter the pool: fungible shares wrap into an ERC-721
         whose contents are the shares you deposited; the pool escrows and delivers it like any NFT,
         and <Strong>whoever holds the basket may unwrap it</Strong> back into the underlying tokens.
         The NFT is packaging; ownership of the wrapper is ownership of the shares.

@@ -20,10 +20,23 @@ faucet). The rest is mechanical.
   `VRFDirectAdapter`; `configure()` it with the BNB coordinator/keyHash/subId
   and fund the subscription. Keeper remains the zero-dependency launch path;
   VRF is the verifiable upgrade (one `setAdapter` swap).
-- **Pack contents**: allowlist the real **Binance Stocks (bStocks)** token
-  addresses in `EquityBasket.setTokenAllowed` — TSLAB, NVDAB, APPLB, SPYB,
-  QQQB, XAUT, SPCXB, SKHYB. Confirm each token address on BscScan before
-  allowlisting; curation is the owner's responsibility.
+- **Pack contents**: the product is curated to **three tokenized stocks** —
+  **Tesla (TSLAB)**, **NVIDIA (NVDAB)** and **SpaceX (SPCXB)** — allowlisted via
+  `EquityBasket.setTokenAllowed`. Their **BNB Chain (BEP-20) mainnet** addresses,
+  issued by BTech Holdings Limited (the bStocks issuer, a Binance affiliate):
+
+  | Ticker | Stock | BNB Chain address |
+  |---|---|---|
+  | TSLAB | Tesla | `0x5b1910eaad6450e50f816082aa078c41f10c292f` |
+  | NVDAB | NVIDIA | `0x02fca66c1d1afb4e2a7884261eb00f63598a7436` |
+  | SPCXB | SpaceX | `0xbe9d156892e55e7154bcd3cb0fea677f9d3103e1` |
+
+  > ⚠️ **Verify each address on BscScan before allowlisting.** These were
+  > sourced from third-party explorers (CoinGecko/BscScan), not a signed
+  > on-chain manifest. For each one, open the address on BscScan and confirm the
+  > issuer is **BTech Holdings Limited** and that it is the official contract —
+  > a wrong or look-alike address would wrap an unbacked token. Curation is the
+  > owner's responsibility. (Testnet uses mocks; these addresses gate mainnet.)
 - **Dynamic pricing** is off by default; enable with
   `pool.setDynamicPricing(dispersionFactorBps, maxExtraSurchargeBps)` — e.g.
   `(5000, 2000)` = add 50% of the dispersion, capped at +20%.
@@ -91,7 +104,9 @@ The pool ships with an **empty** collection whitelist and the basket with an
 Then seed the pool in bundles via the **PackVault**: fund it with stock tokens
 + backing, `setTemplate(tokens, amounts, backingPerPack)`,
 `setPolicy(floor, bundleSize, cooldown)`, and `mintBundle(count)` for launch.
-Mocks are fine for the testnet beta; the real bStocks token addresses gate mainnet.
+Mocks are fine for the testnet beta; the real bStocks token addresses (TSLAB,
+NVDAB, SPCXB — see the address table under "BNB-specific parameters" above) gate
+mainnet.
 
 ## 4. Start the keeper (required — draws don't resolve without it)
 
