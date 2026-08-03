@@ -17,11 +17,11 @@ type Palette = { bg: [string, string]; cells: string[] };
 
 /** Per-collection look. Key = ERC-721 symbol; default covers unknown ones. */
 const PALETTES: Record<string, Palette> = {
-  xTSLA: {
+  TSLAB: {
     bg: ["#2a1a20", "#17120f"],
     cells: ["#e5647f", "#f0798f", "#f5eef1", "#e0a527"],
   },
-  xNVDA: {
+  NVDAB: {
     bg: ["#10231a", "#17120f"],
     cells: ["#2ee27f", "#48d2f5", "#f5eef1", "#f7b750"],
   },

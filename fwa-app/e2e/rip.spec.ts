@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 /**
  * The sealed-pack draw reveal on the pool page. In demo mode the pack is
  * clickable and runs a scripted rip timeline ending on the revealed position
- * (demo draw selects position #4 = xTSLA #999).
+ * (demo draw selects position #4 = TSLAB #999).
  */
 
 test.describe("sealed-pack rip reveal", () => {
@@ -19,7 +19,7 @@ test.describe("sealed-pack rip reveal", () => {
     await stage.click();
     // scripted timeline: sealed -> locking -> tearing -> revealed (~3s)
     await expect(stage).toHaveAttribute("data-rip-phase", "revealed");
-    await expect(stage.locator('[data-nft-art="xTSLA-999"]')).toBeVisible();
+    await expect(stage.locator('[data-nft-art="TSLAB-999"]')).toBeVisible();
     await expect(stage).toContainText(/Position #4 revealed/);
     expect(crashes).toEqual([]);
   });

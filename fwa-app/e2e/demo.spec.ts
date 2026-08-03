@@ -63,15 +63,15 @@ test.describe("pool", () => {
     // recovery card for escrowed NFTs, with the demo sample
     const recovery = page.locator("[data-stuck-nfts]");
     await expect(recovery).toContainText("Escrowed NFTs");
-    await expect(recovery.locator('[data-stuck-nft="xTSLA-77"]')).toBeVisible();
+    await expect(recovery.locator('[data-stuck-nft="TSLAB-77"]')).toBeVisible();
   });
 
   test("baskets page exposes escrowed-payout recovery (claimStuckToken)", async ({ page }) => {
     await page.goto("/app/baskets");
     const card = page.locator("[data-stuck-payouts]");
     await expect(card).toContainText("Escrowed payouts");
-    // the demo sample: 4 rTSLA stuck from a paused-token unwrap
-    await expect(card).toContainText("rTSLA");
+    // the demo sample: 4 TSLAB stuck from a paused-token unwrap
+    await expect(card).toContainText("TSLAB");
     await expect(card.getByRole("button", { name: "Claim" })).toBeVisible();
   });
 
