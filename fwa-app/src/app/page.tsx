@@ -6,7 +6,7 @@ import { fmt, bpsToPct, BPS } from "@/lib/format";
 export const metadata: Metadata = {
   title: "Fake World Assets — Randomized on-chain NFT acquisition",
   description:
-    "Deposit an NFT with a backing stake, or acquire a position at random. Selection weight is inversely proportional to backing — on RobinhoodChain.",
+    "Rip sealed packs of tokenized stocks — TSLA, NVDA and more — on BNB Chain. Every pack is backed by a standing bid; selection weight is inversely proportional to backing.",
 };
 
 /* Note: this app does NOT load Tailwind's Preflight (see globals.css), so element
@@ -20,7 +20,7 @@ const NAV = [
 ];
 
 const STATS = [
-  { k: "Total backing", v: "—", u: "USDG" },
+  { k: "Total backing", v: "—", u: "USD" },
   { k: "Active positions", v: "—", u: "" },
   { k: "Draws settled", v: "—", u: "" },
   { k: "$FWA emitted", v: "—", u: "" },
@@ -31,7 +31,7 @@ const STEPS = [
     n: "01",
     role: "Depositor",
     title: "Deposit",
-    body: "Lock an NFT plus an ERC-20 backing stake to open a position. The backing you choose is your standing bid — the price you are willing to buy the NFT back for.",
+    body: "Fill a pack with tokenized stocks (TSLA, NVDA, …) plus a backing stake. The backing you choose is your standing bid — the price you are willing to buy the pack back for.",
     icon: (
       <>
         <rect x="3" y="7" width="18" height="13" rx="2.5" />
@@ -44,7 +44,7 @@ const STEPS = [
     n: "02",
     role: "Purchaser",
     title: "Draw",
-    body: "Pay the pool-derived price — the harmonic mean of all backings, plus a surcharge — and one position is selected at random by verifiable randomness.",
+    body: "Pay the pool-derived price — the harmonic mean of all backings, plus a surcharge — and one pack is selected at random by verifiable randomness.",
     icon: (
       <>
         <path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M5.6 18.4l2.1-2.1M16.3 7.7l2.1-2.1" />
@@ -56,7 +56,7 @@ const STEPS = [
     n: "03",
     role: "Purchaser",
     title: "Decide",
-    body: "Keep the NFT, or sell it straight back for the depositor's standing bid at 85%. Either way the depositor's position closes and settles.",
+    body: "Keep the pack — the stocks inside are yours to unwrap — or sell it straight back for the standing bid at 85%. Either way the pack closes and settles.",
     icon: (
       <>
         <path d="M4 7h10l-2.5-3M20 17H10l2.5 3" />
@@ -103,11 +103,11 @@ const FAQ = [
   },
   {
     q: "What exactly do I get when I purchase?",
-    a: "One position, chosen at random by weight. You then choose to keep the NFT or sell it back for 85% of that position's standing bid. You see which position you drew before the settlement step completes.",
+    a: "One pack, chosen at random by weight. Keep it and unwrap the tokenized stocks inside, or sell it back for 85% of its standing bid. You see which pack you drew before settlement completes.",
   },
   {
     q: "How is the price determined?",
-    a: "It is derived from the pool itself: the harmonic mean of every active position's backing, plus a configurable surcharge. No oracle sets it.",
+    a: "It is derived from the pool itself: the harmonic mean of every active pack's backing, plus a surcharge. When the pool skews toward cheap packs a capped dynamic extra kicks in — composition is priced, not just averages. No oracle sets it.",
   },
   {
     q: "What is the Crown?",
@@ -210,16 +210,16 @@ export default function LandingPage() {
               <span className="absolute inline-flex h-full w-full animate-ping rounded-pill bg-success opacity-70 motion-reduce:hidden" />
               <span className="relative inline-flex h-2 w-2 rounded-pill bg-success" />
             </span>
-            Live on RobinhoodChain testnet
+            Live on BNB Chain testnet
           </span>
 
           <h1 className="mx-auto mt-5 mb-0 max-w-3xl font-display text-[clamp(2rem,4.6vw,3.4rem)] leading-[1.02] tracking-tight text-ink">
-            Real stakes. <span className="text-accent">Fake world</span> assets.
+            Real stocks. <span className="text-accent">Fake world</span> packs.
           </h1>
 
           <p className="mx-auto mt-4 mb-0 max-w-xl font-body text-base text-muted sm:text-lg">
-            Drag through the pool — every position is a card. Click the front one to flip it: odds
-            and standing bid live on the holographic back.
+            Every pack holds real tokenized stocks. Drag through the pool, flip a card — odds and
+            standing bid live on the holographic back.
           </p>
 
           {/* The centrepiece, above the fold. */}
@@ -331,7 +331,7 @@ export default function LandingPage() {
                 >
                   <div>
                     <p className="m-0 font-display text-lg tabular-nums text-ink">
-                      {p.backing} <span className="font-body text-sm text-muted">USDG</span>
+                      {p.backing} <span className="font-body text-sm text-muted">USD</span>
                     </p>
                     <p className="m-0 mt-1 font-body text-xs text-muted">{p.label}</p>
                   </div>
@@ -356,7 +356,7 @@ export default function LandingPage() {
                       />
                     </div>
                     <p className="m-0 mt-2 font-body text-xs tabular-nums text-muted">
-                      {p.backing} USDG standing bid
+                      {p.backing} USD standing bid
                     </p>
                   </div>
                 </div>
@@ -449,7 +449,7 @@ export default function LandingPage() {
               F<span className="text-accent">W</span>A
             </span>
             <p className="m-0 mt-4 font-body text-sm text-muted">
-              Randomized on-chain asset acquisition on RobinhoodChain. Nothing here is investment
+              Randomized on-chain packs of tokenized stocks on BNB Chain. Nothing here is investment
               advice.
             </p>
           </div>

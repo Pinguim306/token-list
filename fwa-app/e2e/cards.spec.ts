@@ -99,11 +99,11 @@ test.describe("generative NFT art", () => {
 
   test("art is deterministic — the same token renders identically everywhere", async ({ page }) => {
     await page.goto("/#cards");
-    const onLanding = await page.locator('[data-nft-art="FPUNK-4242"] rect').count();
+    const onLanding = await page.locator('[data-nft-art="xTSLA-4242"] rect').count();
     expect(onLanding).toBeGreaterThan(4); // an actual figure, not an empty grid
 
     await page.goto("/app/collection/0xC0113c7100000000000000000000000000000001");
-    const onCollection = await page.locator('[data-nft-art="FPUNK-4242"] rect').count();
+    const onCollection = await page.locator('[data-nft-art="xTSLA-4242"] rect').count();
     expect(onCollection).toBe(onLanding);
   });
 });

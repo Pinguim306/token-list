@@ -107,10 +107,11 @@ export default function Baskets() {
         ← Back to the pool
       </a>
 
-      <h1 className="mt-6 mb-0 font-display text-3xl text-ink">Equity baskets</h1>
+      <h1 className="mt-6 mb-0 font-display text-3xl text-ink">Build a pack</h1>
       <p className="mt-2 mb-0 font-body text-sm text-muted">
-        Wrap tokenized stocks into an ERC-721 basket the pool accepts like any NFT. The basket is
-        the position; unwrapping it releases the underlying shares to whoever holds it.
+        A pack is tokenized stocks wrapped into a single on-chain collectible. Build one here, then
+        list it in the pool from the pool page — whoever ends up holding it can unwrap it back
+        into the shares at any time.
       </p>
 
       <div className="mt-8">
@@ -119,22 +120,22 @@ export default function Baskets() {
 
       <section className="mt-8 overflow-hidden rounded-lg border border-border bg-surface shadow-sm" data-basket-list>
         <h2 className="m-0 border-b border-border px-6 py-4 font-display text-base text-ink">
-          Your baskets ({baskets.length})
+          Your packs ({baskets.length})
         </h2>
         <div className="px-6 py-5">
           {!DEMO && !isConnected ? (
-            <p className="m-0 font-body text-sm text-muted">Connect a wallet to see your baskets.</p>
+            <p className="m-0 font-body text-sm text-muted">Connect a wallet to see your packs.</p>
           ) : failed ? (
             <ErrorNote
-              title="Could not load your baskets"
-              detail="Reading the basket contract failed, so this list may be incomplete."
+              title="Could not load your packs"
+              detail="Reading the pack contract failed, so this list may be incomplete."
               onRetry={refetch}
             />
           ) : loading ? (
             <SkeletonRows rows={2} cols={2} />
           ) : baskets.length === 0 ? (
             <p className="m-0 font-body text-sm text-muted">
-              No baskets yet — wrap some equities above to mint one.
+              No packs yet — add stocks above to build one.
             </p>
           ) : (
             <ul className="m-0 list-none space-y-3 p-0">
@@ -153,7 +154,7 @@ export default function Baskets() {
                 >
                   <div>
                     <p className="m-0 font-display text-sm text-ink">
-                      Basket #{b.id.toString()}
+                      Pack #{b.id.toString()}
                       {total !== null ? (
                         <span className="ml-2 font-body text-xs text-success" data-basket-value>
                           ≈ {fmtUsd(total)}
@@ -173,7 +174,7 @@ export default function Baskets() {
                   <button
                     className="btn"
                     disabled={busy || DEMO}
-                    title={DEMO ? "Preview mode — connect to a deployed basket contract" : undefined}
+                    title={DEMO ? "Preview mode — connect to a deployed pack contract" : undefined}
                     onClick={() => unwrap(b.id)}
                   >
                     {busy ? "Confirming…" : "Unwrap"}
@@ -199,8 +200,8 @@ export default function Baskets() {
 
       {DEMO ? (
         <p className="mt-8 mb-0 rounded-md border border-accent/40 bg-accent-soft px-4 py-3 font-body text-xs text-muted">
-          <b className="text-accent-strong">Preview with sample data.</b> Representative baskets —
-          set <span className="mono">NEXT_PUBLIC_BASKET_ADDRESS</span> for live wrapping.
+          <b className="text-accent-strong">Preview with sample data.</b> Representative packs —
+          set <span className="mono">NEXT_PUBLIC_BASKET_ADDRESS</span> for live pack-building.
         </p>
       ) : null}
     </main>

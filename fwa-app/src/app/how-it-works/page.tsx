@@ -36,7 +36,7 @@ const TOC = [
   ["draw", "What a draw costs — and pays"],
   ["settlement", "The settlement window"],
   ["randomness", "Where randomness comes from"],
-  ["baskets", "Equity baskets"],
+  ["baskets", "Stock packs"],
   ["safety", "If things go wrong"],
 ] as const;
 
@@ -66,7 +66,7 @@ export default function HowItWorks() {
 
       <H2 id="loop">The loop</H2>
       <P>
-        <Strong>Depositors</Strong> lock an NFT (or an equity basket) plus an ERC-20 backing stake,
+        <Strong>Builders</Strong> wrap tokenized stocks into a pack and list it with an ERC-20 backing stake,
         creating a position. <Strong>Purchasers</Strong> pay the pool-derived price to draw one
         position at random — selection weight is <Strong>inversely proportional to backing</Strong>,
         so cheap positions come up often and heavy ones rarely. The winner then chooses:{" "}
@@ -153,7 +153,10 @@ export default function HowItWorks() {
         Every draw's fee is split three ways, in order: a <Strong>protocol cut</Strong>, the{" "}
         <Strong>Crown tithe</Strong> (when the Crown is occupied), and the remainder{" "}
         <Strong>equally among all active positions</Strong>. That equal share is the yield of being
-        deposited — the form previews it live as “est. earnings per draw”.
+        deposited — the form previews it live as “est. earnings per draw”. When enabled by
+        governance, a <Strong>dynamic extra</Strong> is added on top of the base surcharge: the more
+        the pool skews toward cheap packs (arithmetic mean far above the harmonic mean), the larger
+        the capped premium — composition is priced, not just the average.
       </P>
 
       <H2 id="settlement">The settlement window</H2>
@@ -183,12 +186,13 @@ export default function HowItWorks() {
         deposit or withdrawal can steer the selection, closing the exact hole that drained the
         original protocol. If the keeper goes silent, the request expires and{" "}
         <Strong>anyone can refund the buyer</Strong>. The randomness backend is swappable at the
-        router — a VRF upgrade needs zero pool changes.
+        router — and on BNB Chain, Chainlink VRF is available natively, so upgrading keeper →
+        verifiable VRF is a single adapter swap with zero pool changes.
       </P>
 
-      <H2 id="baskets">Equity baskets</H2>
+      <H2 id="baskets">Stock packs</H2>
       <P>
-        Fungible tokenized stocks can't enter an NFT pool — so they wrap. A basket is an ERC-721
+        A pack is how tokenized stocks (TSLA, NVDA, …) enter the pool: fungible shares wrap into an ERC-721
         whose contents are the shares you deposited; the pool escrows and delivers it like any NFT,
         and <Strong>whoever holds the basket may unwrap it</Strong> back into the underlying tokens.
         The NFT is packaging; ownership of the wrapper is ownership of the shares.

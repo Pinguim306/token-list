@@ -1,10 +1,10 @@
 const ITEMS = [
+  "Tokenized stock packs",
   "Freeze-at-request",
-  "VRF over CCIP",
+  "Keeper × blockhash · VRF-upgradable",
   "Inverse-weight odds",
   "Crown tithe",
   "Pull-based payouts",
-  "Daily-pot $FWA rewards",
   "Sell-back standing bid",
 ];
 

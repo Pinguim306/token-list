@@ -69,6 +69,15 @@ contract FWAPool is IRandomnessConsumer, Ownable, ReentrancyGuard {
     uint256 public topThresholdBps = 1_000; // challenger must exceed incumbent by 10%
 
     uint256 public surchargeBps = 1_000; // 10% acquisition surcharge over EV
+    // Dynamic pricing (opt-in, defaults off). The base price is the harmonic
+    // mean of backings — which is dominated by the CHEAP packs, precisely the
+    // ones most likely to be drawn. When the pool skews cheap the spread
+    // between the arithmetic and harmonic means widens; these params convert a
+    // slice of that dispersion into extra surcharge, capped:
+    //   extra = min(dispersionBps * dispersionFactorBps / BPS, maxExtraSurchargeBps)
+    // where dispersionBps = (arithmeticMean/harmonicMean - 1) in bps.
+    uint256 public dispersionFactorBps = 0; // 0 = dynamic pricing disabled
+    uint256 public maxExtraSurchargeBps = 0; // hard cap on the dynamic extra
     uint256 public acquisitionCutBps = 2_000; // protocol cut of the acquisition fee
     uint256 public settlementFeeBps = 100; // 1% of backing when purchaser keeps the NFT
     uint256 public bidBps = 8_500; // standing bid = 85% of backing
@@ -93,6 +102,7 @@ contract FWAPool is IRandomnessConsumer, Ownable, ReentrancyGuard {
     uint256 public positionCount; // total ever created
     uint256 public activeCount;
     uint256 public weightedBackingTotal; // sum(weight * backing) over active positions
+    uint256 public sumBacking; // sum(backing) over active positions (arithmetic-mean input)
     uint256 public accFeePerPosition; // scaled by ACC_PRECISION
     FenwickTree.Tree private tree;
 
@@ -203,6 +213,7 @@ contract FWAPool is IRandomnessConsumer, Ownable, ReentrancyGuard {
         });
         activeCount += 1;
         weightedBackingTotal += weight * backing;
+        sumBacking += backing;
         tree.update(id, int256(weight));
 
         emit Deposited(id, msg.sender, asset, tokenId, backing, weight);
@@ -241,12 +252,31 @@ contract FWAPool is IRandomnessConsumer, Ownable, ReentrancyGuard {
     //                                 Draws                                 //
     // --------------------------------------------------------------------- //
 
-    /// @notice Current acquisition price = EV (harmonic mean of backings) * (1 + surcharge).
+    /// @notice Current acquisition price = EV (harmonic mean of backings)
+    ///         * (1 + surcharge [+ dynamic dispersion extra, when enabled]).
+    /// @dev The dynamic extra prices pool composition: a pool crowded with
+    ///      cheap packs has arithmetic mean >> harmonic mean, and a slice of
+    ///      that spread (dispersionFactorBps) is added to the surcharge, hard-
+    ///      capped at maxExtraSurchargeBps. Snapshot semantics are unchanged —
+    ///      the price is still computed once at startDraw and escrowed.
     function acquisitionPrice() public view returns (uint256) {
         uint256 tw = tree.total;
         if (tw == 0) return 0;
         uint256 ev = weightedBackingTotal / tw;
-        return (ev * (BPS + surchargeBps)) / BPS;
+        uint256 totalBps = BPS + surchargeBps + dynamicExtraBps(ev);
+        return (ev * totalBps) / BPS;
+    }
+
+    /// @notice The dynamic surcharge currently in effect, in bps (0 when the
+    ///         feature is disabled or the pool is uniform). Exposed so the UI
+    ///         can show buyers exactly what they are being charged and why.
+    function dynamicExtraBps(uint256 ev) public view returns (uint256) {
+        if (dispersionFactorBps == 0 || activeCount == 0 || ev == 0) return 0;
+        uint256 arith = sumBacking / activeCount;
+        if (arith <= ev) return 0;
+        uint256 dispersionBps = ((arith - ev) * BPS) / ev;
+        uint256 extra = (dispersionBps * dispersionFactorBps) / BPS;
+        return extra > maxExtraSurchargeBps ? maxExtraSurchargeBps : extra;
     }
 
     /// @notice Start a draw: escrow payment, snapshot the frozen selection set, and
@@ -484,6 +514,7 @@ contract FWAPool is IRandomnessConsumer, Ownable, ReentrancyGuard {
         p.active = false;
         activeCount -= 1;
         weightedBackingTotal -= p.weight * p.backing;
+        sumBacking -= p.backing;
         tree.update(id, -int256(p.weight));
     }
 
@@ -546,6 +577,10 @@ contract FWAPool is IRandomnessConsumer, Ownable, ReentrancyGuard {
         uint256 requestTimeout_
     ) external onlyOwner {
         require(acquisitionCutBps_ <= BPS && settlementFeeBps_ <= BPS && bidBps_ <= BPS, "FWA: bps");
+        // Keep the dynamic-pricing invariant (base + max dynamic extra <= 100%)
+        // intact: setDynamicPricing enforces it, so setParams must re-check the
+        // joint constraint against the already-stored dynamic cap.
+        require(surchargeBps_ + maxExtraSurchargeBps <= BPS, "FWA: bps");
         surchargeBps = surchargeBps_;
         acquisitionCutBps = acquisitionCutBps_;
         settlementFeeBps = settlementFeeBps_;
@@ -564,6 +599,21 @@ contract FWAPool is IRandomnessConsumer, Ownable, ReentrancyGuard {
     function setEmitter(address emitter_) external onlyOwner {
         emitter = emitter_;
         emit EmitterUpdated(emitter_);
+    }
+
+    /// @notice Enable/tune dynamic dispersion pricing (0/0 disables it).
+    ///         Capped so the total surcharge stays sane: base + max extra
+    ///         must not exceed 100%.
+    function setDynamicPricing(uint256 dispersionFactorBps_, uint256 maxExtraSurchargeBps_) external onlyOwner {
+        require(surchargeBps + maxExtraSurchargeBps_ <= BPS, "FWA: bps");
+        // Bound the factor so `dispersionBps * dispersionFactorBps` in
+        // dynamicExtraBps cannot overflow (and thus DoS acquisitionPrice/startDraw)
+        // even under an extreme cheap-skewed pool. 100x BPS is far beyond any
+        // sane setting and leaves a vast safety margin below uint256.
+        require(dispersionFactorBps_ <= 100 * BPS, "FWA: factor");
+        dispersionFactorBps = dispersionFactorBps_;
+        maxExtraSurchargeBps = maxExtraSurchargeBps_;
+        emit ParamsUpdated();
     }
 
     /// @notice Tune the crown tithe share and challenge threshold.

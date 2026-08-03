@@ -1,15 +1,22 @@
-# Fake World Assets (FWA) — RobinhoodChain
+# Fake World Assets (FWA) — Stock Packs on BNB Chain
 
-An on-chain, randomized asset-acquisition protocol for **RobinhoodChain** (Arbitrum
-Orbit L2, chainId `4663` / testnet `46630`), rebuilt from the FWA idea
-([fwa.fun](https://www.fwa.fun/docs/overview)).
+An on-chain, randomized pack-ripping protocol for **BNB Chain** (BSC mainnet
+`56` / testnet `97`), rebuilt from the FWA idea
+([fwa.fun](https://www.fwa.fun/docs/overview)) with the product focused on
+**packs of tokenized stocks** (TSLA, NVDA, private-market names, …).
 
-Depositors lock an ERC-721 plus an ERC-20 backing stake to create a **position**
-(modeled on a Uniswap-V2 pair). Purchasers pay a pool-derived price to acquire
-**one position at random**, then choose to keep the NFT or sell it back for the
-depositor's standing bid. Selection weight is **inversely proportional to
-backing**, so lightly-backed positions are drawn often (small expected reward)
-and heavily-backed ones are rare.
+Builders wrap tokenized stocks into an ERC-721 **pack** (EquityBasket) and list
+it with an ERC-20 backing stake. Purchasers pay a pool-derived price to rip
+**one pack at random**, then keep the stocks inside or sell the pack back for
+the standing bid. Selection weight is **inversely proportional to backing**, so
+lightly-backed packs are drawn often (small expected reward) and heavily-backed
+ones are rare. The pool itself stays collection-agnostic — any whitelisted
+ERC-721 still works; the stock-pack focus is curation, not a contract
+constraint.
+
+> Originally built for RobinhoodChain (configs kept for portability); the BNB
+> pivot brings a multi-validator chain, native Chainlink VRF, and on-chain
+> tokenized stocks (xStocks et al) for pack contents.
 
 > This repository is the engineering counterpart to the viability study in
 > [`../docs/analise-fwa-robinhoodchain.md`](../docs/analise-fwa-robinhoodchain.md).
@@ -70,12 +77,14 @@ work.
 | `libraries/FenwickTree.sol` | O(log n) weighted random selection (fixed capacity for correct dynamic growth) |
 | `randomness/RandomnessRouter.sol` | Consumer ⇄ adapter indirection; minimal fulfill callback |
 | `randomness/KeeperHashChainAdapter.sol` | **Launch randomness**: keeper commit-reveal hash chain × future blockhash (StockRip-parity), one serialized request, permissionless stale-skip, slashable keeper bond |
+| `randomness/VRFDirectAdapter.sol` | **VRF upgrade path on BNB**: Chainlink VRF v2.5, direct subscription consumer (no CCIP hop); skeleton wired to the router |
 | `randomness/MockRandomnessAdapter.sol` | Deterministic randomness for tests / local |
 | `randomness/CCIPVRFAdapter.sol` | Production skeleton: VRF v2.5 request from Arbitrum One over CCIP (RH Chain side) |
 | `randomness/VRFRequester.sol` | Production skeleton: Arbitrum One counterpart — draws VRF, relays back over CCIP |
 | `token/FWAToken.sol` | `$FWA` reward token: capped, role-gated mint, launch gate, 1% DEX-trade fee |
 | `token/FWAEmitter.sol` | `$FWA` emissions (MasterChef-style): depositor rewards on √backing + pro-rata daily-pot purchaser rewards; guarded pool hooks |
 | `token/FWAClaim.sol` | Merkle-gated `$FWA` distribution (snapshot allocation) |
+| `periphery/PackVault.sol` | Operator pack factory: bundle seeding (`mintBundle`) + permissionless pool replenishment (`replenishIfNeeded` with floor/bundle/cooldown policy) from a funded inventory |
 | `basket/EquityBasket.sol` | Wraps allowlisted fungible tokenized equities into an ERC-721 basket (internal ledger, balance-delta deposits, burn-before-payout unwrap) so they enter the pool unchanged |
 | `mocks/*` | ERC-20/721 + pausable-721 + reverting-emitter + Fenwick + reentrancy + randomness-consumer harnesses (test-only) |
 
@@ -106,8 +115,9 @@ to stay portable until Fase 0 confirms the chain's ArbOS opcode support.
 ```bash
 npm install
 npm run build          # hardhat compile
-npm test               # 69 tests: Fenwick, pool, freeze, DoS, crown, emitter,
-                       #           claim, periphery, keeper randomness + bot,
+npm test               # 86 tests: Fenwick, pool (incl. dynamic pricing), freeze,
+                       #           DoS, crown, emitter, claim, periphery, keeper
+                       #           randomness + bot, VRF adapter, pack vault,
                        #           equity baskets (+ adversarial pass), randomized
                        #           invariants
 

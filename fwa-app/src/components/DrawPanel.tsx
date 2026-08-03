@@ -117,7 +117,7 @@ export function DrawPanel() {
 
   return (
     <div className="card feature">
-      <h2><span className="ic">◈</span> Draw <span className="badge hot" style={{ marginLeft: 8 }}>{stateName}</span></h2>
+      <h2><span className="ic">◈</span> Rip a pack <span className="badge hot" style={{ marginLeft: 8 }}>{stateName}</span></h2>
 
       <RipReveal
         demo={DEMO}
@@ -139,11 +139,11 @@ export function DrawPanel() {
       <div className="row" style={{ marginTop: 14 }}>
         <button className="btn primary" disabled={busy || inFlight}
           onClick={() => writeContract({ ...pool, functionName: "startDraw", args: [maxUint256] })}>
-          Start draw
+          Rip a pack
         </button>
         <button className="btn" disabled={busy || !fulfilled || windowClosed || (!isBuyer && !DEMO)}
           onClick={() => writeContract({ ...pool, functionName: "settle", args: [drawCount!, 0] })}>
-          Keep NFT
+          Keep the pack
         </button>
         <button className="btn" disabled={busy || !fulfilled || windowClosed || (!isBuyer && !DEMO)}
           onClick={() => writeContract({ ...pool, functionName: "settle", args: [drawCount!, 1] })}>
@@ -168,7 +168,7 @@ export function DrawPanel() {
       <p className="muted" style={{ marginTop: 12 }}>
         Randomness mixes a keeper commit-reveal chain with a future blockhash (VRF-upgradable at the
         router). While “Requested”, the pool is frozen (freeze-at-request); once “Fulfilled”, the
-        buyer keeps the NFT or sells it back for the standing bid.
+        buyer keeps the pack or sells it back for the standing bid.
       </p>
     </div>
   );

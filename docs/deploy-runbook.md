@@ -1,19 +1,37 @@
-# FWA deploy runbook — testnet beta
+# FWA deploy runbook — BNB Chain testnet beta
 
 End-to-end steps to take the FWA stack from "all code merged, app in demo mode"
-to "live on RobinhoodChain testnet, app off demo mode". Everything here is
-gated on **one thing you must provide**: a funded deployer key. The rest is
-mechanical.
+to "live on BNB Chain testnet, app off demo mode". Everything here is gated on
+**one thing you must provide**: a funded deployer key (tBNB from the BNB
+faucet). The rest is mechanical.
 
-> Scope: RobinhoodChain **testnet** (chainId `46630`). Mainnet (`4663`) is the
-> same flow with the network name swapped, gated on the Fase 4/5 checklist
-> (external audit, multisig+timelock owner, ToS) — do not skip those for mainnet.
+> Scope: BSC **testnet** (chainId `97`, network name `bscTestnet`). Mainnet
+> (`56`, `bsc`) is the same flow with the network swapped, gated on the Fase
+> 4/5 checklist (external audit, multisig+timelock owner) — do not skip those
+> for mainnet.
+
+## BNB-specific parameters (read first)
+
+- **Block time ~0.75s** → the keeper's 256-block blockhash window is only
+  **~3.2 minutes**. The keeper bot must be running and prompt (its 5s poll is
+  fine); tune the pool with `setParams` so `requestTimeout` ≈ 10–15 min instead
+  of the 1 h default — buyers should not wait an hour for a refund.
+- **Native Chainlink VRF** exists on BNB. `ADAPTER=vrf` deploys the
+  `VRFDirectAdapter`; `configure()` it with the BNB coordinator/keyHash/subId
+  and fund the subscription. Keeper remains the zero-dependency launch path;
+  VRF is the verifiable upgrade (one `setAdapter` swap).
+- **Pack contents**: allowlist real tokenized stocks on BSC (e.g. xStocks
+  tickers) in `EquityBasket.setTokenAllowed`; private-market names (SpaceX
+  et al) only via a vetted issuer. Curation is the owner's responsibility.
+- **Dynamic pricing** is off by default; enable with
+  `pool.setDynamicPricing(dispersionFactorBps, maxExtraSurchargeBps)` — e.g.
+  `(5000, 2000)` = add 50% of the dispersion, capped at +20%.
 
 ---
 
 ## 0. Prerequisites (human)
 
-- A deployer account with **testnet ETH** on chain 46630 (for gas). Export its
+- A deployer account with **tBNB** on chain 97 (for gas — BNB faucet). Export its
   mnemonic as `DEPLOYER_MNEMONIC` (see `fwa-protocol/.env.example`).
 - A **keeper secret**: 32 random bytes, `0x`-prefixed, kept in a secret manager
   — never in the repo. This is the seed of the randomness hash chain; whoever
@@ -31,10 +49,11 @@ The deployer key is the only true blocker — until it exists, steps 1+ cannot r
 ```bash
 cd fwa-protocol
 npm install && npm run build
-DEPLOYER_MNEMONIC="…" npx hardhat run scripts/deploy.js --network robinhood-testnet
+DEPLOYER_MNEMONIC="…" npx hardhat run scripts/deploy.js --network bscTestnet
 ```
 
-`ADAPTER=keeper` is the default (the launch randomness path). Pass
+`ADAPTER=keeper` is the default launch randomness path; `ADAPTER=vrf` deploys
+the Chainlink VRF v2.5 adapter instead. Pass
 `KEEPER=0x…` to make a dedicated keeper account the adapter's keeper; otherwise
 the deployer is the keeper. The script prints a JSON block — **save it**, every
 later step reads from it:
@@ -42,7 +61,7 @@ later step reads from it:
 ```jsonc
 { "adapterKind": "keeper", "backing": "0x…", "whitelist": "0x…", "router": "0x…",
   "adapter": "0x…", "feeRouter": "0x…", "factory": "0x…", "pool": "0x…",
-  "basket": "0x…", "fwa": "0x…", "emitter": "0x…" }
+  "basket": "0x…", "vault": "0x…", "fwa": "0x…", "emitter": "0x…" }
 ```
 
 Note the **deploy block number** (from any tx receipt / the explorer) — the
@@ -51,11 +70,11 @@ indexer's `START_BLOCK`.
 ## 2. Verify the contracts (optional but recommended)
 
 ```bash
-npx hardhat verify --network robinhood-testnet <address> <constructor-args…>
+npx hardhat verify --network bscTestnet <address> <constructor-args…>   # BSCSCAN_API_KEY env
 ```
 
-Blockscout endpoints are preconfigured in `hardhat.config.js`. Verify at least
-`pool`, `adapter`, `basket`, `fwa`, `emitter`.
+BscScan is preconfigured in `hardhat.config.js` (set `BSCSCAN_API_KEY`). Verify
+at least `pool`, `adapter`, `basket`, `vault`, `fwa`, `emitter`.
 
 ## 3. Curate assets (owner)
 
@@ -68,8 +87,10 @@ The pool ships with an **empty** collection whitelist and the basket with an
   `EquityBasket.setTokenAllowed(token, true)` for each tokenized stock.
   (`deploy.js` already whitelisted the basket collection itself on the pool.)
 
-This is Fase 0 item #6 — sourcing real RobinhoodChain collections and tokenized
-equities. Blocking mainnet, not testnet (mocks are fine for the beta).
+Then seed the pool in bundles via the **PackVault**: fund it with stock tokens
++ backing, `setTemplate(tokens, amounts, backingPerPack)`,
+`setPolicy(floor, bundleSize, cooldown)`, and `mintBundle(count)` for launch.
+Mocks are fine for the testnet beta; real xStocks addresses gate mainnet.
 
 ## 4. Start the keeper (required — draws don't resolve without it)
 
@@ -77,7 +98,13 @@ equities. Blocking mainnet, not testnet (mocks are fine for the beta).
 cd fwa-protocol
 ADAPTER=<adapter> KEEPER_MASTER_SECRET=0x<32 bytes> DEPLOYER_MNEMONIC="<keeper's>" \
   FROM_BLOCK=<deploy block> \
-  npx hardhat run scripts/keeper-bot.js --network robinhood-testnet
+  npx hardhat run scripts/keeper-bot.js --network bscTestnet
+```
+
+And the replenisher (keeps the pool stocked from the vault, permissionless):
+
+```bash
+VAULT=<vault> npx hardhat run scripts/replenisher-bot.js --network bscTestnet
 ```
 
 The bot is stateless: on first tick it commits the epoch-0 hash-chain head, then
@@ -96,7 +123,7 @@ cp .env.local.example .env.local
 npm run codegen && npm run dev      # GraphQL at http://localhost:42069
 ```
 
-For a hosted deployment (Railway/Render/Fly), point `PONDER_RPC_URL_46630` at a
+For a hosted deployment (Railway/Render/Fly), point `PONDER_RPC_URL` at a
 reliable RPC and use a real Postgres via `DATABASE_URL`. The GraphQL URL becomes
 the app's `NEXT_PUBLIC_INDEXER_URL`.
 
@@ -108,7 +135,7 @@ and redeploy:
 
 | Var | From |
 |---|---|
-| `NEXT_PUBLIC_CHAIN` | `testnet` |
+| `NEXT_PUBLIC_CHAIN` | `testnet` (BSC 97; `mainnet` = 56) |
 | `NEXT_PUBLIC_POOL_ADDRESS` | deploy `pool` |
 | `NEXT_PUBLIC_BACKING_TOKEN` | deploy `backing` |
 | `NEXT_PUBLIC_NFT_COLLECTION` | a whitelisted collection (default deposit target) |
@@ -125,7 +152,7 @@ and redeploy:
 - Randomness round-trip + cost, the Fase 0 G0 measurement:
   ```bash
   cd fwa-protocol
-  POOL=<pool> SAMPLES=20 npx hardhat run scripts/spike-randomness.js --network robinhood-testnet
+  POOL=<pool> SAMPLES=20 npx hardhat run scripts/spike-randomness.js --network bscTestnet
   ```
   (Needs ≥1 active position, backing-token balance + approval, and the keeper bot
   running.) Writes a p50/p95 latency + per-draw cost report; fold it into

@@ -33,7 +33,7 @@ test.describe("pool", () => {
       "Collections",
       "Draws",
       "Analytics",
-      "Baskets",
+      "Build packs",
       "Fairness",
       "Portfolio",
       "How it works",
@@ -63,7 +63,7 @@ test.describe("pool", () => {
     // recovery card for escrowed NFTs, with the demo sample
     const recovery = page.locator("[data-stuck-nfts]");
     await expect(recovery).toContainText("Escrowed NFTs");
-    await expect(recovery.locator('[data-stuck-nft="FPUNK-77"]')).toBeVisible();
+    await expect(recovery.locator('[data-stuck-nft="xTSLA-77"]')).toBeVisible();
   });
 
   test("baskets page exposes escrowed-payout recovery (claimStuckToken)", async ({ page }) => {
@@ -151,15 +151,15 @@ test.describe("collections", () => {
   test("groups positions by their ERC-721 contract", async ({ page }) => {
     await page.goto("/app/collection");
     await expect(page.locator('a[href^="/app/collection/0x"]')).toHaveCount(2);
-    await expect(page.getByText("Fake Punks")).toBeVisible();
-    await expect(page.getByText("Fake Apes")).toBeVisible();
+    await expect(page.getByText("Tesla Packs")).toBeVisible();
+    await expect(page.getByText("Nvidia Packs")).toBeVisible();
   });
 
   test("a collection totals its own positions only", async ({ page }) => {
     await page.goto("/app/collection");
     await page.locator('a[href^="/app/collection/0x"]').first().click();
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Fake Punks");
-    // Fake Punks holds positions 1, 2 and 4 → 30 + 60 + 75 = 165 backing,
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText("Tesla Packs");
+    // Tesla Packs holds positions 1, 2 and 4 → 30 + 60 + 75 = 165 backing,
     // floor bid = 85% of the lightest (30) = 25.5
     await expect(page.getByTestId("stat-items-in-pool")).toHaveText("3");
     await expect(page.getByTestId("stat-total-backing")).toHaveText("165");

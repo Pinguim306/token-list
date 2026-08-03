@@ -7,11 +7,11 @@ const site =
   (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
 
 const description =
-  "Acquire randomly selected NFT positions backed by depositor-funded standing bids — or provide backing and earn from the onchain pool.";
+  "Rip sealed packs of tokenized stocks on BNB Chain — every pack backed by a standing bid — or build packs and earn from every rip.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(site),
-  title: "Fake World Assets — RobinhoodChain",
+  title: "Fake World Assets — Stock Packs on BNB Chain",
   description,
   openGraph: {
     title: "Fake World Assets",
