@@ -9,7 +9,7 @@ World Assets (FWA) protocol on RobinhoodChain.
 
 | Contract | LoC-ish | Notes |
 |---|---|---|
-| `contracts/core/FWAPool.sol` | ~580 | Core: positions, weighted selection, freeze-at-request draws, settlement, crown/tithe, pull-based credits, guarded emitter hooks. **Highest priority.** |
+| `contracts/core/FWAPool.sol` | ~620 | Core: positions, weighted selection, freeze-at-request draws, settlement, crown/tithe, pull-based credits, guarded emitter hooks, dynamic dispersion pricing (sumBacking accounting, capped extra, off by default). **Highest priority.** |
 | `contracts/libraries/FenwickTree.sol` | ~90 | O(log n) weighted selection; fixed-capacity dynamic growth. |
 | `contracts/core/FWAFactory.sol` | ~40 | Pool deployer/registry. |
 | `contracts/core/FWAWhitelist.sol` | ~35 | Collection curation, sticky block. |
@@ -19,6 +19,7 @@ World Assets (FWA) protocol on RobinhoodChain.
 | `contracts/token/FWAClaim.sol` | ~60 | Merkle distribution. |
 | `contracts/randomness/RandomnessRouter.sol` | ~70 | Consumer ⇄ adapter indirection. |
 | `contracts/randomness/KeeperHashChainAdapter.sol` | ~180 | **Launch randomness backend**: keeper commit-reveal hash chain × future blockhash, stale-skip liveness, slashable bond. Weaker-than-VRF trust model documented in `threat-model.md` — review the selective-abort analysis. |
+| `contracts/periphery/PackVault.sol` | ~230 | Operator pack factory: template validation, bundle mint loop, permissionless replenish crank (floor/cooldown/inventory guards), owner passthroughs. |
 | `contracts/basket/EquityBasket.sol` | ~155 | ERC-721 wrapper over allowlisted fungible tokenized equities (internal ledger). Review wrap/unwrap CEI, balance-delta accounting, and the non-reverting payout + `claimStuckToken` escrow path. |
 
 **Out of scope / lower priority:**
@@ -48,7 +49,7 @@ World Assets (FWA) protocol on RobinhoodChain.
 cd ..                       # fwa-protocol/
 npm install
 npm run build               # solc 0.8.26, evmVersion paris
-npm test                    # 63 tests, incl. randomized invariants (freeze-at-request, DoS, crown, emitter)
+npm test                    # 86 tests, incl. randomized invariants (freeze-at-request, DoS, crown, emitter)
 slither . --config-file slither.config.json   # static analysis (see audit/slither-output.txt)
 ```
 

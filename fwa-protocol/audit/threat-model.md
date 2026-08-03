@@ -46,6 +46,8 @@ the VRF request and its callback).
 | Malicious emitter | brick pool operations? | No — guarded try/catch hooks (invariant 16). |
 | Malicious backing token | break accounting (fee-on-transfer/rebasing)? | Out of scope — backing is a trusted config-time ERC-20. |
 | Rebasing basket token (`EquityBasket`) | strand a leg on unwrap? | Out of scope — wrapped tokens are a trusted, owner-allowlisted set assumed non-rebasing; a negative rebase escrows (never reverts) the short leg. |
+| Pack buyer (dynamic pricing) | be overcharged silently? | Bounded: the dynamic extra is hard-capped (base + cap ≤ 100%), previewed on-chain via `dynamicExtraBps`, and `startDraw(maxPrice)` still gives every buyer slippage protection. Enabling/tuning is owner-only. |
+| Replenish cranker (`PackVault`) | grief the vault by cranking repeatedly? | Only fires below the pool floor, rate-limited by cooldown, spends only pre-funded inventory, and reverts loudly when empty — draining-to-floor is the feature, not a bug. |
 | Third party | claim someone's NFT/credit/reward? | Recipient checks on `claimStuckNFT`, `withdrawCredit`, `claimEarnings`, `claimStuckToken`, emitter `harvest`/`claim`. |
 
 ## KeeperHashChainAdapter — explicit trust downgrade

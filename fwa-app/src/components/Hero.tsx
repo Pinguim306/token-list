@@ -46,7 +46,7 @@ export function Hero() {
           <a className="nav-link" href="/app/collection">Collections</a>
           <a className="nav-link" href="/app/draws">Draws</a>
           <a className="nav-link" href="/app/analytics">Analytics</a>
-          <a className="nav-link" href="/app/baskets">Baskets</a>
+          <a className="nav-link" href="/app/baskets">Build packs</a>
           <a className="nav-link" href="/app/randomness">Fairness</a>
           <a className="nav-link" href="/app/portfolio">Portfolio</a>
           <a className="nav-link" href="/how-it-works">How it works</a>
@@ -55,18 +55,18 @@ export function Hero() {
       </nav>
 
       <header className="hero">
-        <span className="eyebrow"><span className="dot" /> Onchain · Randomized acquisition</span>
+        <span className="eyebrow"><span className="dot" /> BNB Chain · Tokenized stock packs</span>
         <h1>
-          Acquire the pool<br /> at <span className="accent">random</span>.
+          Rip packs of real stocks<br /> at <span className="accent">random</span>.
         </h1>
         <p className="lead">
-          Depositors lock an NFT plus backing to form a position. Purchasers pay a pool-derived price to
-          acquire <b>one position at random</b> — then keep it or sell it back for the standing bid. Odds
-          scale inversely with backing.
+          Every pack holds tokenized stocks — TSLA, NVDA and more — plus a backing stake. Pay the pool
+          price to rip <b>one pack at random</b>, then keep the stocks or sell the pack back for its
+          standing bid. Odds scale inversely with backing.
         </p>
         <div className="hero-cta">
-          <a className="btn primary lg" href="#acquire">Acquire a position</a>
-          <a className="btn lg" href="#deposit">Provide backing</a>
+          <a className="btn primary lg" href="#acquire">Rip a pack</a>
+          <a className="btn lg" href="#deposit">Build a pack</a>
         </div>
 
         <div className="hero-stats">
@@ -76,7 +76,7 @@ export function Hero() {
             <div className="u">per random draw</div>
           </div>
           <div className="tile">
-            <div className="k">Active positions</div>
+            <div className="k">Packs in the pool</div>
             <div className="v"><CountUp value={activeN} /></div>
             <div className="u">in the pool</div>
           </div>

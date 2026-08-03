@@ -75,7 +75,7 @@ test.describe("baskets page", () => {
 
   test("the app nav reaches baskets", async ({ page }) => {
     await page.goto("/app");
-    await page.getByRole("link", { name: "Baskets" }).click();
+    await page.getByRole("link", { name: "Build packs" }).click();
     await expect(page).toHaveURL(/\/app\/baskets/);
     await expect(page.locator("[data-basket-wrap]")).toBeVisible();
   });

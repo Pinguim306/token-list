@@ -41,7 +41,7 @@ export default function Home() {
 
       <footer className="foot">
         <span>Fake World Assets · a randomized onchain acquisition protocol</span>
-        <span className="tm">FWA™ · RobinhoodChain</span>
+        <span className="tm">FWA™ · BNB Chain</span>
       </footer>
     </div>
   );

@@ -95,3 +95,29 @@ adversarial cases. Full suite: **69 passing**. Run:
 ```bash
 cd fwa-protocol && npm test
 ```
+
+---
+
+## BNB-pivot pass — PackVault, dynamic pricing, VRFDirectAdapter
+
+A second focused adversarial pass (multi-agent: one finder per contract change,
+each finding independently verify-or-refute) covered the three BNB-pivot
+additions. Two findings were CONFIRMED and all genuine issues were fixed
+in-tree; the fixes ship with tests.
+
+| Finding | Verdict | Resolution |
+|---|---|---|
+| `setParams` could raise `surchargeBps` past the `base + maxExtra ≤ 100%` cap that `setDynamicPricing` enforces | CONFIRMED (low) | `setParams` now re-checks `surchargeBps_ + maxExtraSurchargeBps ≤ BPS`. |
+| `_affordablePacks` double-counts if the backing token is also a template leg → crank DoS | CONFIRMED (low) | `setTemplate` forbids `backingToken` in `templateTokens`. |
+| Permissionless crank: a 1-pack top-up consumes the cooldown and can starve the pool | fixed | `replenishIfNeeded` bypasses the cooldown once the pool drains past **floor/2** (emergency), so a shallow top-up can never leave buyers stranded. |
+| Unbounded `dispersionFactorBps` could overflow `dispersionBps * factor` and DoS pricing | fixed | `setDynamicPricing` bounds the factor to `100 × BPS`. |
+| `setTemplate` left stale max approvals on dropped template tokens | fixed | old template tokens are `forceApprove(basket, 0)`-revoked before the new set is approved. |
+| `VRFDirectAdapter.configure` could swap the coordinator mid-flight, orphaning outstanding requests | fixed | an `outstanding` counter blocks a coordinator address change while any request is unfulfilled (keyHash/subId/gas stay retunable). |
+| `routerRequestOf` overwrite on a colliding VRF id | fixed | `require(routerRequestOf[id] == 0)` at request time; callback gas default raised to 500k. |
+
+Refuted: a dust (1-wei backing) deposit "inflating" the next buyer's price via
+the pegged dynamic extra — the same deposit collapses the harmonic-mean EV by a
+far larger factor, so the net price *falls*, not rises (verified). The router's
+non-reverting-consumer invariant is documented and honored by `FWAPool`
+(store-only callback); the router core is unchanged (shared by all adapters,
+pre-existing), with `expireDraw` as the liveness backstop.

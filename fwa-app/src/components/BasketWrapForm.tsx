@@ -110,7 +110,7 @@ export function BasketWrapForm() {
 
   return (
     <div className="card" data-basket-wrap>
-      <h2>Wrap equities into a basket</h2>
+      <h2>Add stocks to a pack</h2>
 
       {rows.map((row, i) => {
         const f = fields[i];
@@ -118,7 +118,7 @@ export function BasketWrapForm() {
           <div key={i} className="wrap-row" data-wrap-row>
             <div className="wrap-row-fields">
               <div>
-                <label htmlFor={`wrap-token-${i}`}>Equity token {i + 1}</label>
+                <label htmlFor={`wrap-token-${i}`}>Stock token {i + 1}</label>
                 <input
                   id={`wrap-token-${i}`}
                   className="mono"
@@ -132,7 +132,7 @@ export function BasketWrapForm() {
                 ) : null}
                 {f.addr.value && f.meta.allowed === false ? (
                   <p className="field-error" role="alert">
-                    This token is not on the basket allowlist.
+                    This stock isn’t on the pack allowlist.
                   </p>
                 ) : null}
                 {f.addr.value && f.meta.symbol ? (
@@ -187,7 +187,7 @@ export function BasketWrapForm() {
 
       {hasDuplicate ? (
         <p className="field-error" role="alert">
-          The same token appears twice — each equity can only be one leg of a basket.
+          The same stock appears twice — each stock can only be one slice of a pack.
         </p>
       ) : null}
 
@@ -202,8 +202,8 @@ export function BasketWrapForm() {
         const total = (values as number[]).reduce((a, v) => a + v, 0);
         return (
           <p className="notice" data-wrap-value role="status">
-            Contents worth <b>≈ {fmtUsd(total)}</b> at configured prices — use this as your value
-            estimate when depositing the basket into the pool.
+            Pack contents worth <b>≈ {fmtUsd(total)}</b> at configured prices — use this as your value
+            estimate when you list the pack in the pool.
           </p>
         );
       })()}
@@ -215,15 +215,15 @@ export function BasketWrapForm() {
           disabled={rows.length >= MAX_TOKENS}
           onClick={() => setRows((rs) => [...rs, { token: "", amount: "" }])}
         >
-          Add token ({rows.length}/{MAX_TOKENS})
+          Add stock ({rows.length}/{MAX_TOKENS})
         </button>
         <button className="btn primary" data-wrap-submit disabled={blocked || !complete} onClick={wrap}>
-          {busy ? "Confirming…" : "Wrap into basket"}
+          {busy ? "Confirming…" : "Build the pack"}
         </button>
       </div>
 
       {!isConnected && !DEMO ? (
-        <p className="notice" role="status">Connect a wallet to wrap equities.</p>
+        <p className="notice" role="status">Connect a wallet to build a pack.</p>
       ) : null}
       {error ? (
         <p className="field-error" role="alert">
@@ -233,9 +233,9 @@ export function BasketWrapForm() {
       {mined ? <p className="notice ok" role="status">Confirmed.</p> : null}
 
       <p className="muted">
-        Approve each equity token for the basket contract, then wrap. The basket mints as an ERC-721
-        you can deposit into the pool like any NFT — whoever holds it can unwrap back into the
-        underlying shares.
+        Approve each stock for the pack contract, then build. The pack mints as a single on-chain
+        collectible you can list in the pool — whoever ends up holding it can unwrap it back into
+        the underlying shares at any time.
       </p>
     </div>
   );

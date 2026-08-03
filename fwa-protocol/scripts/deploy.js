@@ -7,14 +7,20 @@
  * FWAFactory -> FWAPool, EquityBasket (whitelisted), $FWA token + emitter.
  *
  * Adapter selection via ADAPTER=
- *   keeper (default) — KeeperHashChainAdapter, the launch randomness path.
+ *   keeper (default) — KeeperHashChainAdapter, the oracle-free launch path.
  *                      KEEPER=0x... overrides the keeper address (defaults to
  *                      the deployer). After deploy, run scripts/keeper-bot.js
  *                      to commit the first chain and serve draws.
+ *   vrf              — VRFDirectAdapter: Chainlink VRF v2.5, native on BNB
+ *                      Chain (no CCIP hop). Requires configure() post-deploy
+ *                      with the coordinator/keyHash/subId for the network.
  *   mock             — MockRandomnessAdapter, manually drivable (local/demo).
- *   ccip             — CCIPVRFAdapter skeleton (still requires configure()
- *                      with real CCIP/VRF params). USE_CCIP=1 also works for
- *                      backward compatibility.
+ *   ccip             — CCIPVRFAdapter skeleton (legacy RobinhoodChain path).
+ *                      USE_CCIP=1 also works for backward compatibility.
+ *
+ * Also deploys the PackVault (bundle seeding + pool replenishment). Fund it
+ * with stock tokens + backing, setTemplate + setPolicy, then mintBundle for
+ * launch and run scripts/replenisher-bot.js for automation.
  */
 const hre = require("hardhat");
 
@@ -43,6 +49,10 @@ async function main() {
     const keeper = process.env.KEEPER ?? deployer.address;
     adapter = await (await E.getContractFactory("KeeperHashChainAdapter")).deploy(
       await router.getAddress(), keeper, deployer.address
+    );
+  } else if (kind === "vrf") {
+    adapter = await (await E.getContractFactory("VRFDirectAdapter")).deploy(
+      await router.getAddress(), deployer.address
     );
   } else {
     throw new Error(`Unknown ADAPTER="${kind}" (expected keeper | mock | ccip)`);
@@ -76,6 +86,13 @@ async function main() {
   await basket.waitForDeployment();
   await (await whitelist.setAllowed(await basket.getAddress(), true)).wait();
 
+  // Pack vault: bundle seeding + permissionless replenishment. The operator
+  // funds it with stocks + backing, sets the template/policy, and mints.
+  const vault = await (await E.getContractFactory("PackVault")).deploy(
+    await basket.getAddress(), pool, await backing.getAddress(), deployer.address
+  );
+  await vault.waitForDeployment();
+
   // $FWA token + emissions (Fase 2).
   const CAP = 1_000_000_000n * 10n ** 18n;
   const fwa = await (await E.getContractFactory("FWAToken")).deploy(CAP, deployer.address, deployer.address);
@@ -97,6 +114,7 @@ async function main() {
     factory: await factory.getAddress(),
     pool,
     basket: await basket.getAddress(),
+    vault: await vault.getAddress(),
     fwa: await fwa.getAddress(),
     emitter: await emitter.getAddress(),
   }, null, 2));

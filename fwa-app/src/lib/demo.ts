@@ -22,8 +22,8 @@ export const demo = {
   /** Sample whitelisted collections. The pool is collection-agnostic — positions
    *  carry the asset address — so the preview shows more than one on purpose. */
   collections: [
-    { address: "0xC0113c7100000000000000000000000000000001", name: "Fake Punks", symbol: "FPUNK" },
-    { address: "0xC0113c7100000000000000000000000000000002", name: "Fake Apes", symbol: "FAPE" },
+    { address: "0xC0113c7100000000000000000000000000000001", name: "Tesla Packs", symbol: "xTSLA" },
+    { address: "0xC0113c7100000000000000000000000000000002", name: "Nvidia Packs", symbol: "xNVDA" },
   ],
   positions: [
     { id: 1n, depositor: "0xA11ce00000000000000000000000000000000b0b", asset: "0xC0113c7100000000000000000000000000000001", tokenId: 4242n, backing: 30n * WAD, oddsBps: 5200n },
@@ -62,7 +62,7 @@ export const demo = {
   /** NFTs escrowed by the pool because settlement delivery reverted
    *  (pool.claimStuckNFT recovers them). */
   stuckNfts: [
-    { asset: "0xC0113c7100000000000000000000000000000001", symbol: "FPUNK", tokenId: 77n },
+    { asset: "0xC0113c7100000000000000000000000000000001", symbol: "xTSLA", tokenId: 77n },
   ],
   /** Pending $FWA emissions per owned position (emitter.pendingOf). */
   pendingEmissions: new Map<bigint, bigint>([

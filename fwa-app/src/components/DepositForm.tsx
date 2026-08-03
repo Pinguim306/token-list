@@ -97,9 +97,9 @@ export function DepositForm() {
 
   return (
     <div className="card">
-      <h2>Deposit a position</h2>
+      <h2>List a pack</h2>
 
-      <label htmlFor="dep-token">NFT token id</label>
+      <label htmlFor="dep-token">Pack (token) id</label>
       <input
         id="dep-token"
         inputMode="numeric"
@@ -167,7 +167,7 @@ export function DepositForm() {
             )
           }
         >
-          Approve NFT
+          Approve pack
         </button>
         <button
           className="btn"
@@ -217,8 +217,8 @@ export function DepositForm() {
       {mined ? <p className="notice ok" role="status">Confirmed.</p> : null}
 
       <p className="muted">
-        Approve the NFT and the backing token, then deposit. Your backing amount is also your
-        standing bid.
+        Approve the pack and the backing token, then deposit. Your backing amount is also your
+        standing bid — the deposit form checks it against your value estimate above.
       </p>
     </div>
   );
