@@ -154,7 +154,7 @@ export default function Portfolio() {
 
       <h1 className="mt-6 mb-0 font-display text-3xl text-ink">Your portfolio</h1>
       <p className="mt-2 mb-0 font-body text-sm text-muted">
-        {DEMO ? "Sample wallet" : short(address)} · {mine.length} open{" "}
+        {short(address)} · {mine.length} open{" "}
         {mine.length === 1 ? "position" : "positions"}
       </p>
 
@@ -250,7 +250,7 @@ export default function Portfolio() {
                       <button
                         className="btn"
                         disabled={busy || !pending}
-                        title={DEMO ? "Preview mode" : "Realize this position's pending $FWA without closing it"}
+                        title="Realize this position's pending $FWA without closing it"
                         onClick={() => {
                           reset();
                           writeContract({ ...emitter, functionName: "harvest", args: [p.id] });
@@ -262,9 +262,7 @@ export default function Portfolio() {
                         className="btn"
                         disabled={busy || drawInFlight}
                         title={
-                          DEMO
-                            ? "Preview mode"
-                            : drawInFlight
+                          drawInFlight
                               ? "A draw is in flight — the pool is frozen until it settles"
                               : "Close this position: NFT + backing + earnings come back to you"
                         }
@@ -301,12 +299,6 @@ export default function Portfolio() {
         <StuckNftClaim />
       </div>
 
-      {DEMO ? (
-        <p className="mt-8 mb-0 rounded-md border border-accent/40 bg-accent-soft px-4 py-3 font-body text-xs text-muted">
-          <b className="text-accent-strong">Preview with sample data.</b> Representative values —
-          connect to a deployed pool for your real portfolio.
-        </p>
-      ) : null}
     </main>
   );
 }

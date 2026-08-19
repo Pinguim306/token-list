@@ -175,7 +175,7 @@ export default function Baskets() {
                   <button
                     className="btn"
                     disabled={busy || DEMO}
-                    title={DEMO ? "Preview mode — connect to a deployed pack contract" : undefined}
+                    
                     onClick={() => unwrap(b.id)}
                   >
                     {busy ? "Confirming…" : "Unwrap"}
@@ -199,12 +199,6 @@ export default function Baskets() {
         <StuckPayouts />
       </div>
 
-      {DEMO ? (
-        <p className="mt-8 mb-0 rounded-md border border-accent/40 bg-accent-soft px-4 py-3 font-body text-xs text-muted">
-          <b className="text-accent-strong">Preview with sample data.</b> Representative packs —
-          set <span className="mono">NEXT_PUBLIC_BASKET_ADDRESS</span> for live pack-building.
-        </p>
-      ) : null}
     </main>
   );
 }

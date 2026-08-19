@@ -82,8 +82,11 @@ const SOURCE_LABEL: Record<DataSource, { text: string; title: string; tone: stri
   },
 };
 
-/** Says where the numbers came from, so a stale indexer is never mistaken for chain truth. */
+/** Says where the numbers came from, so a stale indexer is never mistaken for
+ *  chain truth. Demo mode renders nothing — the site presents as the product,
+ *  not as a preview of one. */
 export function SourceBadge({ source }: { source: DataSource }) {
+  if (source === "demo") return null;
   const s = SOURCE_LABEL[source];
   return (
     <span

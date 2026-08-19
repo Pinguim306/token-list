@@ -77,7 +77,7 @@ export function RipReveal({
   const status =
     phase === "idle"
       ? demo
-        ? "Tap the pack to preview a rip"
+        ? "Tap the pack to rip one open"
         : "Pay the pool price to rip one sealed position"
       : phase === "sealed"
         ? "The keeper answers on its own clock…"
@@ -100,7 +100,7 @@ export function RipReveal({
       data-rip-phase={phase}
       role={demo ? "button" : undefined}
       tabIndex={demo ? 0 : undefined}
-      aria-label={demo ? "Preview a draw: rip the sealed pack" : undefined}
+      aria-label={demo ? "Rip the sealed pack" : undefined}
       onClick={ripDemo}
       onKeyDown={(e) => {
         if (demo && (e.key === "Enter" || e.key === " ")) {

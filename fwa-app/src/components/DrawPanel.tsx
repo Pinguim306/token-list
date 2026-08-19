@@ -15,8 +15,18 @@ import { pool, backing } from "@/lib/contracts";
 import { activeChain } from "@/lib/chains";
 import { DRAW_STATE, fmt, fmtDuration, short } from "@/lib/format";
 import { DEMO, demo } from "@/lib/demo";
-import { CHECKOUT, TREASURY, PACK_PRICE_BNB, packPriceWei, pickWeighted, type DemoPosition } from "@/lib/checkout";
+import {
+  CHECKOUT,
+  TREASURY,
+  PACK_PRICE_BNB,
+  MAX_PACKS_PER_TX,
+  totalPriceWei,
+  totalPriceBnb,
+  pickWeightedMany,
+  type DemoPosition,
+} from "@/lib/checkout";
 import { collectionSymbol } from "@/lib/usePositions";
+import { NftArt } from "@/components/nft/NftArt";
 import { RipReveal, type RipSelected } from "@/components/RipReveal";
 
 type Draw = {
@@ -82,32 +92,49 @@ export function DrawPanel() {
     query: { enabled: !!payHash },
   });
   const { switchChainAsync } = useSwitchChain();
-  const [won, setWon] = useState<DemoPosition | null>(null);
-  const [outcome, setOutcome] = useState<"kept" | "sold" | null>(null);
+  // How many packs the next purchase buys (1..MAX_PACKS_PER_TX) — one BNB
+  // transfer of price × qty. Captured in a ref at buy time so changing the
+  // stepper while the payment mines cannot change how many packs it opens.
+  const [qty, setQty] = useState(1);
+  const boughtQty = useRef(1);
+  const [won, setWon] = useState<DemoPosition[] | null>(null);
+  const [outcomes, setOutcomes] = useState<("kept" | "sold" | null)[]>([]);
 
-  // The payment receipt is the "randomness": one winner per confirmed transfer.
+  // The payment receipt is the "randomness": one confirmed transfer reveals
+  // the whole batch — N sequential draws without replacement, as on-chain.
   useEffect(() => {
-    if (paid && !won) setWon(pickWeighted());
+    if (paid && !won) {
+      const winners = pickWeightedMany(boughtQty.current);
+      setWon(winners);
+      setOutcomes(Array(winners.length).fill(null));
+    }
   }, [paid, won]);
 
   const buy = async () => {
     payReset();
     setWon(null);
-    setOutcome(null);
+    setOutcomes([]);
+    boughtQty.current = qty;
     try {
       if (chainId !== activeChain.id) await switchChainAsync({ chainId: activeChain.id });
-      sendTransaction({ to: TREASURY, value: packPriceWei, chainId: activeChain.id });
+      sendTransaction({ to: TREASURY, value: totalPriceWei(qty), chainId: activeChain.id });
     } catch {
       // user rejected the network switch — nothing sent, nothing to clean up
     }
   };
 
+  const clampQty = (n: number) => Math.max(1, Math.min(MAX_PACKS_PER_TX, Math.floor(n) || 1));
+  const settle = (i: number, o: "kept" | "sold") =>
+    setOutcomes((prev) => prev.map((v, j) => (j === i ? (v ?? o) : v)));
+  const settleAll = (o: "kept" | "sold") => setOutcomes((prev) => prev.map((v) => v ?? o));
+
   const paying = paySending || payMining;
   const explorer = activeChain.blockExplorers?.default?.url;
 
+  const allSettled = !!won && won.length > 0 && outcomes.every((o) => o !== null);
   const stateName = checkout
     ? won
-      ? outcome
+      ? allSettled
         ? "Settled"
         : "Fulfilled"
       : paying
@@ -170,8 +197,8 @@ export function DrawPanel() {
     query: { enabled: !DEMO && fulfilled },
   });
   const selected: RipSelected | undefined = checkout
-    ? won
-      ? { positionId: won.id.toString(), symbol: collectionSymbol(won.asset), tokenId: won.tokenId.toString() }
+    ? won && won.length > 0
+      ? { positionId: won[0].id.toString(), symbol: collectionSymbol(won[0].asset), tokenId: won[0].tokenId.toString() }
       : undefined
     : showSample
       ? (() => {
@@ -188,8 +215,16 @@ export function DrawPanel() {
           })()
         : undefined;
 
-  // Standing bid the winner may exercise: 85% of the won position's backing.
-  const wonBid = won ? (won.backing * demo.bidBps) / 10_000n : 0n;
+  // Standing bid the winner may exercise per pack: 85% of that position's
+  // backing. Sold packs credit their bid; the totals feed the summary.
+  const bidOf = (p: DemoPosition) => (p.backing * demo.bidBps) / 10_000n;
+  const totalBids = won ? won.reduce((a, p) => a + bidOf(p), 0n) : 0n;
+  const soldTotal = won
+    ? won.reduce((a, p, i) => (outcomes[i] === "sold" ? a + bidOf(p) : a), 0n)
+    : 0n;
+  const keptCount = outcomes.filter((o) => o === "kept").length;
+  const soldCount = outcomes.filter((o) => o === "sold").length;
+  const multi = !!won && won.length > 1;
 
   return (
     <div className="card feature">
@@ -211,6 +246,10 @@ export function DrawPanel() {
       {checkout ? (
         <>
           <div className="stat"><span>Pack price</span><b>{PACK_PRICE_BNB} BNB</b></div>
+          <div className="stat" data-total-price>
+            <span>Total ({won ? won.length : qty} pack{(won ? won.length : qty) > 1 ? "s" : ""})</span>
+            <b>{totalPriceBnb(won ? won.length : qty)} BNB</b>
+          </div>
           <div className="stat"><span>Treasury</span><b className="mono">{short(TREASURY)}</b></div>
           {payHash && (
             <div className="stat">
@@ -224,7 +263,12 @@ export function DrawPanel() {
               </b>
             </div>
           )}
-          {won && <div className="stat"><span>Standing bid</span><b>{fmt(wonBid, demo.decimals)}</b></div>}
+          {won && (
+            <div className="stat">
+              <span>{multi ? "Standing bids (total)" : "Standing bid"}</span>
+              <b>{fmt(totalBids, demo.decimals)}</b>
+            </div>
+          )}
         </>
       ) : (
         <>
@@ -237,19 +281,54 @@ export function DrawPanel() {
 
       <div className="row" style={{ marginTop: 14 }}>
         {CHECKOUT ? (
-          <button
-            className="btn primary"
-            data-buy-pack
-            disabled={!isConnected || paying}
-            title={!isConnected ? "Connect your wallet to buy" : undefined}
-            onClick={buy}
-          >
-            {paySending
-              ? "Confirm in wallet…"
-              : payMining
-                ? "Paying…"
-                : `Rip a pack · ${PACK_PRICE_BNB} BNB`}
-          </button>
+          <>
+            <div className="qty-stepper" data-qty-stepper role="group" aria-label="How many packs">
+              <button
+                className="btn"
+                data-qty-minus
+                aria-label="One pack fewer"
+                disabled={paying || qty <= 1}
+                onClick={() => setQty((q) => clampQty(q - 1))}
+              >
+                −
+              </button>
+              <input
+                data-qty
+                type="number"
+                inputMode="numeric"
+                min={1}
+                max={MAX_PACKS_PER_TX}
+                value={qty}
+                disabled={paying}
+                aria-label={`Packs to buy (1–${MAX_PACKS_PER_TX})`}
+                onChange={(e) => setQty(clampQty(Number(e.target.value)))}
+              />
+              <button
+                className="btn"
+                data-qty-plus
+                aria-label="One pack more"
+                disabled={paying || qty >= MAX_PACKS_PER_TX}
+                onClick={() => setQty((q) => clampQty(q + 1))}
+              >
+                +
+              </button>
+            </div>
+            <button
+              className="btn primary"
+              data-buy-pack
+              disabled={!isConnected || paying}
+              title={!isConnected ? "Connect your wallet to buy" : undefined}
+              onClick={buy}
+            >
+              {paySending
+                ? "Confirm in wallet…"
+                : payMining
+                  ? "Paying…"
+                  : qty === 1
+                    ? `Rip a pack · ${PACK_PRICE_BNB} BNB`
+                    : `Rip ${qty} packs · ${totalPriceBnb(qty)} BNB`}
+            </button>
+          </>
         ) : (
           <button className="btn primary" disabled={busy || inFlight}
             onClick={() => writeContract({ ...pool, functionName: "startDraw", args: [maxUint256] })}>
@@ -258,29 +337,55 @@ export function DrawPanel() {
         )}
         <button
           className="btn"
-          disabled={checkout ? !won || !!outcome : busy || !fulfilled || windowClosed || (!isBuyer && !DEMO)}
+          disabled={checkout ? !won || allSettled : busy || !fulfilled || windowClosed || (!isBuyer && !DEMO)}
           title={checkout && !won ? "Buy a pack first" : undefined}
           onClick={() =>
             checkout
-              ? setOutcome("kept")
+              ? settleAll("kept")
               : writeContract({ ...pool, functionName: "settle", args: [drawCount!, 0] })
           }
         >
-          Keep the pack
+          {checkout && multi ? "Keep all" : "Keep the pack"}
         </button>
         <button
           className="btn"
-          disabled={checkout ? !won || !!outcome : busy || !fulfilled || windowClosed || (!isBuyer && !DEMO)}
+          disabled={checkout ? !won || allSettled : busy || !fulfilled || windowClosed || (!isBuyer && !DEMO)}
           title={checkout && !won ? "Buy a pack first" : undefined}
           onClick={() =>
             checkout
-              ? setOutcome("sold")
+              ? settleAll("sold")
               : writeContract({ ...pool, functionName: "settle", args: [drawCount!, 1] })
           }
         >
-          Sell back
+          {checkout && multi ? "Sell all back" : "Sell back"}
         </button>
       </div>
+
+      {checkout && won && multi ? (
+        <ul className="won-grid" data-won-grid>
+          {won.map((p, i) => (
+            <li key={p.id.toString()} className="won-card" data-won-card={p.id.toString()}>
+              <span className="won-thumb">
+                <NftArt symbol={collectionSymbol(p.asset)} tokenId={p.tokenId.toString()} />
+              </span>
+              <div className="won-meta">
+                <b>#{p.tokenId.toString()}</b>
+                <span className="muted">Position {p.id.toString()} · bid {fmt(bidOf(p), demo.decimals)}</span>
+              </div>
+              {outcomes[i] ? (
+                <span className={`badge ${outcomes[i] === "kept" ? "hot" : ""}`}>
+                  {outcomes[i] === "kept" ? "Kept" : "Sold"}
+                </span>
+              ) : (
+                <div className="row">
+                  <button className="btn" onClick={() => settle(i, "kept")}>Keep</button>
+                  <button className="btn" onClick={() => settle(i, "sold")}>Sell</button>
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
+      ) : null}
       <div className="row" style={{ marginTop: 8 }}>
         {/* Contract-mirrored gating: finalize only opens once the settlement
             window has passed, expire only once randomness is overdue — the
@@ -302,22 +407,21 @@ export function DrawPanel() {
           Payment failed: {(payError as { shortMessage?: string }).shortMessage ?? payError.message}
         </p>
       ) : null}
-      {checkout && outcome === "kept" && won ? (
-        <p className="notice ok" role="status">
-          Pack kept — position #{won.id.toString()} is yours. On contracts, settle(Keep) transfers the
-          pack NFT to you and returns the depositor&apos;s backing minus the keep fee. (Settlement simulated.)
-        </p>
-      ) : null}
-      {checkout && outcome === "sold" && won ? (
-        <p className="notice ok" role="status">
-          Sold back for the standing bid — {fmt(wonBid, demo.decimals)} (85% of backing) credited. On
-          contracts, settle(SellBack) pays this from the position&apos;s own backing. (Settlement simulated.)
+      {checkout && allSettled && won ? (
+        <p className="notice ok" role="status" data-settle-summary>
+          {multi
+            ? `${won.length} packs settled — ${keptCount} kept, ${soldCount} sold back${
+                soldCount > 0 ? ` for a total of ${fmt(soldTotal, demo.decimals)} credited (85% of each backing)` : ""
+              }. On contracts, settle(Keep) transfers the pack NFT and settle(SellBack) pays the bid from the position's own backing. (Settlement simulated.)`
+            : outcomes[0] === "kept"
+              ? `Pack kept — position #${won[0].id.toString()} is yours. On contracts, settle(Keep) transfers the pack NFT to you and returns the depositor's backing minus the keep fee. (Settlement simulated.)`
+              : `Sold back for the standing bid — ${fmt(soldTotal, demo.decimals)} (85% of backing) credited. On contracts, settle(SellBack) pays this from the position's own backing. (Settlement simulated.)`}
         </p>
       ) : null}
 
       <p className="muted" style={{ marginTop: 12 }}>
         {checkout
-          ? `Live demo checkout: buying a pack sends ${PACK_PRICE_BNB} BNB on ${activeChain.name} to the FWA treasury. The draw (weighted random selection) and settlement are simulated exactly as the contracts will run them.`
+          ? `Live demo checkout: buying sends the pack price × quantity (up to ${MAX_PACKS_PER_TX} packs per transaction) in one BNB transfer on ${activeChain.name} to the FWA treasury. Each pack is a weighted random draw without replacement, settled Keep or Sell-back — simulated exactly as the contracts will run them.`
           : "Randomness mixes a keeper commit-reveal chain with a future blockhash (VRF-upgradable at the router). While “Requested”, the pool is frozen (freeze-at-request); once “Fulfilled”, the buyer keeps the pack or sells it back for the standing bid."}
       </p>
     </div>

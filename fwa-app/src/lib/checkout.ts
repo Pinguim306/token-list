@@ -1,4 +1,4 @@
-import { parseEther } from "viem";
+import { formatEther, parseEther } from "viem";
 import { DEMO, demo } from "./demo";
 
 /**
@@ -27,19 +27,41 @@ export const TREASURY = "0x8Ee4961c5E6F0C5325646F6775f20Cb694b8be14" as const;
 export const PACK_PRICE_BNB = "0.01325";
 export const packPriceWei = parseEther(PACK_PRICE_BNB);
 
+/** How many packs one transaction may buy. */
+export const MAX_PACKS_PER_TX = 20;
+
+/** Total price for a quantity, in wei — exact bigint math, no float drift. */
+export const totalPriceWei = (qty: number) => packPriceWei * BigInt(qty);
+
+/** Total price for a quantity as a display string ("0.0265"). */
+export const totalPriceBnb = (qty: number) => formatEther(totalPriceWei(qty));
+
 export type DemoPosition = (typeof demo.positions)[number];
 
 /**
- * Select the winning position the way FWAPool does: probability proportional
- * to each position's inverse-backing weight (the demo data pre-computes those
- * as oddsBps). Client randomness stands in for the keeper × blockhash word.
+ * Select winning positions the way FWAPool does: probability proportional to
+ * each position's inverse-backing weight (the demo data pre-computes those as
+ * oddsBps). Draws are WITHOUT replacement — on the contracts every drawn
+ * position closes, so a multi-pack purchase is N sequential draws from a
+ * shrinking pool. Client randomness stands in for the keeper × blockhash word.
  */
-export function pickWeighted(): DemoPosition {
-  const total = demo.positions.reduce((a, p) => a + Number(p.oddsBps), 0);
-  let r = Math.random() * total;
-  for (const p of demo.positions) {
-    r -= Number(p.oddsBps);
-    if (r <= 0) return p;
+export function pickWeightedMany(count: number): DemoPosition[] {
+  const pool = [...demo.positions];
+  const winners: DemoPosition[] = [];
+  const n = Math.min(count, pool.length);
+  for (let i = 0; i < n; i++) {
+    const total = pool.reduce((a, p) => a + Number(p.oddsBps), 0);
+    let r = Math.random() * total;
+    let idx = pool.length - 1;
+    for (let j = 0; j < pool.length; j++) {
+      r -= Number(pool[j].oddsBps);
+      if (r <= 0) {
+        idx = j;
+        break;
+      }
+    }
+    winners.push(pool[idx]);
+    pool.splice(idx, 1);
   }
-  return demo.positions[demo.positions.length - 1];
+  return winners;
 }
