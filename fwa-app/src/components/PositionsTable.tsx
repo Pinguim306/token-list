@@ -8,11 +8,12 @@ export function PositionsTable() {
   const { positions, decimals } = usePositions();
 
   return (
-    <div className="card">
+    <div className="card wide">
       <h2>Positions ({positions.length})</h2>
       {positions.length === 0 ? (
         <p className="muted">No active positions yet.</p>
       ) : (
+        <div className="table-scroll">
         <table>
           <thead>
             <tr><th>#</th><th>Depositor</th><th>Token</th><th>Backing</th><th>Win odds</th></tr>
@@ -40,6 +41,7 @@ export function PositionsTable() {
             ))}
           </tbody>
         </table>
+        </div>
       )}
       <p className="muted" style={{ marginTop: 10 }}>
         Win odds are inversely proportional to backing (weight = 1e36 / backing) — lightly-backed

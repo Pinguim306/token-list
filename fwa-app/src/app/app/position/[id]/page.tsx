@@ -172,7 +172,7 @@ export default function PositionDetail() {
       {!position ? (
         <p className="mt-6 mb-0 font-body text-sm text-muted">
           {DEMO
-            ? "No sample position with this id. The preview pool contains positions 1–5."
+            ? `No sample position with this id. The preview pool contains positions 1–${demo.positions.length}.`
             : "Loading position, or it does not exist in this pool."}
         </p>
       ) : (

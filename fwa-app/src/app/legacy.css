@@ -115,6 +115,9 @@ input[aria-invalid="true"] { border-color: var(--danger); }
   padding: 18px; box-shadow: var(--shadow-sm); transition: box-shadow .2s, transform .2s, border-color .2s;
 }
 .card:hover { box-shadow: var(--shadow); border-color: var(--border-strong); }
+/* Full-width card — the 150-position table needs the whole row to show every
+   column without horizontal scrolling. */
+.card.wide { grid-column: 1 / -1; }
 .card.feature { grid-column: span 2; background:
   linear-gradient(180deg, var(--surface), var(--surface-2)); }
 @media (max-width: 720px) { .card.feature { grid-column: span 1; } .hero-stats { grid-template-columns: repeat(2,1fr);} }
@@ -161,8 +164,15 @@ label { display: block; font-size: 12px; color: var(--muted); margin: 12px 0 5px
 
 /* ---- table ---- */
 table { width: 100%; border-collapse: collapse; font-size: 14px; }
-th, td { text-align: left; padding: 9px 8px; border-bottom: 1px solid var(--border); font-variant-numeric: tabular-nums; }
+/* Cells never wrap — a short address or "Win odds" header breaking onto a
+   second line reads as a broken layout. Wide tables scroll inside .table-scroll
+   instead. */
+th, td { text-align: left; padding: 9px 8px; border-bottom: 1px solid var(--border); font-variant-numeric: tabular-nums; white-space: nowrap; }
 th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; }
+/* Scrollable body for long tables (150-position pool): capped height, sticky
+   header, and its own horizontal scroll so the page never scrolls sideways. */
+.table-scroll { max-height: 430px; overflow: auto; margin: 0 -4px; padding: 0 4px; }
+.table-scroll thead th { position: sticky; top: 0; background: var(--surface); z-index: 1; }
 tbody tr { transition: background .15s; }
 tbody tr:hover { background: var(--surface-2); }
 td .odds { font-weight: 700; color: var(--success); }

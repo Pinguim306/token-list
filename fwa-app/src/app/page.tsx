@@ -123,9 +123,10 @@ const FAQ = [
   },
 ];
 
-/** Demo positions rendered as trading cards. Serialized to plain strings here
- *  because BigInt cannot cross the server→client component boundary. */
-const CARDS = demo.positions.map((p) => {
+/** The five showcase positions rendered as trading cards (the 150-position
+ *  pool would drown the carousel). Serialized to plain strings here because
+ *  BigInt cannot cross the server→client component boundary. */
+const CARDS = demo.positions.slice(0, 5).map((p) => {
   const c = demo.collections.find((c) => c.address === p.asset);
   return {
     id: p.id.toString(),

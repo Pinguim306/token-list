@@ -55,8 +55,11 @@ export default function Analytics() {
   const fulfilled = draws.filter((d) => d.stateName === "Fulfilled" || d.stateName === "Requested").length;
 
   // Backing by position, heaviest first; the Crown gets the emphasis color.
+  // Ties break by id so the order is identical in every JS engine — an
+  // inconsistent comparator would let SSR and the client sort ties differently
+  // and mismatch on hydration.
   const backingBars: Bar[] = [...positions]
-    .sort((a, b) => (b.backing > a.backing ? 1 : -1))
+    .sort((a, b) => (b.backing > a.backing ? 1 : b.backing < a.backing ? -1 : Number(a.id - b.id)))
     .slice(0, 8)
     .map((p) => ({
       label: `#${p.id.toString()}`,
@@ -176,7 +179,8 @@ function Concentration({
   positions: { id: bigint; backing: bigint }[];
   dec: number;
 }) {
-  const sorted = [...positions].sort((a, b) => (b.backing > a.backing ? 1 : -1));
+  // Same consistent comparator as the backing chart — see the note there.
+  const sorted = [...positions].sort((a, b) => (b.backing > a.backing ? 1 : b.backing < a.backing ? -1 : Number(a.id - b.id)));
   const topN = Math.min(3, sorted.length);
   const topSum = sorted.slice(0, topN).reduce((a, p) => a + p.backing, 0n);
   const pct = totalBacking > 0n ? Number((topSum * 10000n) / totalBacking) / 100 : 0;
