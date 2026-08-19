@@ -182,6 +182,32 @@ tbody tr { transition: background .15s; }
 tbody tr:hover { background: var(--surface-2); }
 td .odds { font-weight: 700; color: var(--success); }
 
+/* ---- wallet picker ---- */
+.wallet-overlay {
+  position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center;
+  background: rgba(10, 8, 12, .6); backdrop-filter: blur(4px); padding: 20px;
+}
+.wallet-modal {
+  width: 100%; max-width: 360px; background: var(--surface); border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg); padding: 16px; box-shadow: var(--shadow);
+}
+.wallet-modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.wallet-modal-head h3 { margin: 0; font-size: 15px; }
+.wallet-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.wallet-option {
+  display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;
+  padding: 11px 12px; border-radius: var(--radius); border: 1px solid var(--border);
+  background: var(--surface-2); color: var(--ink); font: inherit; font-weight: 600; cursor: pointer;
+  transition: border-color .15s, background .15s;
+}
+.wallet-option:hover:not(:disabled) { border-color: var(--accent); background: var(--surface-3); }
+.wallet-option:disabled { opacity: .6; cursor: default; }
+.wallet-option .muted { margin-left: auto; font-size: 12px; }
+.wallet-icon { width: 24px; height: 24px; border-radius: 6px; flex: none; }
+.wallet-icon-fallback { display: inline-flex; align-items: center; justify-content: center; color: var(--accent); }
+.wallet-empty p { margin: 4px 0; font-size: 14px; }
+.wallet-empty a { color: var(--accent); }
+
 /* ---- badges / pills ---- */
 .badge {
   display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: var(--radius-pill);
