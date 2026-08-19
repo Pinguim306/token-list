@@ -172,7 +172,7 @@ export default function PositionDetail() {
       {!position ? (
         <p className="mt-6 mb-0 font-body text-sm text-muted">
           {DEMO
-            ? `No sample position with this id. The preview pool contains positions 1–${demo.positions.length}.`
+            ? `No position with this id. The pool contains positions 1–${demo.positions.length}.`
             : "Loading position, or it does not exist in this pool."}
         </p>
       ) : (
@@ -219,9 +219,7 @@ export default function PositionDetail() {
                 className="btn"
                 disabled={DEMO || isPending || mining || !crownEligible}
                 title={
-                  DEMO
-                    ? "Preview mode"
-                    : drawInFlight
+                  drawInFlight
                       ? "Pool frozen while a draw is in flight"
                       : !crownEligible
                         ? "Backing does not meet the challenge threshold"
@@ -290,12 +288,6 @@ export default function PositionDetail() {
         </>
       )}
 
-      {DEMO ? (
-        <p className="mt-8 mb-0 rounded-md border border-accent/40 bg-accent-soft px-4 py-3 font-body text-xs text-muted">
-          <b className="text-accent-strong">Preview with sample data.</b> Point the app at a deployed
-          pool (<span className="font-mono">NEXT_PUBLIC_POOL_ADDRESS</span>) for live values.
-        </p>
-      ) : null}
     </main>
   );
 }

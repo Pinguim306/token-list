@@ -77,7 +77,7 @@ export function StuckNftClaim() {
                     <p className="m-0 mt-0.5 font-mono text-xs text-muted">{short(n.asset)}</p>
                   </div>
                 </div>
-                <button className="btn primary" disabled title="Preview mode — connect to a deployed pool">
+                <button className="btn primary" disabled >
                   Claim
                 </button>
               </li>

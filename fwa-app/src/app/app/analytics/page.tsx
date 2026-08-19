@@ -160,11 +160,6 @@ export default function Analytics() {
           Draw-based charts read from the indexer. Set <span className="mono">NEXT_PUBLIC_INDEXER_URL</span> for full history.
         </p>
       ) : null}
-      {DEMO ? (
-        <p className="mt-4 mb-0 rounded-md border border-accent/40 bg-accent-soft px-4 py-3 font-body text-xs text-muted">
-          <b className="text-accent-strong">Preview with sample data.</b> Representative pool figures — connect to a deployed pool for live analytics.
-        </p>
-      ) : null}
     </main>
   );
 }

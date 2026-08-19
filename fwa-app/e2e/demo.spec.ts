@@ -146,7 +146,7 @@ test.describe("position detail", () => {
 
   test("explains an id that does not exist", async ({ page }) => {
     await page.goto("/app/position/999");
-    await expect(page.getByText(/No sample position with this id/)).toBeVisible();
+    await expect(page.getByText(/No position with this id/)).toBeVisible();
   });
 });
 
@@ -188,10 +188,12 @@ test.describe("portfolio", () => {
 });
 
 test.describe("draw history", () => {
-  test("shows sample draws and marks the data source", async ({ page }) => {
+  test("shows the draw history without any sample-data badge", async ({ page }) => {
     await page.goto("/app/draws");
     await expect(page.locator("tbody tr")).toHaveCount(5);
-    await expect(page.getByTitle(/No pool configured/)).toHaveText("Sample data");
+    // the site presents as the product — demo mode carries no "sample data" label
+    await expect(page.getByTitle(/No pool configured/)).toHaveCount(0);
+    await expect(page.getByText(/[Ss]ample data/)).toHaveCount(0);
   });
 
   test("a refunded draw has no selected position and no latency", async ({ page }) => {

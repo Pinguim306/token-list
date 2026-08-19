@@ -182,12 +182,6 @@ export default function CollectionDetail() {
         the inverse of backing.
       </p>
 
-      {DEMO ? (
-        <p className="mt-8 mb-0 rounded-md border border-accent/40 bg-accent-soft px-4 py-3 font-body text-xs text-muted">
-          <b className="text-accent-strong">Preview with sample data.</b> Point the app at a deployed
-          pool for live collections.
-        </p>
-      ) : null}
     </main>
   );
 }

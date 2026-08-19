@@ -47,4 +47,28 @@ test.describe("demo checkout", () => {
     await expect(buy).toBeDisabled();
     await expect(buy).toHaveAttribute("title", /Connect your wallet/);
   });
+
+  test("quantity multiplies the price — up to 20 packs per transaction", async ({ page }) => {
+    await page.goto("/app");
+    const buy = page.locator("[data-buy-pack]");
+    const qty = page.locator("[data-qty]");
+
+    // stepper: 1 → 2 packs doubles the exact BNB total
+    await page.locator("[data-qty-plus]").click();
+    await expect(qty).toHaveValue("2");
+    await expect(buy).toContainText("Rip 2 packs · 0.0265 BNB");
+
+    // typing 20 hits the cap; the + button closes
+    await qty.fill("20");
+    await expect(buy).toContainText("Rip 20 packs · 0.265 BNB");
+    await expect(page.locator("[data-qty-plus]")).toBeDisabled();
+
+    // over the cap clamps back to 20; garbage clamps to 1
+    await qty.fill("25");
+    await expect(qty).toHaveValue("20");
+    await qty.fill("0");
+    await expect(qty).toHaveValue("1");
+    await expect(buy).toContainText("Rip a pack · 0.01325 BNB");
+    await expect(page.locator("[data-qty-minus]")).toBeDisabled();
+  });
 });

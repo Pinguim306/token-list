@@ -90,7 +90,7 @@ export function StuckPayouts() {
                 <button
                   className="btn primary"
                   disabled={busy}
-                  title={DEMO ? "Preview mode — connect to a deployed basket contract" : undefined}
+                  
                   onClick={() => claim(r.token)}
                 >
                   {busy && !DEMO ? "Confirming…" : "Claim"}

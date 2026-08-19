@@ -182,6 +182,31 @@ tbody tr { transition: background .15s; }
 tbody tr:hover { background: var(--surface-2); }
 td .odds { font-weight: 700; color: var(--success); }
 
+/* ---- pack quantity stepper + multi-pack results ---- */
+.qty-stepper { display: inline-flex; align-items: center; gap: 6px; }
+.qty-stepper .btn { padding: 8px 12px; line-height: 1; }
+.qty-stepper input {
+  width: 54px; text-align: center; padding: 8px 4px; font: inherit; font-weight: 700;
+  color: var(--ink); background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--radius); -moz-appearance: textfield; appearance: textfield;
+}
+.qty-stepper input::-webkit-outer-spin-button,
+.qty-stepper input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.won-grid {
+  list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+}
+.won-card {
+  display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+  border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-2);
+}
+.won-thumb { width: 44px; height: 44px; border-radius: 8px; overflow: hidden; flex: none; border: 1px solid var(--border); }
+.won-thumb svg { display: block; width: 100%; height: 100%; }
+.won-meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; margin-right: auto; }
+.won-meta .muted { font-size: 12px; white-space: nowrap; }
+.won-card .row { gap: 6px; }
+.won-card .btn { padding: 6px 10px; font-size: 12px; }
+
 /* ---- wallet picker ---- */
 .wallet-overlay {
   position: fixed; inset: 0; z-index: 60; display: flex; align-items: center; justify-content: center;
