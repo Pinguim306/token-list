@@ -31,3 +31,26 @@ test.describe("sealed-pack rip reveal", () => {
     await expect(stage).toContainText(/keeper answers on its own clock/i);
   });
 });
+
+/**
+ * The hardcoded demo checkout: buying a pack is a REAL native-BNB transfer to
+ * the treasury (draw + settlement simulated). Without a wallet the buy button
+ * must be visibly priced but unclickable — a visitor can never fire a
+ * transaction by accident, and Playwright has no wallet, so this is also what
+ * keeps the rest of the suite side-effect-free.
+ */
+test.describe("demo checkout", () => {
+  test("the buy button shows the BNB price and requires a wallet", async ({ page }) => {
+    await page.goto("/app");
+    const buy = page.locator("[data-buy-pack]");
+    await expect(buy).toContainText("0.01325 BNB");
+    await expect(buy).toBeDisabled();
+    await expect(buy).toHaveAttribute("title", /Connect your wallet/);
+  });
+
+  test("the banner explains that payment is real and settlement simulated", async ({ page }) => {
+    await page.goto("/app");
+    await expect(page.getByText("Live demo checkout.")).toBeVisible();
+    await expect(page.getByText(/real payment/)).toBeVisible();
+  });
+});

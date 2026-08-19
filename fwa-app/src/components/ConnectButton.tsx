@@ -1,6 +1,6 @@
 "use client";
 
-import { useAccount, useConnect, useDisconnect } from "wagmi";
+import { useAccount, useConnect, useDisconnect, useSwitchChain } from "wagmi";
 import { activeChain } from "@/lib/chains";
 import { short } from "@/lib/format";
 
@@ -8,12 +8,21 @@ export function ConnectButton() {
   const { address, isConnected, chainId } = useAccount();
   const { connectors, connect, isPending } = useConnect();
   const { disconnect } = useDisconnect();
+  const { switchChain, isPending: switching } = useSwitchChain();
 
   if (isConnected) {
     const wrongChain = chainId !== activeChain.id;
     return (
       <div className="row">
-        {wrongChain && <span className="badge warn">Wrong network</span>}
+        {wrongChain && (
+          <button
+            className="btn"
+            disabled={switching}
+            onClick={() => switchChain({ chainId: activeChain.id })}
+          >
+            {switching ? "Switching…" : `Switch to ${activeChain.name}`}
+          </button>
+        )}
         <button className="btn" onClick={() => disconnect()}>
           {short(address)} · Disconnect
         </button>
