@@ -112,7 +112,7 @@ export default function CollectionIndex() {
 
       {DEMO ? (
         <p className="mt-8 mb-0 rounded-md border border-accent/40 bg-accent-soft px-4 py-3 font-body text-xs text-muted">
-          <b className="text-accent-strong">Preview with sample data.</b> Two sample collections are
+          <b className="text-accent-strong">Preview with sample data.</b> Sample collections are
           shown to illustrate that one pool can hold several.
         </p>
       ) : null}
