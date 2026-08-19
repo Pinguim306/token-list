@@ -20,8 +20,10 @@ export default function Home() {
 
       {DEMO && (
         <div className="notice" style={{ marginTop: 8 }}>
-          <b>Preview with sample data.</b> Representative demo values — point the app at a deployed pool
-          (<span className="mono">NEXT_PUBLIC_POOL_ADDRESS</span>) for live on-chain data and transactions.
+          <b>Live demo checkout.</b> Sample packs, real payment: connect a wallet and buying a pack
+          sends the pack price in BNB to the FWA treasury — the draw and settlement are simulated
+          exactly as the contracts will run them. Point the app at a deployed pool
+          (<span className="mono">NEXT_PUBLIC_POOL_ADDRESS</span>) to switch to full on-chain mode.
         </div>
       )}
 
