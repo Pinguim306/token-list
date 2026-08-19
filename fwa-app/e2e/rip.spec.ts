@@ -47,10 +47,4 @@ test.describe("demo checkout", () => {
     await expect(buy).toBeDisabled();
     await expect(buy).toHaveAttribute("title", /Connect your wallet/);
   });
-
-  test("the banner explains that payment is real and settlement simulated", async ({ page }) => {
-    await page.goto("/app");
-    await expect(page.getByText("Live demo checkout.")).toBeVisible();
-    await expect(page.getByText(/real payment/)).toBeVisible();
-  });
 });

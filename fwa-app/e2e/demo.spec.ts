@@ -23,7 +23,8 @@ test.describe("pool", () => {
   test("lists every sample position and links to detail", async ({ page }) => {
     await page.goto("/app");
     const rows = page.locator("table tbody tr");
-    await expect(rows).toHaveCount(5);
+    // 5 showcase + 145 generated — the full 150-pack pool renders (scrollable)
+    await expect(rows).toHaveCount(150);
     await expect(rows.first().locator("a")).toHaveAttribute("href", "/app/position/1");
   });
 
@@ -129,10 +130,12 @@ test.describe("position detail", () => {
   test("derives the standing bid as 85% of backing and flags the crown", async ({ page }) => {
     await page.goto("/app/position/3");
     await expect(page.getByRole("heading", { level: 1 })).toContainText("Position #3");
-    // demo position 3: backing 400 → bid 340, odds 4.00%, and it holds the crown
+    // demo position 3: backing 400 → bid 340; odds are computed against the
+    // whole 150-pack pool's weight (1e36/400 ÷ Σweights = 12 bps) — the
+    // heaviest position is the rarest draw. Still the crown.
     await expect(page.getByTestId("stat-backing")).toHaveText("400");
     await expect(page.getByTestId("stat-standing-bid")).toHaveText("340");
-    await expect(page.getByTestId("stat-draw-odds")).toHaveText("4.00%");
+    await expect(page.getByTestId("stat-draw-odds")).toHaveText("0.12%");
     await expect(page.getByTestId("stat-crown")).toHaveText("Held");
   });
 
@@ -142,7 +145,7 @@ test.describe("position detail", () => {
   });
 
   test("explains an id that does not exist", async ({ page }) => {
-    await page.goto("/app/position/99");
+    await page.goto("/app/position/999");
     await expect(page.getByText(/No sample position with this id/)).toBeVisible();
   });
 });
@@ -150,21 +153,22 @@ test.describe("position detail", () => {
 test.describe("collections", () => {
   test("groups positions by their ERC-721 contract", async ({ page }) => {
     await page.goto("/app/collection");
-    await expect(page.locator('a[href^="/app/collection/0x"]')).toHaveCount(2);
+    await expect(page.locator('a[href^="/app/collection/0x"]')).toHaveCount(3);
     await expect(page.getByText("Tesla Packs")).toBeVisible();
     await expect(page.getByText("Nvidia Packs")).toBeVisible();
+    await expect(page.getByText("SpaceX Packs")).toBeVisible();
   });
 
   test("a collection totals its own positions only", async ({ page }) => {
     await page.goto("/app/collection");
     await page.locator('a[href^="/app/collection/0x"]').first().click();
     await expect(page.getByRole("heading", { level: 1 })).toHaveText("Tesla Packs");
-    // Tesla Packs holds positions 1, 2 and 4 → 30 + 60 + 75 = 165 backing,
-    // floor bid = 85% of the lightest (30) = 25.5
-    await expect(page.getByTestId("stat-items-in-pool")).toHaveText("3");
-    await expect(page.getByTestId("stat-total-backing")).toHaveText("165");
+    // Tesla Packs: showcase 1, 2, 4 (30+75+60) + 49 generated = 52 positions,
+    // 5,385 total backing; floor bid = 85% of the lightest (30) = 25.5
+    await expect(page.getByTestId("stat-items-in-pool")).toHaveText("52");
+    await expect(page.getByTestId("stat-total-backing")).toHaveText("5,385");
     await expect(page.getByTestId("stat-floor-bid")).toHaveText("25.5");
-    await expect(page.locator('a[href^="/app/position/"]')).toHaveCount(3);
+    await expect(page.locator('a[href^="/app/position/"]')).toHaveCount(52);
   });
 
   test("rejects a malformed address", async ({ page }) => {
