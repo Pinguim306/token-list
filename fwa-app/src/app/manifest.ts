@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Fake World Assets",
     short_name: "FWA",
     description:
-      "Rip sealed packs of tokenized stocks on BNB Chain, backed by depositor-funded standing bids.",
+      "Rip sealed packs of tokenized stocks on HyperEVM, backed by depositor-funded standing bids.",
     start_url: "/",
     display: "standalone",
     background_color: "#0a080b",

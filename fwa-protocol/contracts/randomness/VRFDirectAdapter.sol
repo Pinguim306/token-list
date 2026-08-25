@@ -23,7 +23,9 @@ interface IVRFCoordinatorV25Like {
 
 /// @title VRFDirectAdapter
 /// @notice Chainlink VRF v2.5 randomness for the RandomnessRouter — DIRECT,
-///         no CCIP hop. On BNB Chain VRF is natively available, so the
+///         no CCIP hop. NOTE: Chainlink ships no VRF coordinator on HyperEVM
+///         (deploy.js refuses this adapter on 999/998; the verifiable path there
+///         is Pyth Entropy). Kept for BNB Chain, where VRF is native, so the
 ///         cross-chain relay the original design needed (CCIPVRFAdapter +
 ///         VRFRequester) collapses into this single subscription consumer.
 ///

@@ -5,7 +5,7 @@ import { DEMO, demo } from "./demo";
  * Hardcoded demo checkout ("marretado").
  *
  * While no pool contract is configured (demo mode), pack purchases are LIVE
- * anyway: the buy button sends a real native-BNB transfer of the pack price to
+ * anyway: the buy button sends a real native-HYPE transfer of the pack price to
  * the FWA treasury below, and the draw + settlement that follow are simulated
  * client-side to mirror exactly what the contracts will do (weighted random
  * selection, keep / sell-back at 85% of backing). One real transaction, zero
@@ -20,12 +20,12 @@ export const CHECKOUT = DEMO;
 export const TREASURY = "0x8Ee4961c5E6F0C5325646F6775f20Cb694b8be14" as const;
 
 /**
- * Pack price in native BNB. Derived from the demo pool price (132.5 units) at
- * a deliberately small scale — 0.0001 BNB per unit — so demo purchases move
- * real but small value: 132.5 × 0.0001 = 0.01325 BNB.
+ * Pack price in native HYPE. Derived from the demo pool price (132.5 units) at
+ * a deliberately small scale — 0.0001 HYPE per unit — so demo purchases move
+ * real but small value: 132.5 × 0.0001 = 0.01325 HYPE.
  */
-export const PACK_PRICE_BNB = "0.01325";
-export const packPriceWei = parseEther(PACK_PRICE_BNB);
+export const PACK_PRICE_HYPE = "0.01325";
+export const packPriceWei = parseEther(PACK_PRICE_HYPE);
 
 /** How many packs one transaction may buy. */
 export const MAX_PACKS_PER_TX = 20;
@@ -34,7 +34,7 @@ export const MAX_PACKS_PER_TX = 20;
 export const totalPriceWei = (qty: number) => packPriceWei * BigInt(qty);
 
 /** Total price for a quantity as a display string ("0.0265"). */
-export const totalPriceBnb = (qty: number) => formatEther(totalPriceWei(qty));
+export const totalPriceHype = (qty: number) => formatEther(totalPriceWei(qty));
 
 export type DemoPosition = (typeof demo.positions)[number];
 

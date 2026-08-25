@@ -30,18 +30,30 @@ module.exports = {
     version: "0.8.26",
     settings: {
       optimizer: { enabled: true, runs: 200 },
-      // RobinhoodChain is Arbitrum Nitro; the default EVM target is fine.
-      // Larger contracts are allowed (96 KB code-size limit vs 24 KB on L1).
+      // HyperEVM is a standard EVM: EIP-170 applies, so deployed bytecode must
+      // stay under 24 KB. `npm run size` guards it.
       viaIR: false,
     },
   },
   networks: {
     hardhat: {
-      // Simulate an L2 with a large block gas limit for local testing.
+      // Local runs are not gas-constrained; real deploys go into HyperEVM's
+      // 30M-gas big blocks (see docs/deploy-runbook.md).
       blockGasLimit: 1_000_000_000,
       allowUnlimitedContractSize: true,
     },
-    // ---- BNB Chain (primary target) ----
+    // ---- HyperEVM (primary target) ----
+    hyperevmTestnet: {
+      url: process.env.HYPEREVM_TESTNET_RPC || "https://rpc.hyperliquid-testnet.xyz/evm",
+      chainId: 998,
+      accounts,
+    },
+    hyperevm: {
+      url: process.env.HYPEREVM_RPC || "https://rpc.hyperliquid.xyz/evm",
+      chainId: 999,
+      accounts,
+    },
+    // ---- BNB Chain (kept for portability) ----
     bscTestnet: {
       url: process.env.BSC_TESTNET_RPC || "https://bsc-testnet.bnbchain.org",
       chainId: 97,
@@ -64,17 +76,36 @@ module.exports = {
       accounts,
     },
   },
-  // Verification: BscScan for BNB Chain (built-in chain descriptors — the
-  // network names bsc/bscTestnet match hardhat-verify's registry), Blockscout
-  // for RobinhoodChain.
+  // Verification: HyperEVM has no built-in hardhat-verify descriptor, so both
+  // networks are declared as custom chains below. HyperEVMScan is the
+  // Etherscan-family explorer; hyperscan.com (Blockscout) and Sourcify are
+  // documented fallbacks in the runbook if an endpoint rejects the upload.
   etherscan: {
     apiKey: {
+      hyperevm: process.env.HYPEREVMSCAN_API_KEY || "",
+      hyperevmTestnet: process.env.HYPEREVMSCAN_API_KEY || "",
       bsc: process.env.BSCSCAN_API_KEY || "",
       bscTestnet: process.env.BSCSCAN_API_KEY || "",
       "robinhood-testnet": "blockscout",
       "robinhood-mainnet": "blockscout",
     },
     customChains: [
+      {
+        network: "hyperevm",
+        chainId: 999,
+        urls: {
+          apiURL: "https://api.hyperevmscan.io/api",
+          browserURL: "https://hyperevmscan.io",
+        },
+      },
+      {
+        network: "hyperevmTestnet",
+        chainId: 998,
+        urls: {
+          apiURL: "https://api-testnet.purrsec.com/api",
+          browserURL: "https://testnet.purrsec.com",
+        },
+      },
       {
         network: "robinhood-testnet",
         chainId: 46630,

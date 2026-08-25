@@ -1,7 +1,7 @@
-# Fake World Assets (FWA) — Stock Packs on BNB Chain
+# Fake World Assets (FWA) — Stock Packs on HyperEVM
 
-An on-chain, randomized pack-ripping protocol for **BNB Chain** (BSC mainnet
-`56` / testnet `97`), rebuilt from the FWA idea
+An on-chain, randomized pack-ripping protocol for **HyperEVM** (mainnet `999`
+/ testnet `998`), rebuilt from the FWA idea
 ([fwa.fun](https://www.fwa.fun/docs/overview)) with the product focused on
 **packs of tokenized stocks** (TSLA, NVDA, private-market names, …).
 
@@ -14,9 +14,12 @@ ones are rare. The pool itself stays collection-agnostic — any whitelisted
 ERC-721 still works; the stock-pack focus is curation, not a contract
 constraint.
 
-> Originally built for RobinhoodChain (configs kept for portability); the BNB
-> pivot brings a multi-validator chain, native Chainlink VRF, and on-chain
-> tokenized stocks (xStocks et al) for pack contents.
+> Previously targeted RobinhoodChain and then BNB Chain (both configs kept for
+> portability). HyperEVM brings deeper tokenized-equity supply for pack contents
+> — Ondo (TSLAon, NVDAon) and Dinari (SPCXD) — plus a trading-native audience.
+> Note the trade-off: Chainlink VRF is **not** deployed on HyperEVM, so the
+> verifiable-randomness upgrade path there is Pyth Entropy behind the same
+> router (see `docs/deploy-runbook.md`).
 
 > This repository is the engineering counterpart to the viability study in
 > [`../docs/analise-fwa-robinhoodchain.md`](../docs/analise-fwa-robinhoodchain.md).
@@ -77,7 +80,7 @@ work.
 | `libraries/FenwickTree.sol` | O(log n) weighted random selection (fixed capacity for correct dynamic growth) |
 | `randomness/RandomnessRouter.sol` | Consumer ⇄ adapter indirection; minimal fulfill callback |
 | `randomness/KeeperHashChainAdapter.sol` | **Launch randomness**: keeper commit-reveal hash chain × future blockhash (StockRip-parity), one serialized request, permissionless stale-skip, slashable keeper bond |
-| `randomness/VRFDirectAdapter.sol` | **VRF upgrade path on BNB**: Chainlink VRF v2.5, direct subscription consumer (no CCIP hop); skeleton wired to the router |
+| `randomness/VRFDirectAdapter.sol` | **VRF upgrade path on BNB Chain only** (Chainlink ships no VRF on HyperEVM — `deploy.js` refuses it on 999/998): Chainlink VRF v2.5, direct subscription consumer; skeleton wired to the router |
 | `randomness/MockRandomnessAdapter.sol` | Deterministic randomness for tests / local |
 | `randomness/CCIPVRFAdapter.sol` | Production skeleton: VRF v2.5 request from Arbitrum One over CCIP (RH Chain side) |
 | `randomness/VRFRequester.sol` | Production skeleton: Arbitrum One counterpart — draws VRF, relays back over CCIP |

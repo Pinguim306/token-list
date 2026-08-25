@@ -19,15 +19,15 @@ type Palette = { bg: [string, string]; cells: string[] };
 
 /** Per-collection look. Key = ERC-721 symbol; default covers unknown ones. */
 const PALETTES: Record<string, Palette> = {
-  TSLAB: {
+  TSLAon: {
     bg: ["#2a1a20", "#17120f"],
     cells: ["#e5647f", "#f0798f", "#f5eef1", "#e0a527"],
   },
-  NVDAB: {
+  NVDAon: {
     bg: ["#10231a", "#17120f"],
     cells: ["#2ee27f", "#48d2f5", "#f5eef1", "#f7b750"],
   },
-  SPCXB: {
+  SPCXD: {
     bg: ["#161c28", "#101319"],
     cells: ["#8fa4c0", "#c7d2e2", "#f5eef1", "#5a7dab"],
   },
@@ -40,9 +40,9 @@ const PALETTES: Record<string, Palette> = {
 /** Stylized brand marks (original simplified vectors, not official assets). */
 function BrandMark({ symbol }: { symbol: string }) {
   switch (symbol) {
-    case "TSLAB":
+    case "TSLAon":
       return (
-        <g data-brand="TSLAB">
+        <g data-brand="TSLAon">
           {/* Tesla-style T: curved wing + tapered stem */}
           <path
             d="M60 33 C46 25 32 23 18 26 L23 38 C34 35 45 36 54 41 L54 92 L66 92 L66 41 C75 36 86 35 97 38 L102 26 C88 23 74 25 60 33 Z"
@@ -53,9 +53,9 @@ function BrandMark({ symbol }: { symbol: string }) {
           </text>
         </g>
       );
-    case "NVDAB":
+    case "NVDAon":
       return (
-        <g data-brand="NVDAB" fill="none" stroke="#76b900" strokeWidth="7" strokeLinecap="round">
+        <g data-brand="NVDAon" fill="none" stroke="#76b900" strokeWidth="7" strokeLinecap="round">
           {/* NVIDIA-style eye: outer almond + inner swirl */}
           <path d="M84 60 C84 46 71 36 56 36 C42 36 28 45 18 60 C28 75 42 84 56 84 C71 84 84 74 84 60 Z" />
           <path d="M38 62 C38 53 46 47 56 48 C64 49 70 54 70 60" />
@@ -64,9 +64,9 @@ function BrandMark({ symbol }: { symbol: string }) {
           </text>
         </g>
       );
-    case "SPCXB":
+    case "SPCXD":
       return (
-        <g data-brand="SPCXB" fill="none" stroke="#d8dee6" strokeWidth="8" strokeLinecap="round">
+        <g data-brand="SPCXD" fill="none" stroke="#d8dee6" strokeWidth="8" strokeLinecap="round">
           {/* SpaceX-style X: short backslash + long swooping stroke */}
           <path d="M34 40 L72 76" />
           <path d="M22 80 C46 72 76 52 104 30" />

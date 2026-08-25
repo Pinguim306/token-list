@@ -11,9 +11,11 @@
  *                      KEEPER=0x... overrides the keeper address (defaults to
  *                      the deployer). After deploy, run scripts/keeper-bot.js
  *                      to commit the first chain and serve draws.
- *   vrf              — VRFDirectAdapter: Chainlink VRF v2.5, native on BNB
- *                      Chain (no CCIP hop). Requires configure() post-deploy
- *                      with the coordinator/keyHash/subId for the network.
+ *   vrf              — VRFDirectAdapter: Chainlink VRF v2.5. NOT available on
+ *                      HyperEVM (Chainlink ships data feeds there, not VRF), so
+ *                      this path is refused on chains 999/998 — it is kept for
+ *                      BNB Chain. Requires configure() post-deploy with the
+ *                      coordinator/keyHash/subId for the network.
  *   mock             — MockRandomnessAdapter, manually drivable (local/demo).
  *   ccip             — CCIPVRFAdapter skeleton (legacy RobinhoodChain path).
  *                      USE_CCIP=1 also works for backward compatibility.
@@ -51,6 +53,16 @@ async function main() {
       await router.getAddress(), keeper, deployer.address
     );
   } else if (kind === "vrf") {
+    // Chainlink VRF has no coordinator on HyperEVM. Deploying this adapter
+    // there would wire the router to a backend that can never answer, and
+    // every draw would sit until it expired — fail loudly instead.
+    const { chainId } = await E.provider.getNetwork();
+    if (chainId === 999n || chainId === 998n) {
+      throw new Error(
+        `ADAPTER=vrf is not deployable on HyperEVM (chainId ${chainId}): Chainlink VRF ` +
+          `has no coordinator on this chain. Use ADAPTER=keeper for launch.`,
+      );
+    }
     adapter = await (await E.getContractFactory("VRFDirectAdapter")).deploy(
       await router.getAddress(), deployer.address
     );

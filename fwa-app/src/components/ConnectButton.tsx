@@ -7,7 +7,7 @@ import { short } from "@/lib/format";
 
 /**
  * Wallets announce themselves via EIP-6963, so every installed extension
- * (MetaMask, Rabby, Binance Wallet, …) shows up as its own connector. The
+ * (MetaMask, Rabby, OKX, …) shows up as its own connector. The
  * button must never auto-pick one — with two wallets installed, whichever
  * announced first would silently win — so it opens a picker instead. The two
  * most common wallets sort first; everything else follows alphabetically.

@@ -29,21 +29,24 @@ import {IRandomnessAdapter, IRandomnessRouter} from "../interfaces/IRandomness.s
 ///      to the head), and the block producer does not know the unrevealed
 ///      preimage when it seals the seed block.
 ///
-///      TRUST MODEL (documented, not hidden): on an Arbitrum Orbit chain
-///      `block.number` is the synced L1 block number and `blockhash` is a
-///      chain-derived pseudo-hash, both sequencer-influenced. A colluding
-///      keeper + sequencer could grind outcomes. This is weaker than VRF and is
-///      accepted as launch-grade because the pool bounds the damage (one
+///      TRUST MODEL (documented, not hidden): on HyperEVM `block.number` and
+///      `blockhash` come from HyperBFT block production, so a keeper colluding
+///      with a block producer could grind outcomes. This is weaker than a VRF
+///      and is accepted as launch-grade because the pool bounds the damage (one
 ///      serialized draw at a time, price escrowed, expireDraw refunds) and the
-///      keeper can post a slashable ETH bond. The router indirection means a
-///      VRF adapter can replace this one with zero pool changes.
+///      keeper can post a slashable bond. The router indirection means a
+///      verifiable adapter (Pyth Entropy, which is live on HyperEVM) can
+///      replace this one with zero pool changes.
 ///
 ///      Liveness: exactly one request may be pending (the pool serializes draws
 ///      anyway). If the keeper goes silent past the ~256-block blockhash window
 ///      the request is unservable — anyone may `skipStale` to unblock the
 ///      adapter (recording a slashable incident), and the pool refunds the
-///      buyer via its own `expireDraw` timeout. 256 L1 blocks (~51 min) sits
-///      just inside the pool's 1 h request timeout.
+///      buyer via its own `expireDraw` timeout. NOTE the mismatch on HyperEVM:
+///      256 blocks at ~1s of small-block cadence is only ~4 minutes, far inside
+///      the pool's 1 h default request timeout — so a buyer would wait an hour
+///      for a refund on a failure that was already terminal after four minutes.
+///      Set `requestTimeout` to ~10 min at deploy (see docs/deploy-runbook.md).
 contract KeeperHashChainAdapter is IRandomnessAdapter, Ownable {
     /// @dev Seed block distance, matching StockRip's production parameter.
     uint256 public constant SEED_DELAY = 5;

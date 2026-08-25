@@ -99,20 +99,20 @@ test.describe("generative NFT art", () => {
 
   test("art is deterministic — the same token renders identically everywhere", async ({ page }) => {
     await page.goto("/#cards");
-    const onLanding = await page.locator('[data-nft-art="TSLAB-4242"] rect').count();
+    const onLanding = await page.locator('[data-nft-art="TSLAon-4242"] rect').count();
     expect(onLanding).toBeGreaterThan(4); // an actual fingerprint field, not an empty grid
     // known stock collections carry their company mark on top of the field
-    await expect(page.locator('[data-nft-art="TSLAB-4242"] [data-brand="TSLAB"]').first()).toBeAttached();
+    await expect(page.locator('[data-nft-art="TSLAon-4242"] [data-brand="TSLAon"]').first()).toBeAttached();
 
     await page.goto("/app/collection/0xC0113c7100000000000000000000000000000001");
-    const onCollection = await page.locator('[data-nft-art="TSLAB-4242"] rect').count();
+    const onCollection = await page.locator('[data-nft-art="TSLAon-4242"] rect').count();
     expect(onCollection).toBe(onLanding);
   });
 
   test("each stock collection renders its own brand mark", async ({ page }) => {
     await page.goto("/app");
-    await expect(page.locator('[data-brand="TSLAB"]').first()).toBeAttached();
-    await expect(page.locator('[data-brand="NVDAB"]').first()).toBeAttached();
-    await expect(page.locator('[data-brand="SPCXB"]').first()).toBeAttached();
+    await expect(page.locator('[data-brand="TSLAon"]').first()).toBeAttached();
+    await expect(page.locator('[data-brand="NVDAon"]').first()).toBeAttached();
+    await expect(page.locator('[data-brand="SPCXD"]').first()).toBeAttached();
   });
 });

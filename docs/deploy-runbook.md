@@ -1,42 +1,59 @@
-# FWA deploy runbook — BNB Chain testnet beta
+# FWA deploy runbook — HyperEVM testnet beta
 
 End-to-end steps to take the FWA stack from "all code merged, app in demo mode"
-to "live on BNB Chain testnet, app off demo mode". Everything here is gated on
-**one thing you must provide**: a funded deployer key (tBNB from the BNB
-faucet). The rest is mechanical.
+to "live on HyperEVM testnet, app off demo mode". Everything here is gated on
+**one thing you must provide**: a funded deployer key (testnet HYPE). The rest
+is mechanical.
 
-> Scope: BSC **testnet** (chainId `97`, network name `bscTestnet`). Mainnet
-> (`56`, `bsc`) is the same flow with the network swapped, gated on the Fase
-> 4/5 checklist (external audit, multisig+timelock owner) — do not skip those
-> for mainnet.
+> Scope: HyperEVM **testnet** (chainId `998`, network name `hyperevmTestnet`).
+> Mainnet (`999`, `hyperevm`) is the same flow with the network swapped, gated
+> on the Fase 4/5 checklist (external audit, multisig+timelock owner) — do not
+> skip those for mainnet.
 
-## BNB-specific parameters (read first)
+## HyperEVM-specific parameters (read first)
 
-- **Block time ~0.75s** → the keeper's 256-block blockhash window is only
-  **~3.2 minutes**. The keeper bot must be running and prompt (its 5s poll is
-  fine); tune the pool with `setParams` so `requestTimeout` ≈ 10–15 min instead
-  of the 1 h default — buyers should not wait an hour for a refund.
-- **Native Chainlink VRF** exists on BNB. `ADAPTER=vrf` deploys the
-  `VRFDirectAdapter`; `configure()` it with the BNB coordinator/keyHash/subId
-  and fund the subscription. Keeper remains the zero-dependency launch path;
-  VRF is the verifiable upgrade (one `setAdapter` swap).
+- **Dual-block architecture.** HyperEVM produces **small blocks (~1s, 2M gas)**
+  and **big blocks (~60s, 30M gas)**, interleaved into one block-number
+  sequence. **Contract deployment does not fit in a small block** — `FWAFactory`
+  alone is ~13.7 KB of bytecode, over 2.7M gas in code deposit. Before
+  deploying, switch the deployer account to big blocks (Hyperliquid's
+  `evmUserModify` / "use big blocks" action), then switch back afterwards so the
+  keeper's reveals keep landing in 1s blocks. Run `npm run size` first: every
+  contract must stay under the **24 KB EIP-170 limit** (largest today is 56% of
+  it).
+- **Keeper window ≈ 4 minutes.** 256 blocks at the ~1s small-block cadence is
+  only **~4.3 min** of blockhash availability. The keeper bot must be running
+  and prompt (its 5s poll is fine), and you **must** tune the pool with
+  `setParams` so `requestTimeout` ≈ **10 min** instead of the 1 h default —
+  otherwise a buyer waits an hour for a refund on a failure that was already
+  terminal after four minutes.
+- **Chainlink VRF does not exist on HyperEVM.** Chainlink ships data feeds
+  there, not VRF, so `ADAPTER=vrf` is **refused by `deploy.js` on chains
+  999/998** (it would wire the router to a backend that can never answer).
+  `ADAPTER=keeper` is the launch path. The verifiable upgrade on this chain is
+  **Pyth Entropy** (two-party commit-reveal, live on HyperEVM) — a new adapter
+  behind the same router, one `setAdapter` swap, zero pool changes.
+- **The public RPC is not archival.** Hyperliquid prunes the `/evm` endpoints
+  roughly every 12 hours. The indexer backfills from `START_BLOCK`, so point
+  `PONDER_RPC_URL` at an archival endpoint (the `/nanoreth` path, or a provider
+  such as QuickNode) — otherwise indexing breaks as soon as the deploy block
+  ages out.
 - **Pack contents**: the product is curated to **three tokenized stocks** —
-  **Tesla (TSLAB)**, **NVIDIA (NVDAB)** and **SpaceX (SPCXB)** — allowlisted via
-  `EquityBasket.setTokenAllowed`. Their **BNB Chain (BEP-20) mainnet** addresses,
-  issued by BTech Holdings Limited (the bStocks issuer, a Binance affiliate):
+  **Tesla (TSLAon)** and **NVIDIA (NVDAon)** from **Ondo** (bridged to HyperEVM
+  over LayerZero as native OFTs), and **SpaceX (SPCXD)** from **Dinari** —
+  allowlisted via `EquityBasket.setTokenAllowed`.
 
-  | Ticker | Stock | BNB Chain address |
-  |---|---|---|
-  | TSLAB | Tesla | `0x5b1910eaad6450e50f816082aa078c41f10c292f` |
-  | NVDAB | NVIDIA | `0x02fca66c1d1afb4e2a7884261eb00f63598a7436` |
-  | SPCXB | SpaceX | `0xbe9d156892e55e7154bcd3cb0fea677f9d3103e1` |
-
-  > ⚠️ **Verify each address on BscScan before allowlisting.** These were
-  > sourced from third-party explorers (CoinGecko/BscScan), not a signed
-  > on-chain manifest. For each one, open the address on BscScan and confirm the
-  > issuer is **BTech Holdings Limited** and that it is the official contract —
-  > a wrong or look-alike address would wrap an unbacked token. Curation is the
-  > owner's responsibility. (Testnet uses mocks; these addresses gate mainnet.)
+  > ⚠️ **Addresses are not recorded here on purpose.** The bStock addresses
+  > this file used to carry were HyperEVM-only and do not exist on HyperEVM.
+  > Before allowlisting, resolve each token's HyperEVM address from the
+  > **issuer's own documentation** (Ondo, Dinari), then open it on
+  > [hyperevmscan.io](https://hyperevmscan.io) and confirm the issuer and that
+  > it is the official contract — a wrong or look-alike address would wrap an
+  > unbacked token. Note that Dinari's SPCXD trades spot on **HyperCore**;
+  > confirm it is linked as an ERC-20 on HyperEVM before wiring it into the
+  > basket, since `EquityBasket` wraps ERC-20s, not HyperCore spot balances.
+  > Curation is the owner's responsibility. (Testnet uses mocks; these addresses
+  > gate mainnet.)
 - **Dynamic pricing** is off by default; enable with
   `pool.setDynamicPricing(dispersionFactorBps, maxExtraSurchargeBps)` — e.g.
   `(5000, 2000)` = add 50% of the dispersion, capped at +20%.
@@ -45,7 +62,7 @@ faucet). The rest is mechanical.
 
 ## 0. Prerequisites (human)
 
-- A deployer account with **tBNB** on chain 97 (for gas — BNB faucet). Export its
+- A deployer account with **testnet HYPE** on chain 998 (for gas). Export its
   mnemonic as `DEPLOYER_MNEMONIC` (see `fwa-protocol/.env.example`).
 - A **keeper secret**: 32 random bytes, `0x`-prefixed, kept in a secret manager
   — never in the repo. This is the seed of the randomness hash chain; whoever
@@ -63,7 +80,7 @@ The deployer key is the only true blocker — until it exists, steps 1+ cannot r
 ```bash
 cd fwa-protocol
 npm install && npm run build
-DEPLOYER_MNEMONIC="…" npx hardhat run scripts/deploy.js --network bscTestnet
+DEPLOYER_MNEMONIC="…" npx hardhat run scripts/deploy.js --network hyperevmTestnet
 ```
 
 `ADAPTER=keeper` is the default launch randomness path; `ADAPTER=vrf` deploys
@@ -84,10 +101,12 @@ indexer's `START_BLOCK`.
 ## 2. Verify the contracts (optional but recommended)
 
 ```bash
-npx hardhat verify --network bscTestnet <address> <constructor-args…>   # BSCSCAN_API_KEY env
+npx hardhat verify --network hyperevmTestnet <address> <constructor-args…>   # HYPEREVMSCAN_API_KEY env
 ```
 
-BscScan is preconfigured in `hardhat.config.js` (set `BSCSCAN_API_KEY`). Verify
+HyperEVMScan is preconfigured in `hardhat.config.js` (set `HYPEREVMSCAN_API_KEY`).
+If an endpoint rejects the upload, fall back to Blockscout (hyperscan.com) or
+Sourcify. Verify
 at least `pool`, `adapter`, `basket`, `vault`, `fwa`, `emitter`.
 
 ## 3. Curate assets (owner)
@@ -104,9 +123,9 @@ The pool ships with an **empty** collection whitelist and the basket with an
 Then seed the pool in bundles via the **PackVault**: fund it with stock tokens
 + backing, `setTemplate(tokens, amounts, backingPerPack)`,
 `setPolicy(floor, bundleSize, cooldown)`, and `mintBundle(count)` for launch.
-Mocks are fine for the testnet beta; the real bStocks token addresses (TSLAB,
-NVDAB, SPCXB — see the address table under "BNB-specific parameters" above) gate
-mainnet.
+Mocks are fine for the testnet beta; the real Ondo/Dinari token addresses gate
+mainnet — resolve them from the issuers and verify on the explorer per the
+warning at the top of this runbook.
 
 ## 4. Start the keeper (required — draws don't resolve without it)
 
@@ -114,13 +133,13 @@ mainnet.
 cd fwa-protocol
 ADAPTER=<adapter> KEEPER_MASTER_SECRET=0x<32 bytes> DEPLOYER_MNEMONIC="<keeper's>" \
   FROM_BLOCK=<deploy block> \
-  npx hardhat run scripts/keeper-bot.js --network bscTestnet
+  npx hardhat run scripts/keeper-bot.js --network hyperevmTestnet
 ```
 
 And the replenisher (keeps the pool stocked from the vault, permissionless):
 
 ```bash
-VAULT=<vault> npx hardhat run scripts/replenisher-bot.js --network bscTestnet
+VAULT=<vault> npx hardhat run scripts/replenisher-bot.js --network hyperevmTestnet
 ```
 
 The bot is stateless: on first tick it commits the epoch-0 hash-chain head, then
@@ -151,7 +170,7 @@ and redeploy:
 
 | Var | From |
 |---|---|
-| `NEXT_PUBLIC_CHAIN` | `testnet` (BSC 97; `mainnet` = 56) |
+| `NEXT_PUBLIC_CHAIN` | `testnet` (HyperEVM 998; `mainnet` = 999) |
 | `NEXT_PUBLIC_POOL_ADDRESS` | deploy `pool` |
 | `NEXT_PUBLIC_BACKING_TOKEN` | deploy `backing` |
 | `NEXT_PUBLIC_NFT_COLLECTION` | a whitelisted collection (default deposit target) |
@@ -168,7 +187,7 @@ and redeploy:
 - Randomness round-trip + cost, the Fase 0 G0 measurement:
   ```bash
   cd fwa-protocol
-  POOL=<pool> SAMPLES=20 npx hardhat run scripts/spike-randomness.js --network bscTestnet
+  POOL=<pool> SAMPLES=20 npx hardhat run scripts/spike-randomness.js --network hyperevmTestnet
   ```
   (Needs ≥1 active position, backing-token balance + approval, and the keeper bot
   running.) Writes a p50/p95 latency + per-draw cost report; fold it into
