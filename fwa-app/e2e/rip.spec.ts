@@ -43,7 +43,7 @@ test.describe("demo checkout", () => {
   test("the buy button shows the HYPE price and requires a wallet", async ({ page }) => {
     await page.goto("/app");
     const buy = page.locator("[data-buy-pack]");
-    await expect(buy).toContainText("0.01325 HYPE");
+    await expect(buy).toContainText("0.2 HYPE");
     await expect(buy).toBeDisabled();
     await expect(buy).toHaveAttribute("title", /Connect your wallet/);
   });
@@ -56,11 +56,11 @@ test.describe("demo checkout", () => {
     // stepper: 1 → 2 packs doubles the exact HYPE total
     await page.locator("[data-qty-plus]").click();
     await expect(qty).toHaveValue("2");
-    await expect(buy).toContainText("Rip 2 packs · 0.0265 HYPE");
+    await expect(buy).toContainText("Rip 2 packs · 0.4 HYPE");
 
     // typing 20 hits the cap; the + button closes
     await qty.fill("20");
-    await expect(buy).toContainText("Rip 20 packs · 0.265 HYPE");
+    await expect(buy).toContainText("Rip 20 packs · 4 HYPE");
     await expect(page.locator("[data-qty-plus]")).toBeDisabled();
 
     // over the cap clamps back to 20; garbage clamps to 1
@@ -68,7 +68,7 @@ test.describe("demo checkout", () => {
     await expect(qty).toHaveValue("20");
     await qty.fill("0");
     await expect(qty).toHaveValue("1");
-    await expect(buy).toContainText("Rip a pack · 0.01325 HYPE");
+    await expect(buy).toContainText("Rip a pack · 0.2 HYPE");
     await expect(page.locator("[data-qty-minus]")).toBeDisabled();
   });
 });
