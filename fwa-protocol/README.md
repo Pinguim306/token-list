@@ -140,8 +140,9 @@ ADAPTER=0x... KEEPER_MASTER_SECRET=0x<32 bytes> \
 
 Networks are preconfigured in `hardhat.config.js` (`hyperevmTestnet` = 998,
 `hyperevm` = 999; BNB and RobinhoodChain kept for portability). Verification:
-Sourcify for both HyperEVM chains, Etherscan V2 for mainnet. Set
-`DEPLOYER_MNEMONIC` (see `.env.example`) to deploy.
+Sourcify for both HyperEVM chains via `scripts/sourcify-verify.js` (Sourcify
+sunset the v1 API that `hardhat verify` still targets), Etherscan V2 for
+mainnet. Set `DEPLOYER_MNEMONIC` (see `.env.example`) to deploy.
 
 ## Fase 0 go/no-go gate
 

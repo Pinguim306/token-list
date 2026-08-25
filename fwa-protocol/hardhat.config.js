@@ -85,12 +85,13 @@ module.exports = {
   // selects V1 mode, which clobbers an apiURL-embedded ?chainid= on the
   // status-poll GETs — the upload succeeds and the poll then always errors.
   // Testnet (998) is NOT covered by Etherscan V2; both 999 and 998 ARE
-  // supported by Sourcify (sourcify.dev), enabled below — for testnet run
-  // SOURCIFY_ONLY=1 npx hardhat verify --network hyperevmTestnet <addr> ...
-  // (the env flag skips the Etherscan verifier, which cannot know 998).
+  // supported by Sourcify — but NOT through this plugin: Sourcify sunset its
+  // v1 API and hardhat-verify 2.x still posts to the removed endpoints
+  // ("Cannot POST /verify"). Verify on Sourcify with the v2-API script
+  // instead:  node scripts/sourcify-verify.js <chainId> <addr>=<fqn> ...
+  // (confirmed working against the live FWA deployment on chain 999).
   // The legacy robinhood-* networks keep RPC access but no verify wiring.
   etherscan: {
-    enabled: !process.env.SOURCIFY_ONLY,
     apiKey: process.env.ETHERSCAN_API_KEY || "",
     customChains: [
       {
@@ -106,8 +107,10 @@ module.exports = {
     ],
   },
   sourcify: {
-    // sourcify.dev supports both HyperEVM chains (999 and 998) — this is the
-    // only verification route for testnet.
-    enabled: true,
+    // Disabled: the plugin's Sourcify integration targets the sunset v1 API
+    // and always fails against today's sourcify.dev. Use
+    // scripts/sourcify-verify.js (v2 API) — the only verification route for
+    // testnet (998) and a no-API-key route for mainnet (999).
+    enabled: false,
   },
 };
