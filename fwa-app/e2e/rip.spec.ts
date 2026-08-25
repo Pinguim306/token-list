@@ -3,7 +3,7 @@ import { test, expect } from "@playwright/test";
 /**
  * The sealed-pack draw reveal on the pool page. In demo mode the pack is
  * clickable and runs a scripted rip timeline ending on the revealed position
- * (demo draw selects position #4 = TSLAB #999).
+ * (demo draw selects position #4 = TSLAon #999).
  */
 
 test.describe("sealed-pack rip reveal", () => {
@@ -19,7 +19,7 @@ test.describe("sealed-pack rip reveal", () => {
     await stage.click();
     // scripted timeline: sealed -> locking -> tearing -> revealed (~3s)
     await expect(stage).toHaveAttribute("data-rip-phase", "revealed");
-    await expect(stage.locator('[data-nft-art="TSLAB-999"]')).toBeVisible();
+    await expect(stage.locator('[data-nft-art="TSLAon-999"]')).toBeVisible();
     await expect(stage).toContainText(/Position #4 revealed/);
     expect(crashes).toEqual([]);
   });
@@ -33,17 +33,17 @@ test.describe("sealed-pack rip reveal", () => {
 });
 
 /**
- * The hardcoded demo checkout: buying a pack is a REAL native-BNB transfer to
+ * The hardcoded demo checkout: buying a pack is a REAL native-HYPE transfer to
  * the treasury (draw + settlement simulated). Without a wallet the buy button
  * must be visibly priced but unclickable — a visitor can never fire a
  * transaction by accident, and Playwright has no wallet, so this is also what
  * keeps the rest of the suite side-effect-free.
  */
 test.describe("demo checkout", () => {
-  test("the buy button shows the BNB price and requires a wallet", async ({ page }) => {
+  test("the buy button shows the HYPE price and requires a wallet", async ({ page }) => {
     await page.goto("/app");
     const buy = page.locator("[data-buy-pack]");
-    await expect(buy).toContainText("0.01325 BNB");
+    await expect(buy).toContainText("0.01325 HYPE");
     await expect(buy).toBeDisabled();
     await expect(buy).toHaveAttribute("title", /Connect your wallet/);
   });
@@ -53,14 +53,14 @@ test.describe("demo checkout", () => {
     const buy = page.locator("[data-buy-pack]");
     const qty = page.locator("[data-qty]");
 
-    // stepper: 1 → 2 packs doubles the exact BNB total
+    // stepper: 1 → 2 packs doubles the exact HYPE total
     await page.locator("[data-qty-plus]").click();
     await expect(qty).toHaveValue("2");
-    await expect(buy).toContainText("Rip 2 packs · 0.0265 BNB");
+    await expect(buy).toContainText("Rip 2 packs · 0.0265 HYPE");
 
     // typing 20 hits the cap; the + button closes
     await qty.fill("20");
-    await expect(buy).toContainText("Rip 20 packs · 0.265 BNB");
+    await expect(buy).toContainText("Rip 20 packs · 0.265 HYPE");
     await expect(page.locator("[data-qty-plus]")).toBeDisabled();
 
     // over the cap clamps back to 20; garbage clamps to 1
@@ -68,7 +68,7 @@ test.describe("demo checkout", () => {
     await expect(qty).toHaveValue("20");
     await qty.fill("0");
     await expect(qty).toHaveValue("1");
-    await expect(buy).toContainText("Rip a pack · 0.01325 BNB");
+    await expect(buy).toContainText("Rip a pack · 0.01325 HYPE");
     await expect(page.locator("[data-qty-minus]")).toBeDisabled();
   });
 });

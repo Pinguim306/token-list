@@ -1,7 +1,7 @@
-# Fake World Assets (FWA) — Stock Packs on BNB Chain
+# Fake World Assets (FWA) — Stock Packs on HyperEVM
 
-An on-chain, randomized pack-ripping protocol for **BNB Chain** (BSC mainnet
-`56` / testnet `97`), rebuilt from the FWA idea
+An on-chain, randomized pack-ripping protocol for **HyperEVM** (mainnet `999`
+/ testnet `998`), rebuilt from the FWA idea
 ([fwa.fun](https://www.fwa.fun/docs/overview)) with the product focused on
 **packs of tokenized stocks** (TSLA, NVDA, private-market names, …).
 
@@ -14,9 +14,12 @@ ones are rare. The pool itself stays collection-agnostic — any whitelisted
 ERC-721 still works; the stock-pack focus is curation, not a contract
 constraint.
 
-> Originally built for RobinhoodChain (configs kept for portability); the BNB
-> pivot brings a multi-validator chain, native Chainlink VRF, and on-chain
-> tokenized stocks (xStocks et al) for pack contents.
+> Previously targeted RobinhoodChain and then BNB Chain (both configs kept for
+> portability). HyperEVM brings deeper tokenized-equity supply for pack contents
+> — Ondo (TSLAon, NVDAon) and Dinari (SPCXD) — plus a trading-native audience.
+> Note the trade-off: Chainlink VRF is **not** deployed on HyperEVM, so the
+> verifiable-randomness upgrade path there is Pyth Entropy behind the same
+> router (see `docs/deploy-runbook.md`).
 
 > This repository is the engineering counterpart to the viability study in
 > [`../docs/analise-fwa-robinhoodchain.md`](../docs/analise-fwa-robinhoodchain.md).
@@ -77,7 +80,7 @@ work.
 | `libraries/FenwickTree.sol` | O(log n) weighted random selection (fixed capacity for correct dynamic growth) |
 | `randomness/RandomnessRouter.sol` | Consumer ⇄ adapter indirection; minimal fulfill callback |
 | `randomness/KeeperHashChainAdapter.sol` | **Launch randomness**: keeper commit-reveal hash chain × future blockhash (StockRip-parity), one serialized request, permissionless stale-skip, slashable keeper bond |
-| `randomness/VRFDirectAdapter.sol` | **VRF upgrade path on BNB**: Chainlink VRF v2.5, direct subscription consumer (no CCIP hop); skeleton wired to the router |
+| `randomness/VRFDirectAdapter.sol` | **VRF upgrade path on BNB Chain only** (Chainlink ships no VRF on HyperEVM — `deploy.js` refuses it on 999/998): Chainlink VRF v2.5, direct subscription consumer; skeleton wired to the router |
 | `randomness/MockRandomnessAdapter.sol` | Deterministic randomness for tests / local |
 | `randomness/CCIPVRFAdapter.sol` | Production skeleton: VRF v2.5 request from Arbitrum One over CCIP (RH Chain side) |
 | `randomness/VRFRequester.sol` | Production skeleton: Arbitrum One counterpart — draws VRF, relays back over CCIP |
@@ -122,19 +125,20 @@ npm test               # 86 tests: Fenwick, pool (incl. dynamic pricing), freeze
                        #           invariants
 
 # Fase 0 — inventory the real testnet before committing further:
-npx hardhat run scripts/probe-chain.js --network robinhood-testnet
+npx hardhat run scripts/probe-chain.js --network hyperevmTestnet
 
 # Deploy the full stack. ADAPTER=keeper (default) | mock | ccip:
-npx hardhat run scripts/deploy.js --network robinhood-testnet
+npx hardhat run scripts/deploy.js --network hyperevmTestnet
 
 # Run the keeper bot (required for draws to resolve on the keeper adapter).
 # Stateless: every tick re-derives the chain from the secret + on-chain state.
 ADAPTER=0x... KEEPER_MASTER_SECRET=0x<32 bytes> \
-  npx hardhat run scripts/keeper-bot.js --network robinhood-testnet
+  npx hardhat run scripts/keeper-bot.js --network hyperevmTestnet
 ```
 
-Networks are preconfigured in `hardhat.config.js` (`robinhood-testnet` = 46630,
-`robinhood-mainnet` = 4663) with Blockscout verification endpoints. Set
+Networks are preconfigured in `hardhat.config.js` (`hyperevmTestnet` = 998,
+`hyperevm` = 999; BNB and RobinhoodChain kept for portability). Verification:
+Sourcify for both HyperEVM chains, Etherscan V2 for mainnet. Set
 `DEPLOYER_MNEMONIC` (see `.env.example`) to deploy.
 
 ## Fase 0 go/no-go gate

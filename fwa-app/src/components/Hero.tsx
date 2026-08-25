@@ -55,7 +55,7 @@ export function Hero() {
       </nav>
 
       <header className="hero">
-        <span className="eyebrow"><span className="dot" /> BNB Chain · Tokenized stock packs</span>
+        <span className="eyebrow"><span className="dot" /> HyperEVM · Tokenized stock packs</span>
         <h1>
           Rip packs of real stocks<br /> at <span className="accent">random</span>.
         </h1>

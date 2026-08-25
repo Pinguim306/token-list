@@ -29,7 +29,7 @@ const INJECT_TWO_WALLETS = `
           case "eth_accounts":
             return authorized ? ["${ADDRESS}"] : [];
           case "eth_chainId":
-            return "0x38"; // BSC mainnet — the demo build's active chain
+            return "0x3e7"; // HyperEVM mainnet (999) — the demo build's active chain
           default:
             return null;
         }

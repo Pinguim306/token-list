@@ -186,13 +186,13 @@ export default function HowItWorks() {
         deposit or withdrawal can steer the selection, closing the exact hole that drained the
         original protocol. If the keeper goes silent, the request expires and{" "}
         <Strong>anyone can refund the buyer</Strong>. The randomness backend is swappable at the
-        router — and on BNB Chain, Chainlink VRF is available natively, so upgrading keeper →
-        verifiable VRF is a single adapter swap with zero pool changes.
+        router — on HyperEVM the verifiable upgrade is Pyth Entropy (a two-party
+        commit-reveal), a single adapter swap with zero pool changes.
       </P>
 
       <H2 id="baskets">Stock packs</H2>
       <P>
-        A pack is how tokenized stocks — Binance Stocks (bStocks): Tesla (TSLAB), NVIDIA (NVDAB) and SpaceX (SPCXB) — enter the pool: fungible shares wrap into an ERC-721
+        A pack is how tokenized stocks — Tesla (TSLAon), NVIDIA (NVDAon) and SpaceX (SPCXD) — enter the pool: fungible shares wrap into an ERC-721
         whose contents are the shares you deposited; the pool escrows and delivers it like any NFT,
         and <Strong>whoever holds the basket may unwrap it</Strong> back into the underlying tokens.
         The NFT is packaging; ownership of the wrapper is ownership of the shares.

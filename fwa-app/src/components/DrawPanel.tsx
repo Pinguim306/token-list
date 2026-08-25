@@ -18,10 +18,10 @@ import { DEMO, demo } from "@/lib/demo";
 import {
   CHECKOUT,
   TREASURY,
-  PACK_PRICE_BNB,
+  PACK_PRICE_HYPE,
   MAX_PACKS_PER_TX,
   totalPriceWei,
-  totalPriceBnb,
+  totalPriceHype,
   pickWeightedMany,
   type DemoPosition,
 } from "@/lib/checkout";
@@ -38,7 +38,7 @@ export function DrawPanel() {
   const { address, isConnected, chainId } = useAccount();
 
   // Demo checkout ("marretado"): with a wallet connected, the sample draw
-  // gives way to a LIVE purchase — a real native-BNB transfer of the pack
+  // gives way to a LIVE purchase — a real native-HYPE transfer of the pack
   // price to the treasury — followed by a client-simulated draw + settlement
   // that mirrors the contract flow. Visitors without a wallet keep the
   // tap-to-preview sample experience (which is also what the e2e suite runs).
@@ -92,7 +92,7 @@ export function DrawPanel() {
     query: { enabled: !!payHash },
   });
   const { switchChainAsync } = useSwitchChain();
-  // How many packs the next purchase buys (1..MAX_PACKS_PER_TX) — one BNB
+  // How many packs the next purchase buys (1..MAX_PACKS_PER_TX) — one HYPE
   // transfer of price × qty. Captured in a ref at buy time so changing the
   // stepper while the payment mines cannot change how many packs it opens.
   const [qty, setQty] = useState(1);
@@ -245,10 +245,10 @@ export function DrawPanel() {
 
       {checkout ? (
         <>
-          <div className="stat"><span>Pack price</span><b>{PACK_PRICE_BNB} BNB</b></div>
+          <div className="stat"><span>Pack price</span><b>{PACK_PRICE_HYPE} HYPE</b></div>
           <div className="stat" data-total-price>
             <span>Total ({won ? won.length : qty} pack{(won ? won.length : qty) > 1 ? "s" : ""})</span>
-            <b>{totalPriceBnb(won ? won.length : qty)} BNB</b>
+            <b>{totalPriceHype(won ? won.length : qty)} HYPE</b>
           </div>
           <div className="stat"><span>Treasury</span><b className="mono">{short(TREASURY)}</b></div>
           {payHash && (
@@ -325,8 +325,8 @@ export function DrawPanel() {
                 : payMining
                   ? "Paying…"
                   : qty === 1
-                    ? `Rip a pack · ${PACK_PRICE_BNB} BNB`
-                    : `Rip ${qty} packs · ${totalPriceBnb(qty)} BNB`}
+                    ? `Rip a pack · ${PACK_PRICE_HYPE} HYPE`
+                    : `Rip ${qty} packs · ${totalPriceHype(qty)} HYPE`}
             </button>
           </>
         ) : (
@@ -421,8 +421,8 @@ export function DrawPanel() {
 
       <p className="muted" style={{ marginTop: 12 }}>
         {checkout
-          ? `Live demo checkout: buying sends the pack price × quantity (up to ${MAX_PACKS_PER_TX} packs per transaction) in one BNB transfer on ${activeChain.name} to the FWA treasury. Each pack is a weighted random draw without replacement, settled Keep or Sell-back — simulated exactly as the contracts will run them.`
-          : "Randomness mixes a keeper commit-reveal chain with a future blockhash (VRF-upgradable at the router). While “Requested”, the pool is frozen (freeze-at-request); once “Fulfilled”, the buyer keeps the pack or sells it back for the standing bid."}
+          ? `Live demo checkout: buying sends the pack price × quantity (up to ${MAX_PACKS_PER_TX} packs per transaction) in one HYPE transfer on ${activeChain.name} to the FWA treasury. Each pack is a weighted random draw without replacement, settled Keep or Sell-back — simulated exactly as the contracts will run them.`
+          : "Randomness mixes a keeper commit-reveal chain with a future blockhash (Pyth Entropy-upgradable at the router). While “Requested”, the pool is frozen (freeze-at-request); once “Fulfilled”, the buyer keeps the pack or sells it back for the standing bid."}
       </p>
     </div>
   );

@@ -1,7 +1,7 @@
 # FWA Indexer (Ponder)
 
 [Ponder](https://ponder.sh) indexer for the Fake World Assets pool + emitter on
-RobinhoodChain testnet (chainId 46630). Serves a GraphQL API over the indexed
+HyperEVM testnet (chainId 998; set CHAIN_ID=999 for mainnet). Serves a GraphQL API over the indexed
 tables.
 
 ## Tables (`ponder.schema.ts`)

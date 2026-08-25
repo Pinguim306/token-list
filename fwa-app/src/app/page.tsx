@@ -6,7 +6,7 @@ import { fmt, bpsToPct, BPS } from "@/lib/format";
 export const metadata: Metadata = {
   title: "Fake World Assets — Randomized on-chain NFT acquisition",
   description:
-    "Rip sealed packs of tokenized stocks — TSLA, NVDA and more — on BNB Chain. Every pack is backed by a standing bid; selection weight is inversely proportional to backing.",
+    "Rip sealed packs of tokenized stocks — TSLA, NVDA and more — on HyperEVM. Every pack is backed by a standing bid; selection weight is inversely proportional to backing.",
 };
 
 /* Note: this app does NOT load Tailwind's Preflight (see globals.css), so element
@@ -211,7 +211,7 @@ export default function LandingPage() {
               <span className="absolute inline-flex h-full w-full animate-ping rounded-pill bg-success opacity-70 motion-reduce:hidden" />
               <span className="relative inline-flex h-2 w-2 rounded-pill bg-success" />
             </span>
-            Live on BNB Chain testnet
+            Live on HyperEVM testnet
           </span>
 
           <h1 className="mx-auto mt-5 mb-0 max-w-3xl font-display text-[clamp(2rem,4.6vw,3.4rem)] leading-[1.02] tracking-tight text-ink">
@@ -450,7 +450,7 @@ export default function LandingPage() {
               F<span className="text-accent">W</span>A
             </span>
             <p className="m-0 mt-4 font-body text-sm text-muted">
-              Randomized on-chain packs of tokenized stocks on BNB Chain. Nothing here is investment
+              Randomized on-chain packs of tokenized stocks on HyperEVM. Nothing here is investment
               advice.
             </p>
           </div>

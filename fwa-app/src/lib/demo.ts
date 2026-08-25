@@ -9,9 +9,9 @@ export const DEMO = addresses.pool === "0x00000000000000000000000000000000000000
 /** Sample whitelisted collections. The pool is collection-agnostic — positions
  *  carry the asset address — so the preview shows more than one on purpose. */
 const collections = [
-  { address: "0xC0113c7100000000000000000000000000000001", name: "Tesla Packs", symbol: "TSLAB" },
-  { address: "0xC0113c7100000000000000000000000000000002", name: "Nvidia Packs", symbol: "NVDAB" },
-  { address: "0xC0113c7100000000000000000000000000000003", name: "SpaceX Packs", symbol: "SPCXB" },
+  { address: "0xC0113c7100000000000000000000000000000001", name: "Tesla Packs", symbol: "TSLAon" },
+  { address: "0xC0113c7100000000000000000000000000000002", name: "Nvidia Packs", symbol: "NVDAon" },
+  { address: "0xC0113c7100000000000000000000000000000003", name: "SpaceX Packs", symbol: "SPCXD" },
 ];
 
 /**
@@ -96,12 +96,12 @@ export const demo = {
   /** Basket-unwrap payouts that could not be delivered (paused token) and sit
    *  in escrow awaiting claimStuckToken. */
   stuckPayouts: [
-    { token: "0xE9010000000000000000000000000000000000b2", symbol: "TSLAB", amount: 4n * WAD, decimals: 18 },
+    { token: "0xE9010000000000000000000000000000000000b2", symbol: "TSLAon", amount: 4n * WAD, decimals: 18 },
   ],
   /** NFTs escrowed by the pool because settlement delivery reverted
    *  (pool.claimStuckNFT recovers them). */
   stuckNfts: [
-    { asset: "0xC0113c7100000000000000000000000000000001", symbol: "TSLAB", tokenId: 77n },
+    { asset: "0xC0113c7100000000000000000000000000000001", symbol: "TSLAon", tokenId: 77n },
   ],
   /** Pending $FWA emissions per owned position (emitter.pendingOf). */
   pendingEmissions: new Map<bigint, bigint>([
@@ -131,29 +131,31 @@ export const demo = {
     { id: 8n,  seedBlock: 41_905_614n, status: "revealed", word: "0x5a6c…07bb", requestedAt: 1784910600n, resolvedAt: 1784910648n },
   ],
 
-  /** Allowlisted tokenized stocks — Binance Stocks (bStocks). Curated to the
+  /** Allowlisted tokenized stocks — Ondo (TSLAon, NVDAon) and Dinari (SPCXD).
+   *  Curated to the
    *  three the product ships with: Tesla, NVIDIA, SpaceX. Round demo prices
    *  keep the derived USD values legible and test-stable. On mainnet these
-   *  become the real bStock token addresses via EquityBasket.setTokenAllowed
-   *  (see docs/deploy-runbook.md for the verified BNB Chain addresses). */
+   *  become the real Ondo/Dinari token addresses via EquityBasket.setTokenAllowed
+   *  (see docs/deploy-runbook.md — the real HyperEVM addresses must be verified
+   *  on the explorer before they are allowlisted). */
   equities: [
-    { address: "0xE9010000000000000000000000000000000000b2", symbol: "TSLAB", name: "Tesla · bStocks", priceUsd: 300 },
-    { address: "0xE9010000000000000000000000000000000000c3", symbol: "NVDAB", name: "Nvidia · bStocks", priceUsd: 100 },
-    { address: "0xE901000000000000000000000000000000000007", symbol: "SPCXB", name: "SpaceX · bStocks", priceUsd: 100 },
+    { address: "0xE9010000000000000000000000000000000000b2", symbol: "TSLAon", name: "Tesla · Ondo", priceUsd: 300 },
+    { address: "0xE9010000000000000000000000000000000000c3", symbol: "NVDAon", name: "Nvidia · Ondo", priceUsd: 100 },
+    { address: "0xE901000000000000000000000000000000000007", symbol: "SPCXD", name: "SpaceX · Dinari", priceUsd: 100 },
   ],
   /** Sample baskets owned by the preview wallet. Amounts are 18-decimals. */
   baskets: [
     {
       id: 1n,
       contents: [
-        { token: "0xE9010000000000000000000000000000000000b2", symbol: "TSLAB", amount: 2n * WAD, decimals: 18 },
-        { token: "0xE901000000000000000000000000000000000007", symbol: "SPCXB", amount: 4n * WAD, decimals: 18 },
+        { token: "0xE9010000000000000000000000000000000000b2", symbol: "TSLAon", amount: 2n * WAD, decimals: 18 },
+        { token: "0xE901000000000000000000000000000000000007", symbol: "SPCXD", amount: 4n * WAD, decimals: 18 },
       ],
     },
     {
       id: 2n,
       contents: [
-        { token: "0xE9010000000000000000000000000000000000c3", symbol: "NVDAB", amount: 5n * WAD, decimals: 18 },
+        { token: "0xE9010000000000000000000000000000000000c3", symbol: "NVDAon", amount: 5n * WAD, decimals: 18 },
       ],
     },
   ],

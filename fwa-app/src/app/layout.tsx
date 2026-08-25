@@ -1,18 +1,17 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Providers } from "./providers";
-import { OfficialCa } from "@/components/OfficialCa";
 
 const site =
   process.env.NEXT_PUBLIC_SITE_URL ||
   (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
 
 const description =
-  "Rip sealed packs of tokenized stocks on BNB Chain — every pack backed by a standing bid — or build packs and earn from every rip.";
+  "Rip sealed packs of tokenized stocks on HyperEVM — every pack backed by a standing bid — or build packs and earn from every rip.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(site),
-  title: "Fake World Assets — Stock Packs on BNB Chain",
+  title: "Fake World Assets — Stock Packs on HyperEVM",
   description,
   openGraph: {
     title: "Fake World Assets",
@@ -46,7 +45,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
-        <OfficialCa />
         <Providers>{children}</Providers>
       </body>
     </html>

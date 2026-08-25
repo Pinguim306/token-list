@@ -3,15 +3,17 @@ require("@nomicfoundation/hardhat-toolbox");
 /**
  * Hardhat configuration for the FWA protocol.
  *
- * PRIMARY TARGET: BNB Chain (BSC mainnet 56 / testnet 97) — EVM-compatible,
- * multi-validator (better randomness trust story than a single-sequencer L2),
- * native Chainlink VRF available, and home to tokenized stocks (xStocks et al),
- * which are the product's focus. The original RobinhoodChain networks are kept
- * for reference/portability — the contracts are chain-agnostic.
+ * PRIMARY TARGET: HyperEVM (mainnet 999 / testnet 998) — standard EVM under
+ * HyperBFT, home to deep tokenized-stock supply (Ondo, Dinari), which is the
+ * product's focus. No Chainlink VRF exists on this chain: the keeper adapter
+ * is the launch randomness path and Pyth Entropy is the verifiable upgrade.
+ * The BNB Chain and RobinhoodChain networks are kept for portability — the
+ * contracts are chain-agnostic.
  *
- * BNB timing note: at ~0.75s blocks the 256-block blockhash window is ~3.2
- * minutes — the keeper must reveal promptly, and the pool's requestTimeout
- * should be tuned down (e.g. 15 min) via setParams after deploy.
+ * HyperEVM timing note: at ~1s small blocks the 256-block blockhash window is
+ * ~4 minutes — the keeper must reveal promptly, and the pool's requestTimeout
+ * should be tuned down (e.g. 10 min) via setParams after deploy. Deploys must
+ * go through big blocks (see docs/deploy-runbook.md).
  *
  * NOTE: Foundry is the toolchain recommended in the development plan, but its
  * binaries are distributed via GitHub Releases, which is blocked by this
@@ -30,18 +32,30 @@ module.exports = {
     version: "0.8.26",
     settings: {
       optimizer: { enabled: true, runs: 200 },
-      // RobinhoodChain is Arbitrum Nitro; the default EVM target is fine.
-      // Larger contracts are allowed (96 KB code-size limit vs 24 KB on L1).
+      // HyperEVM is a standard EVM: EIP-170 applies, so deployed bytecode must
+      // stay under 24 KB. `npm run size` guards it.
       viaIR: false,
     },
   },
   networks: {
     hardhat: {
-      // Simulate an L2 with a large block gas limit for local testing.
+      // Local runs are not gas-constrained; real deploys go into HyperEVM's
+      // 30M-gas big blocks (see docs/deploy-runbook.md).
       blockGasLimit: 1_000_000_000,
       allowUnlimitedContractSize: true,
     },
-    // ---- BNB Chain (primary target) ----
+    // ---- HyperEVM (primary target) ----
+    hyperevmTestnet: {
+      url: process.env.HYPEREVM_TESTNET_RPC || "https://rpc.hyperliquid-testnet.xyz/evm",
+      chainId: 998,
+      accounts,
+    },
+    hyperevm: {
+      url: process.env.HYPEREVM_RPC || "https://rpc.hyperliquid.xyz/evm",
+      chainId: 999,
+      accounts,
+    },
+    // ---- BNB Chain (kept for portability) ----
     bscTestnet: {
       url: process.env.BSC_TESTNET_RPC || "https://bsc-testnet.bnbchain.org",
       chainId: 97,
@@ -64,33 +78,36 @@ module.exports = {
       accounts,
     },
   },
-  // Verification: BscScan for BNB Chain (built-in chain descriptors — the
-  // network names bsc/bscTestnet match hardhat-verify's registry), Blockscout
-  // for RobinhoodChain.
+  // Verification. The apiKey MUST stay a plain string: that switches
+  // hardhat-verify 2.x into Etherscan V2 mode, where every request goes to
+  // api.etherscan.io/v2/api with a chainid parameter the plugin appends itself
+  // (999 is listed in Etherscan's /v2/chainlist). The object form silently
+  // selects V1 mode, which clobbers an apiURL-embedded ?chainid= on the
+  // status-poll GETs — the upload succeeds and the poll then always errors.
+  // Testnet (998) is NOT covered by Etherscan V2; both 999 and 998 ARE
+  // supported by Sourcify (sourcify.dev), enabled below — for testnet run
+  // SOURCIFY_ONLY=1 npx hardhat verify --network hyperevmTestnet <addr> ...
+  // (the env flag skips the Etherscan verifier, which cannot know 998).
+  // The legacy robinhood-* networks keep RPC access but no verify wiring.
   etherscan: {
-    apiKey: {
-      bsc: process.env.BSCSCAN_API_KEY || "",
-      bscTestnet: process.env.BSCSCAN_API_KEY || "",
-      "robinhood-testnet": "blockscout",
-      "robinhood-mainnet": "blockscout",
-    },
+    enabled: !process.env.SOURCIFY_ONLY,
+    apiKey: process.env.ETHERSCAN_API_KEY || "",
     customChains: [
       {
-        network: "robinhood-testnet",
-        chainId: 46630,
+        network: "hyperevm",
+        chainId: 999,
         urls: {
-          apiURL: "https://explorer.testnet.chain.robinhood.com/api",
-          browserURL: "https://explorer.testnet.chain.robinhood.com",
-        },
-      },
-      {
-        network: "robinhood-mainnet",
-        chainId: 4663,
-        urls: {
-          apiURL: "https://robinhoodchain.blockscout.com/api",
-          browserURL: "https://robinhoodchain.blockscout.com",
+          // In V2 mode the plugin routes through the unified host; this entry
+          // exists so hardhat-verify recognizes the chain and links the site.
+          apiURL: "https://api.etherscan.io/v2/api",
+          browserURL: "https://hyperevmscan.io",
         },
       },
     ],
+  },
+  sourcify: {
+    // sourcify.dev supports both HyperEVM chains (999 and 998) — this is the
+    // only verification route for testnet.
+    enabled: true,
   },
 };

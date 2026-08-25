@@ -1,7 +1,7 @@
 const ITEMS = [
   "Tokenized stock packs",
   "Freeze-at-request",
-  "Keeper × blockhash · VRF-upgradable",
+  "Keeper × blockhash · Entropy-upgradable",
   "Inverse-weight odds",
   "Crown tithe",
   "Pull-based payouts",

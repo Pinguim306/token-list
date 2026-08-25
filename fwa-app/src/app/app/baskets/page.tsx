@@ -109,7 +109,7 @@ export default function Baskets() {
 
       <h1 className="mt-6 mb-0 font-display text-3xl text-ink">Build a pack</h1>
       <p className="mt-2 mb-0 font-body text-sm text-muted">
-        A pack is tokenized stocks — Binance Stocks (bStocks): TSLAB, NVDAB, SPCXB — wrapped into a
+        A pack is tokenized stocks — Ondo and Dinari: TSLAon, NVDAon, SPCXD — wrapped into a
         single on-chain collectible. Build one here, then
         list it in the pool from the pool page — whoever ends up holding it can unwrap it back
         into the shares at any time.

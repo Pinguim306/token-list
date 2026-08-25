@@ -15,9 +15,9 @@ test.describe("baskets page", () => {
     await expect(page.locator("[data-basket-wrap]")).toBeVisible();
     // two demo baskets with their contents listed
     await expect(page.locator("[data-basket-item]")).toHaveCount(2);
-    await expect(page.locator('[data-basket-item="1"]')).toContainText("TSLAB");
-    await expect(page.locator('[data-basket-item="1"]')).toContainText("SPCXB");
-    await expect(page.locator('[data-basket-item="2"]')).toContainText("NVDAB");
+    await expect(page.locator('[data-basket-item="1"]')).toContainText("TSLAon");
+    await expect(page.locator('[data-basket-item="1"]')).toContainText("SPCXD");
+    await expect(page.locator('[data-basket-item="2"]')).toContainText("NVDAon");
   });
 
   test("garbage input shows field errors and the page survives", async ({ page }) => {
@@ -37,13 +37,13 @@ test.describe("baskets page", () => {
   });
 
   test("recognizes a demo equity token and flags duplicates", async ({ page }) => {
-    const TSLAB = "0xE9010000000000000000000000000000000000b2";
-    await page.fill("#wrap-token-0", TSLAB);
-    await expect(page.locator("[data-token-symbol]")).toHaveText("TSLAB");
+    const TSLAon = "0xE9010000000000000000000000000000000000b2";
+    await page.fill("#wrap-token-0", TSLAon);
+    await expect(page.locator("[data-token-symbol]")).toHaveText("TSLAon");
 
     await page.locator("[data-add-leg]").click();
     await expect(page.locator("[data-wrap-row]")).toHaveCount(2);
-    await page.fill("#wrap-token-1", TSLAB.toLowerCase());
+    await page.fill("#wrap-token-1", TSLAon.toLowerCase());
     await expect(page.getByText(/appears twice/)).toBeVisible();
 
     // removing the duplicate row clears the error
@@ -60,7 +60,7 @@ test.describe("baskets page", () => {
   });
 
   test("baskets are valued in USD from the configured prices", async ({ page }) => {
-    // demo prices are round on purpose: 2 TSLAB@300 + 4 SPCXB@100, 5 NVDAB@100
+    // demo prices are round on purpose: 2 TSLAon@300 + 4 SPCXD@100, 5 NVDAon@100
     await expect(page.locator('[data-basket-item="1"] [data-basket-value]')).toHaveText("≈ $1,000.00");
     await expect(page.locator('[data-basket-item="2"] [data-basket-value]')).toHaveText("≈ $500.00");
     await expect(page.locator('[data-basket-item="1"]')).toContainText("$600.00");
