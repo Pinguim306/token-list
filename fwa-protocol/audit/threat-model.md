@@ -43,7 +43,8 @@
 | Keeper (`KeeperHashChainAdapter`) | choose the word? | Not alone — its chain link was committed before the seed block existed; the word also depends on `blockhash(seedBlock)`. |
 | | withhold a reveal it dislikes? | Yes (the real weakness): seeing the would-be word, it can go silent and let the draw expire. Cost: buyer refunded, incident recorded via `skipStale`, bond slashable, publicly visible. |
 | | brick the adapter by vanishing? | No — `skipStale` is permissionless after the blockhash window; the pool refunds via `expireDraw`. |
-| Block producer + keeper (colluding) | grind the outcome? | Partially: `blockhash` is producer-influenced, so collusion allows biased retries. Accepted launch risk (StockRip-parity); a verifiable adapter (Pyth Entropy on HyperEVM) is the remedy, swappable with zero pool changes. |
+| Block producer + keeper (colluding) | grind the outcome? | Partially: `blockhash` is producer-influenced, so collusion allows biased retries. Accepted launch risk (StockRip-parity); the remedy is in-tree — `PythEntropyAdapter` (Pyth Entropy on HyperEVM), swappable with zero pool changes. |
+| Entropy provider (`PythEntropyAdapter`) | choose the word? | No — its value was hash-chain-committed before the request, and the delivered word also hashes the adapter's own contribution. Withholding the reveal is liveness-only: the pool refunds via `expireDraw`. No block-producer grinding lever exists on this path. |
 | Paused/hostile basket leg (`EquityBasket`) | brick `unwrap` and lock the healthy legs? | No — `unwrap` delivers each leg via a non-reverting payout; a failing leg is escrowed to `stuckToken` and pulled later via `claimStuckToken`. The basket burns and healthy legs pay out regardless (`adversarial-review-keeper-basket.md`). |
 | Malicious emitter | brick pool operations? | No — guarded try/catch hooks (invariant 16). |
 | Malicious backing token | break accounting (fee-on-transfer/rebasing)? | Out of scope — backing is a trusted config-time ERC-20. |
@@ -94,5 +95,8 @@ publish an allowlist-of-collections policy. See `runbook.md`.
   outside the contracts' control; mitigation is operational (multi-chain
   contingency — the stack retains BNB and RobinhoodChain configs).
 - Chainlink VRF does **not** exist on HyperEVM; the verifiable-randomness
-  upgrade is Pyth Entropy, whose on-chain address must be confirmed before that
-  adapter is built — a pre-launch gate. See `../../docs/deploy-runbook.md`.
+  upgrade is Pyth Entropy, implemented in-tree as `PythEntropyAdapter`. Its
+  pre-launch gate is operational: confirm the chain's published Entropy
+  contract + provider addresses (docs.pyth.network) on the explorer before
+  `configure`, and keep the adapter prefunded — it pays Entropy's per-request
+  native fee from its own balance. See `../../docs/deploy-runbook.md`.

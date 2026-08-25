@@ -11,6 +11,13 @@
  *                      KEEPER=0x... overrides the keeper address (defaults to
  *                      the deployer). After deploy, run scripts/keeper-bot.js
  *                      to commit the first chain and serve draws.
+ *   entropy          — PythEntropyAdapter: Pyth Entropy two-party commit-reveal,
+ *                      the verifiable path on HyperEVM. Requires
+ *                      ENTROPY_ADDRESS and ENTROPY_PROVIDER (the chain's
+ *                      published Entropy deployment — docs.pyth.network,
+ *                      verified on the explorer first). Prefund the adapter
+ *                      with native HYPE after deploy: it pays Entropy's
+ *                      per-request fee from its own balance.
  *   vrf              — VRFDirectAdapter: Chainlink VRF v2.5. NOT available on
  *                      HyperEVM (Chainlink ships data feeds there, not VRF), so
  *                      this path is refused on chains 999/998 — it is kept for
@@ -52,6 +59,23 @@ async function main() {
     adapter = await (await E.getContractFactory("KeeperHashChainAdapter")).deploy(
       await router.getAddress(), keeper, deployer.address
     );
+  } else if (kind === "entropy") {
+    // Pyth Entropy — the verifiable path on HyperEVM. The Entropy contract and
+    // provider come from the chain's published deployment (docs.pyth.network)
+    // and must be verified on the explorer before being wired here.
+    const entropyAddr = process.env.ENTROPY_ADDRESS;
+    const providerAddr = process.env.ENTROPY_PROVIDER;
+    if (!entropyAddr || !providerAddr) {
+      throw new Error(
+        "ADAPTER=entropy requires ENTROPY_ADDRESS and ENTROPY_PROVIDER " +
+          "(the chain's Entropy deployment — see docs.pyth.network, verify on the explorer first).",
+      );
+    }
+    adapter = await (await E.getContractFactory("PythEntropyAdapter")).deploy(
+      await router.getAddress(), deployer.address
+    );
+    await adapter.waitForDeployment();
+    await (await adapter.configure(entropyAddr, providerAddr)).wait();
   } else if (kind === "vrf") {
     // Chainlink VRF has no coordinator on HyperEVM. Deploying this adapter
     // there would wire the router to a backend that can never answer, and
@@ -60,14 +84,15 @@ async function main() {
     if (chainId === 999n || chainId === 998n) {
       throw new Error(
         `ADAPTER=vrf is not deployable on HyperEVM (chainId ${chainId}): Chainlink VRF ` +
-          `has no coordinator on this chain. Use ADAPTER=keeper for launch.`,
+          `has no coordinator on this chain. Use ADAPTER=keeper for launch or ` +
+          `ADAPTER=entropy for the verifiable path.`,
       );
     }
     adapter = await (await E.getContractFactory("VRFDirectAdapter")).deploy(
       await router.getAddress(), deployer.address
     );
   } else {
-    throw new Error(`Unknown ADAPTER="${kind}" (expected keeper | mock | ccip)`);
+    throw new Error(`Unknown ADAPTER="${kind}" (expected keeper | entropy | vrf | mock | ccip)`);
   }
   await adapter.waitForDeployment();
   await (await router.setAdapter(await adapter.getAddress())).wait();
@@ -136,6 +161,11 @@ async function main() {
       "\nNext: start the keeper bot so draws can resolve:\n" +
         `  ADAPTER=${await adapter.getAddress()} KEEPER_MASTER_SECRET=0x<32 bytes> \\\n` +
         "  npx hardhat run scripts/keeper-bot.js --network <network>"
+    );
+  } else if (kind === "entropy") {
+    console.log(
+      "\nNext: prefund the adapter so it can pay Entropy's per-request fee\n" +
+        `(plain native transfer to ${await adapter.getAddress()}), and top it up as part of ops.`
     );
   }
 }

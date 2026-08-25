@@ -18,8 +18,8 @@ constraint.
 > portability). HyperEVM brings deeper tokenized-equity supply for pack contents
 > — Ondo (TSLAon, NVDAon) and Dinari (SPCXD) — plus a trading-native audience.
 > Note the trade-off: Chainlink VRF is **not** deployed on HyperEVM, so the
-> verifiable-randomness upgrade path there is Pyth Entropy behind the same
-> router (see `docs/deploy-runbook.md`).
+> verifiable-randomness upgrade there is **Pyth Entropy** behind the same
+> router — implemented as `PythEntropyAdapter` (see `docs/deploy-runbook.md`).
 
 > This repository is the engineering counterpart to the viability study in
 > [`../docs/analise-fwa-robinhoodchain.md`](../docs/analise-fwa-robinhoodchain.md).
@@ -35,10 +35,11 @@ RobinhoodChain lacks two pillars the original FWA relies on:
    `RandomnessRouter` + swappable adapter. The **launch path** is the
    `KeeperHashChainAdapter`: a keeper commit-reveal hash chain mixed with a
    future blockhash — the same oracle-free scheme StockRip runs in production on
-   Robinhood Chain, needing nothing but a funded keeper. **Chainlink VRF v2.5
-   over CCIP** (`CCIPVRFAdapter`) remains the stronger-trust upgrade, swappable
-   at the router with zero pool changes; a `MockRandomnessAdapter` drives the
-   flow deterministically in tests.
+   Robinhood Chain, needing nothing but a funded keeper. The stronger-trust
+   upgrade — swappable at the router with zero pool changes — is
+   **Pyth Entropy** (`PythEntropyAdapter`) on HyperEVM, or Chainlink VRF
+   (`VRFDirectAdapter` / `CCIPVRFAdapter`) on chains that have it; a
+   `MockRandomnessAdapter` drives the flow deterministically in tests.
 2. **No blue-chip NFTs / ERC-721 bridge.** The core is **collection-agnostic and
    backing-token-agnostic** (any whitelisted ERC-721, backed by any ERC-20 such as
    USDG), so the prize layer can pivot without touching pool accounting. The
@@ -80,6 +81,7 @@ work.
 | `libraries/FenwickTree.sol` | O(log n) weighted random selection (fixed capacity for correct dynamic growth) |
 | `randomness/RandomnessRouter.sol` | Consumer ⇄ adapter indirection; minimal fulfill callback |
 | `randomness/KeeperHashChainAdapter.sol` | **Launch randomness**: keeper commit-reveal hash chain × future blockhash (StockRip-parity), one serialized request, permissionless stale-skip, slashable keeper bond |
+| `randomness/PythEntropyAdapter.sol` | **Verifiable upgrade on HyperEVM**: Pyth Entropy two-party commit-reveal — neither provider nor requester alone steers an outcome, no block-producer grinding lever; pays the native per-request fee from a prefunded balance; skeleton wired to the router |
 | `randomness/VRFDirectAdapter.sol` | **VRF upgrade path on BNB Chain only** (Chainlink ships no VRF on HyperEVM — `deploy.js` refuses it on 999/998): Chainlink VRF v2.5, direct subscription consumer; skeleton wired to the router |
 | `randomness/MockRandomnessAdapter.sol` | Deterministic randomness for tests / local |
 | `randomness/CCIPVRFAdapter.sol` | Production skeleton: VRF v2.5 request from Arbitrum One over CCIP (RH Chain side) |
@@ -118,16 +120,16 @@ to stay portable until Fase 0 confirms the chain's ArbOS opcode support.
 ```bash
 npm install
 npm run build          # hardhat compile
-npm test               # 86 tests: Fenwick, pool (incl. dynamic pricing), freeze,
+npm test               # 95 tests: Fenwick, pool (incl. dynamic pricing), freeze,
                        #           DoS, crown, emitter, claim, periphery, keeper
-                       #           randomness + bot, VRF adapter, pack vault,
-                       #           equity baskets (+ adversarial pass), randomized
-                       #           invariants
+                       #           randomness + bot, VRF + Entropy adapters, pack
+                       #           vault, equity baskets (+ adversarial pass),
+                       #           randomized invariants
 
 # Fase 0 — inventory the real testnet before committing further:
 npx hardhat run scripts/probe-chain.js --network hyperevmTestnet
 
-# Deploy the full stack. ADAPTER=keeper (default) | mock | ccip:
+# Deploy the full stack. ADAPTER=keeper (default) | entropy | vrf | mock | ccip:
 npx hardhat run scripts/deploy.js --network hyperevmTestnet
 
 # Run the keeper bot (required for draws to resolve on the keeper adapter).

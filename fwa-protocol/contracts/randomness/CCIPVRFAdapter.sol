@@ -21,8 +21,8 @@ import {CCIP, ICCIPRouterClient} from "./CCIPTypes.sol";
 /// @dev This is the "no new provider onboarding" path: CCIP is already live on
 ///      RobinhoodChain and VRF v2.5 is live on Arbitrum One. Fase 0 must measure
 ///      the round-trip latency (p50/p95) and per-draw cost on testnet before this
-///      path is committed to. A native `EntropyAdapter` (Pyth) is the target
-///      fallback once onboarded — swap it in at the router with no pool changes.
+///      path is committed to. The native Pyth path exists in-tree as
+///      `PythEntropyAdapter` — swap it in at the router with no pool changes.
 contract CCIPVRFAdapter is IRandomnessAdapter, Ownable {
     IRandomnessRouter public immutable router;
     ICCIPRouterClient public ccipRouter;
