@@ -422,7 +422,7 @@ export function DrawPanel() {
       <p className="muted" style={{ marginTop: 12 }}>
         {checkout
           ? `Live demo checkout: buying sends the pack price × quantity (up to ${MAX_PACKS_PER_TX} packs per transaction) in one HYPE transfer on ${activeChain.name} to the FWA treasury. Each pack is a weighted random draw without replacement, settled Keep or Sell-back — simulated exactly as the contracts will run them.`
-          : "Randomness mixes a keeper commit-reveal chain with a future blockhash (VRF-upgradable at the router). While “Requested”, the pool is frozen (freeze-at-request); once “Fulfilled”, the buyer keeps the pack or sells it back for the standing bid."}
+          : "Randomness mixes a keeper commit-reveal chain with a future blockhash (Pyth Entropy-upgradable at the router). While “Requested”, the pool is frozen (freeze-at-request); once “Fulfilled”, the buyer keeps the pack or sells it back for the standing bid."}
       </p>
     </div>
   );

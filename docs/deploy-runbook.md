@@ -12,15 +12,23 @@ is mechanical.
 
 ## HyperEVM-specific parameters (read first)
 
-- **Dual-block architecture.** HyperEVM produces **small blocks (~1s, 2M gas)**
+- **Dual-block architecture.** HyperEVM produces **small blocks (~1s, 3M gas)**
   and **big blocks (~60s, 30M gas)**, interleaved into one block-number
-  sequence. **Contract deployment does not fit in a small block** — `FWAFactory`
-  alone is ~13.7 KB of bytecode, over 2.7M gas in code deposit. Before
-  deploying, switch the deployer account to big blocks (Hyperliquid's
-  `evmUserModify` / "use big blocks" action), then switch back afterwards so the
-  keeper's reveals keep landing in 1s blocks. Run `npm run size` first: every
-  contract must stay under the **24 KB EIP-170 limit** (largest today is 56% of
-  it).
+  sequence. **The larger contract deploys do not fit a small block**:
+  `FWAFactory` is ~13.7 KB of runtime bytecode (~2.75M gas of code deposit),
+  and its full deploy transaction — intrinsic gas + initcode calldata +
+  constructor execution + deposit — lands just past the 3M small-block cap.
+  Before deploying, switch the deployer to big blocks, then switch back
+  afterwards so the keeper's reveals keep landing in 1s blocks. Run
+  `npm run size` first: every contract must stay under the **24 KB EIP-170
+  limit** (largest today is 56% of it).
+
+  > **Big-block prerequisite — the deployer must be a Core user first.**
+  > `evmUserModify` ("use big blocks") is a HyperCore action, and HyperCore and
+  > HyperEVM are separate ledgers: an address holding HYPE only on the EVM side
+  > cannot send it. Make the deployer a Core user by having it receive a Core
+  > asset first (on testnet: the faucet at app.hyperliquid-testnet.xyz), then
+  > toggle big blocks, then transfer HYPE to the EVM side for gas.
 - **Keeper window ≈ 4 minutes.** 256 blocks at the ~1s small-block cadence is
   only **~4.3 min** of blockhash availability. The keeper bot must be running
   and prompt (its 5s poll is fine), and you **must** tune the pool with
@@ -34,10 +42,12 @@ is mechanical.
   **Pyth Entropy** (two-party commit-reveal, live on HyperEVM) — a new adapter
   behind the same router, one `setAdapter` swap, zero pool changes.
 - **The public RPC is not archival.** Hyperliquid prunes the `/evm` endpoints
-  roughly every 12 hours. The indexer backfills from `START_BLOCK`, so point
-  `PONDER_RPC_URL` at an archival endpoint (the `/nanoreth` path, or a provider
-  such as QuickNode) — otherwise indexing breaks as soon as the deploy block
-  ages out.
+  roughly every 12 hours (there is **no official `/nanoreth` path** on
+  rpc.hyperliquid.xyz — it 404s). The indexer backfills from `START_BLOCK`, so
+  point `PONDER_RPC_URL` at an archival endpoint: a provider such as QuickNode,
+  Chainstack (whose endpoints expose a `/nanoreth` archive path), or a
+  self-hosted `nanoreth` archive node — otherwise indexing breaks as soon as
+  the deploy block ages out.
 - **Pack contents**: the product is curated to **three tokenized stocks** —
   **Tesla (TSLAon)** and **NVIDIA (NVDAon)** from **Ondo** (bridged to HyperEVM
   over LayerZero as native OFTs), and **SpaceX (SPCXD)** from **Dinari** —
@@ -100,19 +110,21 @@ indexer's `START_BLOCK`.
 
 ## 2. Verify the contracts (optional but recommended)
 
+Both HyperEVM chains are supported by **Sourcify** (sourcify.dev), and mainnet
+(999) additionally by the unified **Etherscan V2 API** (confirmed in
+Etherscan's `/v2/chainlist`; testnet 998 is not covered by it).
+
 ```bash
-npx hardhat verify --network hyperevmTestnet <address> <constructor-args…>   # HYPEREVMSCAN_API_KEY env
+# Testnet (998): Sourcify only — the env flag skips the Etherscan verifier,
+# which cannot know chain 998:
+SOURCIFY_ONLY=1 npx hardhat verify --network hyperevmTestnet <address> <constructor-args…>
+
+# Mainnet (999): Etherscan V2 (set ETHERSCAN_API_KEY — a regular Etherscan
+# key; the config's plain-string apiKey selects V2 mode) + Sourcify:
+npx hardhat verify --network hyperevm <address> <constructor-args…>
 ```
 
-**Mainnet (999)** verifies through the unified **Etherscan V2 API** — already
-configured in `hardhat.config.js` (`apiURL
-https://api.etherscan.io/v2/api?chainid=999`, confirmed in Etherscan's
-`/v2/chainlist`); set a regular `ETHERSCAN_API_KEY`. **Testnet (998) is NOT in
-Etherscan V2's chainlist** — verify testnet deploys with Sourcify
-(`forge verify-contract <addr> <path> --chain-id 998 --verifier sourcify
---verifier-url https://sourcify.parsec.finance/verify`) or the Purrsec UI
-(testnet.purrsec.com/verify). Verify
-at least `pool`, `adapter`, `basket`, `vault`, `fwa`, `emitter`.
+Verify at least `pool`, `adapter`, `basket`, `vault`, `fwa`, `emitter`.
 
 ## 3. Curate assets (owner)
 

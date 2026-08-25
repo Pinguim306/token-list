@@ -125,19 +125,20 @@ npm test               # 86 tests: Fenwick, pool (incl. dynamic pricing), freeze
                        #           invariants
 
 # Fase 0 — inventory the real testnet before committing further:
-npx hardhat run scripts/probe-chain.js --network robinhood-testnet
+npx hardhat run scripts/probe-chain.js --network hyperevmTestnet
 
 # Deploy the full stack. ADAPTER=keeper (default) | mock | ccip:
-npx hardhat run scripts/deploy.js --network robinhood-testnet
+npx hardhat run scripts/deploy.js --network hyperevmTestnet
 
 # Run the keeper bot (required for draws to resolve on the keeper adapter).
 # Stateless: every tick re-derives the chain from the secret + on-chain state.
 ADAPTER=0x... KEEPER_MASTER_SECRET=0x<32 bytes> \
-  npx hardhat run scripts/keeper-bot.js --network robinhood-testnet
+  npx hardhat run scripts/keeper-bot.js --network hyperevmTestnet
 ```
 
-Networks are preconfigured in `hardhat.config.js` (`robinhood-testnet` = 46630,
-`robinhood-mainnet` = 4663) with Blockscout verification endpoints. Set
+Networks are preconfigured in `hardhat.config.js` (`hyperevmTestnet` = 998,
+`hyperevm` = 999; BNB and RobinhoodChain kept for portability). Verification:
+Sourcify for both HyperEVM chains, Etherscan V2 for mainnet. Set
 `DEPLOYER_MNEMONIC` (see `.env.example`) to deploy.
 
 ## Fase 0 go/no-go gate

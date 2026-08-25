@@ -38,7 +38,9 @@ export const hyperEvmTestnet = defineChain({
     default: { http: ["https://rpc.hyperliquid-testnet.xyz/evm"] },
   },
   blockExplorers: {
-    default: { name: "Purrsec", url: "https://testnet.purrsec.com" },
+    // testnet.purrsec.com is dead (the domain lapsed); HypeRPC's testnet
+    // explorer is live and serves standard /tx and /address routes.
+    default: { name: "HyperEVM Testnet Explorer", url: "https://explore-testnet.hyperpc.app" },
   },
   // Multicall3 is deployed at the canonical address on testnet too (verified
   // via eth_getCode).

@@ -135,7 +135,7 @@ export const demo = {
    *  Curated to the
    *  three the product ships with: Tesla, NVIDIA, SpaceX. Round demo prices
    *  keep the derived USD values legible and test-stable. On mainnet these
-   *  become the real bStock token addresses via EquityBasket.setTokenAllowed
+   *  become the real Ondo/Dinari token addresses via EquityBasket.setTokenAllowed
    *  (see docs/deploy-runbook.md — the real HyperEVM addresses must be verified
    *  on the explorer before they are allowlisted). */
   equities: [

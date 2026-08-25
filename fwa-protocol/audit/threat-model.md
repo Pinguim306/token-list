@@ -1,24 +1,26 @@
 # FWA Protocol — Threat Model
 
-## Primary adversary: the single sequencer
+## Primary adversary: the block producer
 
-RobinhoodChain runs **one Robinhood-operated sequencer** with FCFS ordering and
-full mempool visibility. It can reorder, delay, insert, and censor transactions,
-and it chooses *when* a randomness-fulfillment tx lands and what is bundled
-around it. This is a stronger adversary than base-Ethereum FWA faced, and it is
-exactly the class of attack that drained the original FWA (state mutated between
-the VRF request and its callback).
+> Updated for the HyperEVM migration. Earlier revisions of this document
+> modeled RobinhoodChain's single FCFS sequencer; HyperEVM blocks are produced
+> by HyperBFT validators instead. The adversary class is the same — whoever
+> orders transactions can reorder, delay, insert, and censor, and chooses
+> *when* a randomness-fulfillment tx lands and what is bundled around it. That
+> is exactly the class of attack that drained the original FWA (state mutated
+> between the VRF request and its callback), so every mitigation below is
+> ordering-adversary-generic rather than chain-specific.
 
 **Mitigations in this design:**
 - **Freeze-at-request** (invariant 1): the selected position is fixed at request
-  time; the sequencer cannot mutate the selection set while a draw is in flight
+  time; the block producer cannot mutate the selection set while a draw is in flight
   because deposits/withdrawals/crown-claims revert during `drawInFlight`, and the
   callback performs no selection.
 - **Order-invariant settlement**: `settle` is a separate, permissionless step;
   its outcome depends only on the frozen snapshot + the delivered word, not on
   surrounding transactions.
 - **No naked native pseudo-randomness**: the design never uses
-  `block.prevrandao` (constant on Nitro), a bare `blockhash`, or timestamp as
+  `block.prevrandao`, a bare `blockhash`, or timestamp as
   the randomness source. The `KeeperHashChainAdapter` *does* fold
   `blockhash(seedBlock)` into its word, but only mixed with a keeper
   commit-reveal preimage that was fixed before the seed block existed — see
@@ -26,7 +28,7 @@ the VRF request and its callback).
 - **Residual risk**: after `Fulfilled`, the buyer chooses Keep/SellBack having
   seen the word — this is intended (mirrors FWA) and is not exploitable beyond
   the intended choice, because both outcomes are priced in and the buyer already
-  paid the escrowed price. The sequencer cannot change *which* position was won.
+  paid the escrowed price. The block producer cannot change *which* position was won.
 
 ## Attack surface by actor
 
@@ -41,7 +43,7 @@ the VRF request and its callback).
 | Keeper (`KeeperHashChainAdapter`) | choose the word? | Not alone — its chain link was committed before the seed block existed; the word also depends on `blockhash(seedBlock)`. |
 | | withhold a reveal it dislikes? | Yes (the real weakness): seeing the would-be word, it can go silent and let the draw expire. Cost: buyer refunded, incident recorded via `skipStale`, bond slashable, publicly visible. |
 | | brick the adapter by vanishing? | No — `skipStale` is permissionless after the blockhash window; the pool refunds via `expireDraw`. |
-| Sequencer + keeper (colluding) | grind the outcome? | Partially: on Arbitrum Orbit `blockhash` is chain-derived and sequencer-influenced, so collusion allows biased retries. Accepted launch risk (StockRip-parity); the VRF adapter is the remedy, swappable with zero pool changes. |
+| Block producer + keeper (colluding) | grind the outcome? | Partially: `blockhash` is producer-influenced, so collusion allows biased retries. Accepted launch risk (StockRip-parity); a verifiable adapter (Pyth Entropy on HyperEVM) is the remedy, swappable with zero pool changes. |
 | Paused/hostile basket leg (`EquityBasket`) | brick `unwrap` and lock the healthy legs? | No — `unwrap` delivers each leg via a non-reverting payout; a failing leg is escrowed to `stuckToken` and pulled later via `claimStuckToken`. The basket burns and healthy legs pay out regardless (`adversarial-review-keeper-basket.md`). |
 | Malicious emitter | brick pool operations? | No — guarded try/catch hooks (invariant 16). |
 | Malicious backing token | break accounting (fee-on-transfer/rebasing)? | Out of scope — backing is a trusted config-time ERC-20. |
@@ -66,10 +68,10 @@ What an auditor should check:
   Each abort burns buyer goodwill, records a `slashableSkips` incident, and is
   slashable against the ETH bond. This bounds, but does not eliminate, bias —
   identical to the scheme StockRip operates in production on this chain.
-- **Blockhash semantics on Orbit**: `block.number` is the synced L1 block
-  number and `blockhash` is a chain-derived pseudo-hash. The 256-block reveal
-  window (~51 min of L1 blocks) sits inside the pool's 1 h `expireDraw`
-  timeout, so a stale request always resolves: `skipStale` frees the adapter,
+- **Blockhash timing on HyperEVM**: at ~1s small-block cadence the 256-block
+  reveal window is only **~4 minutes** — far inside a 1 h `expireDraw`
+  timeout, which is why the runbook tunes `requestTimeout` down to ~10 min at
+  deploy. A stale request always resolves: `skipStale` frees the adapter,
   `expireDraw` refunds the buyer.
 - **One pending request**: matches the pool's serialized draws by design. A
   second concurrent consumer would be denied service until the first request
@@ -86,11 +88,11 @@ The owner (production: multisig + timelock) can:
 **Recommended**: timelock on parameter changes; a Security-Council-style multisig;
 publish an allowlist-of-collections policy. See `runbook.md`.
 
-## Chain-level risks (from the viability study)
+## Chain-level risks
 
-- The RollupProxy admin can enable a **deployer allowlist** with no delay
-  (chain is not L2BEAT Stage 1) and the sequencer can censor. These are outside
-  the contracts' control; mitigation is operational (deploy early, engage
-  Robinhood, multi-chain contingency). See `../../docs/analise-fwa-robinhoodchain.md`.
-- Randomness provider availability (CCIP router / Pyth Entropy addresses) is
-  **not yet confirmed on-chain** — a Fase 0 gate. See `../../docs/fase0-findings.md`.
+- HyperEVM validator-set concentration and HyperCore/HyperEVM coupling are
+  outside the contracts' control; mitigation is operational (multi-chain
+  contingency — the stack retains BNB and RobinhoodChain configs).
+- Chainlink VRF does **not** exist on HyperEVM; the verifiable-randomness
+  upgrade is Pyth Entropy, whose on-chain address must be confirmed before that
+  adapter is built — a pre-launch gate. See `../../docs/deploy-runbook.md`.
