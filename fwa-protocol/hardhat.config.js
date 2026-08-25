@@ -76,14 +76,15 @@ module.exports = {
       accounts,
     },
   },
-  // Verification: HyperEVM has no built-in hardhat-verify descriptor, so both
-  // networks are declared as custom chains below. HyperEVMScan is the
-  // Etherscan-family explorer; hyperscan.com (Blockscout) and Sourcify are
-  // documented fallbacks in the runbook if an endpoint rejects the upload.
+  // Verification: HyperEVM mainnet goes through the unified Etherscan V2 API
+  // (https://api.etherscan.io/v2/api?chainid=999 — confirmed in Etherscan's
+  // /v2/chainlist; the per-site api.hyperevmscan.io host answers "deprecated
+  // V1 endpoint"), so a regular Etherscan key works. The TESTNET (998) is NOT
+  // in Etherscan V2's chainlist — verify testnet deploys via Sourcify
+  // (sourcify.parsec.finance) or the Purrsec UI instead; see the runbook.
   etherscan: {
     apiKey: {
-      hyperevm: process.env.HYPEREVMSCAN_API_KEY || "",
-      hyperevmTestnet: process.env.HYPEREVMSCAN_API_KEY || "",
+      hyperevm: process.env.ETHERSCAN_API_KEY || process.env.HYPEREVMSCAN_API_KEY || "",
       bsc: process.env.BSCSCAN_API_KEY || "",
       bscTestnet: process.env.BSCSCAN_API_KEY || "",
       "robinhood-testnet": "blockscout",
@@ -94,16 +95,8 @@ module.exports = {
         network: "hyperevm",
         chainId: 999,
         urls: {
-          apiURL: "https://api.hyperevmscan.io/api",
+          apiURL: "https://api.etherscan.io/v2/api?chainid=999",
           browserURL: "https://hyperevmscan.io",
-        },
-      },
-      {
-        network: "hyperevmTestnet",
-        chainId: 998,
-        urls: {
-          apiURL: "https://api-testnet.purrsec.com/api",
-          browserURL: "https://testnet.purrsec.com",
         },
       },
       {

@@ -1,10 +1,10 @@
-# FWA App — RobinhoodChain frontend
+# FWA App — HyperEVM frontend
 
 Next.js 15 (App Router) + wagmi v2 + viem dashboard for the Fake World Assets
-protocol on RobinhoodChain.
+protocol on HyperEVM.
 
 ## Features
-- Connect via EIP-6963 injected-wallet discovery (MetaMask, Rabby, Robinhood Wallet, …).
+- Connect via EIP-6963 injected-wallet discovery (MetaMask, Rabby, OKX, …).
 - **Pool stats** — live acquisition price, active positions, surcharge/bid, crown holder & tithe pot, draw state.
 - **Positions** — every active position with its on-chain **win odds** (inverse to backing) — the transparency the gacha framing demands.
 - **Deposit** — approve NFT + backing, then create a position.
@@ -20,7 +20,7 @@ npm run dev                        # http://localhost:3000
 npm run build                      # production build (type-checked)
 ```
 
-Chains are pre-defined for RobinhoodChain testnet (46630) and mainnet (4663) in
+Chains are hand-defined for HyperEVM mainnet (999) and testnet (998) in
 `src/lib/chains.ts`; addresses come from `NEXT_PUBLIC_*` env vars. ABIs in
 `src/lib/abis.ts` are extracted from the compiled `fwa-protocol` artifacts.
 

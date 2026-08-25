@@ -22,6 +22,12 @@ export const hyperEvm = defineChain({
   blockExplorers: {
     default: { name: "HyperEVMScan", url: "https://hyperevmscan.io" },
   },
+  // Canonical Multicall3 — verified deployed on-chain (eth_getCode returns
+  // 3808 bytes). Lets viem batch the app's fan-out reads (150 positions × 2
+  // calls) into single multicalls instead of individual eth_calls.
+  contracts: {
+    multicall3: { address: "0xcA11bde05977b3631167028862bE2a173976CA11" },
+  },
 });
 
 export const hyperEvmTestnet = defineChain({
@@ -33,6 +39,11 @@ export const hyperEvmTestnet = defineChain({
   },
   blockExplorers: {
     default: { name: "Purrsec", url: "https://testnet.purrsec.com" },
+  },
+  // Multicall3 is deployed at the canonical address on testnet too (verified
+  // via eth_getCode).
+  contracts: {
+    multicall3: { address: "0xcA11bde05977b3631167028862bE2a173976CA11" },
   },
   testnet: true,
 });

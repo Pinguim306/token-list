@@ -104,9 +104,14 @@ indexer's `START_BLOCK`.
 npx hardhat verify --network hyperevmTestnet <address> <constructor-args…>   # HYPEREVMSCAN_API_KEY env
 ```
 
-HyperEVMScan is preconfigured in `hardhat.config.js` (set `HYPEREVMSCAN_API_KEY`).
-If an endpoint rejects the upload, fall back to Blockscout (hyperscan.com) or
-Sourcify. Verify
+**Mainnet (999)** verifies through the unified **Etherscan V2 API** — already
+configured in `hardhat.config.js` (`apiURL
+https://api.etherscan.io/v2/api?chainid=999`, confirmed in Etherscan's
+`/v2/chainlist`); set a regular `ETHERSCAN_API_KEY`. **Testnet (998) is NOT in
+Etherscan V2's chainlist** — verify testnet deploys with Sourcify
+(`forge verify-contract <addr> <path> --chain-id 998 --verifier sourcify
+--verifier-url https://sourcify.parsec.finance/verify`) or the Purrsec UI
+(testnet.purrsec.com/verify). Verify
 at least `pool`, `adapter`, `basket`, `vault`, `fwa`, `emitter`.
 
 ## 3. Curate assets (owner)
