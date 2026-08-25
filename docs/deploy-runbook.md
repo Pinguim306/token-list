@@ -39,8 +39,15 @@ is mechanical.
   there, not VRF, so `ADAPTER=vrf` is **refused by `deploy.js` on chains
   999/998** (it would wire the router to a backend that can never answer).
   `ADAPTER=keeper` is the launch path. The verifiable upgrade on this chain is
-  **Pyth Entropy** (two-party commit-reveal, live on HyperEVM) — a new adapter
-  behind the same router, one `setAdapter` swap, zero pool changes.
+  **Pyth Entropy** (two-party commit-reveal, live on HyperEVM), implemented as
+  `PythEntropyAdapter` behind the same router — one `setAdapter` swap, zero
+  pool changes. To use it: resolve the chain's **Entropy contract + provider**
+  from docs.pyth.network, verify both on the explorer, deploy with
+  `ADAPTER=entropy ENTROPY_ADDRESS=0x… ENTROPY_PROVIDER=0x…` (or deploy the
+  adapter standalone, `configure`, then `router.setAdapter`), and **prefund the
+  adapter with HYPE** — it pays Entropy's per-request fee from its own balance
+  and reverts loudly when underfunded. Before mainnet, swap the vendored
+  `IEntropyLike` mirror for the official `entropy-sdk-solidity` interfaces.
 - **The public RPC is not archival.** Hyperliquid prunes the `/evm` endpoints
   roughly every 12 hours (there is **no official `/nanoreth` path** on
   rpc.hyperliquid.xyz — it 404s). The indexer backfills from `START_BLOCK`, so

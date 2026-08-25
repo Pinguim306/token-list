@@ -35,8 +35,9 @@ import {IRandomnessAdapter, IRandomnessRouter} from "../interfaces/IRandomness.s
 ///      and is accepted as launch-grade because the pool bounds the damage (one
 ///      serialized draw at a time, price escrowed, expireDraw refunds) and the
 ///      keeper can post a slashable bond. The router indirection means a
-///      verifiable adapter (Pyth Entropy, which is live on HyperEVM) can
-///      replace this one with zero pool changes.
+///      verifiable adapter — PythEntropyAdapter, in-tree, backed by Pyth
+///      Entropy which is live on HyperEVM — can replace this one with zero
+///      pool changes.
 ///
 ///      Liveness: exactly one request may be pending (the pool serializes draws
 ///      anyway). If the keeper goes silent past the ~256-block blockhash window
