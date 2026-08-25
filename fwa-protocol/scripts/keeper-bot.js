@@ -10,7 +10,11 @@
  *   CHAIN_LENGTH          reveals per committed chain (default 1000)
  *   MIN_REVEALS           re-commit a fresh chain below this (default 10)
  *   POLL_MS               loop interval (default 5000)
- *   FROM_BLOCK            adapter deploy block, to bound event scans (default 0)
+ *   FROM_BLOCK            adapter deploy block, to bound event scans (default 0).
+ *                         SET THIS on live chains: scans run in <=800-block
+ *                         windows (public HyperEVM RPCs cap eth_getLogs at
+ *                         1000 blocks), so FROM_BLOCK=0 at a 44M-block head
+ *                         means tens of thousands of queries per tick.
  *   ONCE                  set to 1 to run a single tick and exit (smoke test)
  *
  * The signer (DEPLOYER_MNEMONIC in hardhat.config.js) must be the adapter's
@@ -55,6 +59,17 @@ async function main() {
     throw new Error(`signer ${signer.address} is not the adapter keeper ${keeper}`);
   }
   console.log(`keeper-bot: adapter=${addr} keeper=${signer.address} chainLength=${cfg.chainLength}`);
+
+  if (cfg.fromBlock === 0) {
+    const head = await hre.ethers.provider.getBlockNumber();
+    if (head > 10_000) {
+      console.warn(
+        `keeper-bot: WARNING — FROM_BLOCK is unset and the chain head is ${head}; ` +
+          "every tick will scan the whole history in 800-block windows. " +
+          "Set FROM_BLOCK to the adapter's deploy block."
+      );
+    }
+  }
 
   let failures = 0;
   for (;;) {
