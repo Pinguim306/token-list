@@ -14,12 +14,16 @@ is mechanical.
 
 - **Dual-block architecture.** HyperEVM produces **small blocks (~1s, 3M gas)**
   and **big blocks (~60s, 30M gas)**, interleaved into one block-number
-  sequence. **The larger contract deploys do not fit a small block**:
-  `FWAFactory` is ~13.7 KB of runtime bytecode (~2.75M gas of code deposit),
-  and its full deploy transaction — intrinsic gas + initcode calldata +
-  constructor execution + deposit — lands just past the 3M small-block cap.
-  Before deploying, switch the deployer to big blocks, then switch back
-  afterwards so the keeper's reveals keep landing in 1s blocks. Run
+  sequence. **Exactly one contract does not fit a small block**: `FWAFactory`,
+  measured on-chain at **3,075,665 gas** (mainnet `eth_estimateGas`) — just
+  past the 3M cap. Everything else fits: `FWAPool` deployed directly is
+  **2,900,368 gas** (measured live on chain 999), `EquityBasket` ~1.97M,
+  `PackVault` ~1.81M. So there are two paths: (a) the standard
+  factory deploy — switch the deployer to big blocks first, then switch back
+  afterwards so the keeper's reveals keep landing in 1s blocks; or (b) a
+  **factory-less deploy** (constructing `FWAPool` directly with the same args
+  `createPool` would pass) which needs **no big blocks and no Core-user
+  setup** — the route a mainnet smoke test validated end-to-end. Run
   `npm run size` first: every contract must stay under the **24 KB EIP-170
   limit** (largest today is 56% of it).
 
@@ -121,13 +125,21 @@ Both HyperEVM chains are supported by **Sourcify** (sourcify.dev), and mainnet
 (999) additionally by the unified **Etherscan V2 API** (confirmed in
 Etherscan's `/v2/chainlist`; testnet 998 is not covered by it).
 
-```bash
-# Testnet (998): Sourcify only — the env flag skips the Etherscan verifier,
-# which cannot know chain 998:
-SOURCIFY_ONLY=1 npx hardhat verify --network hyperevmTestnet <address> <constructor-args…>
+> ⚠️ **Do not use `hardhat verify` for Sourcify.** Sourcify sunset its v1 API
+> and hardhat-verify 2.x still posts to the removed endpoints — it fails with
+> an HTML "Cannot POST /verify" error. Use the v2-API script below (validated
+> against a live chain-999 deployment: 10/10 contracts verified, no API key,
+> no constructor args needed — Sourcify extracts them from the creation tx).
 
-# Mainnet (999): Etherscan V2 (set ETHERSCAN_API_KEY — a regular Etherscan
-# key; the config's plain-string apiKey selects V2 mode) + Sourcify:
+```bash
+# Both chains — Sourcify v2 (pass the chain id and address=FQN pairs):
+node scripts/sourcify-verify.js 999 \
+  <poolAddr>=contracts/core/FWAPool.sol:FWAPool \
+  <adapterAddr>=contracts/randomness/KeeperHashChainAdapter.sol:KeeperHashChainAdapter \
+  <basketAddr>=contracts/basket/EquityBasket.sol:EquityBasket
+
+# Mainnet (999) only, additionally: Etherscan V2 (set ETHERSCAN_API_KEY — a
+# regular Etherscan key; the config's plain-string apiKey selects V2 mode):
 npx hardhat verify --network hyperevm <address> <constructor-args…>
 ```
 
