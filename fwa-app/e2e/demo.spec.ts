@@ -19,6 +19,32 @@ test.describe("marketing landing", () => {
   });
 });
 
+test.describe("official CA bar", () => {
+  const CA = "0xde1f307359cf9bc2ecea8275dff45a2f41b97777";
+
+  test("pins the contract address to the top of every page", async ({ page }) => {
+    await page.goto("/");
+    const bar = page.locator("[data-official-ca]");
+    await expect(bar).toContainText("Official CA:");
+    await expect(bar).toContainText(CA);
+    await page.goto("/app");
+    await expect(page.locator("[data-official-ca]")).toContainText(CA);
+    await expect(page.locator("[data-official-ca] .ca-scan")).toHaveAttribute(
+      "href",
+      new RegExp(`/address/${CA}$`),
+    );
+  });
+
+  test("click copies the address and confirms", async ({ page, context }) => {
+    await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+    await page.goto("/app");
+    await page.locator("[data-ca-copy]").click();
+    await expect(page.locator("[data-official-ca]")).toContainText("Copied");
+    const copied = await page.evaluate(() => navigator.clipboard.readText());
+    expect(copied).toBe(CA);
+  });
+});
+
 test.describe("pool", () => {
   test("lists every sample position and links to detail", async ({ page }) => {
     await page.goto("/app");
