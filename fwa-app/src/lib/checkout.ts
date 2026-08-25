@@ -20,11 +20,10 @@ export const CHECKOUT = DEMO;
 export const TREASURY = "0x8Ee4961c5E6F0C5325646F6775f20Cb694b8be14" as const;
 
 /**
- * Pack price in native HYPE. Derived from the demo pool price (132.5 units) at
- * a deliberately small scale — 0.0001 HYPE per unit — so demo purchases move
- * real but small value: 132.5 × 0.0001 = 0.01325 HYPE.
+ * Pack price in native HYPE. Flat product price per pack; a 20-pack purchase
+ * (the per-tx cap) moves 4 HYPE.
  */
-export const PACK_PRICE_HYPE = "0.01325";
+export const PACK_PRICE_HYPE = "0.2";
 export const packPriceWei = parseEther(PACK_PRICE_HYPE);
 
 /** How many packs one transaction may buy. */
@@ -33,7 +32,7 @@ export const MAX_PACKS_PER_TX = 20;
 /** Total price for a quantity, in wei — exact bigint math, no float drift. */
 export const totalPriceWei = (qty: number) => packPriceWei * BigInt(qty);
 
-/** Total price for a quantity as a display string ("0.0265"). */
+/** Total price for a quantity as a display string ("0.4"). */
 export const totalPriceHype = (qty: number) => formatEther(totalPriceWei(qty));
 
 export type DemoPosition = (typeof demo.positions)[number];
