@@ -56,6 +56,45 @@ All ten protocol contracts are **verified on Sourcify** (nine
 | E2E draw (deposit → settle, 12 txs) | ~2.3M gas ≈ 0.0002 HYPE |
 | Draw latency (request → settled) | ≈ 11 s (11 small blocks) |
 
+## Round 2 — every remaining protocol path, same deployment
+
+A second pass (same day, same burner) exercised everything the first round
+did not, bringing the total spend to **~0.007 HYPE (≈ US$0.36)**:
+
+- **SellBack settlement** (draw 2): buyer won a vault pack and sold it back —
+  the 85% standing bid (34 USDG on a 40-backing pack) was credited and pulled
+  via `withdrawCredit`.
+- **Liveness / refund path** (draw 3): keeper stayed silent on purpose. The
+  256-block window lapsed in ~4.4 min, `skipStale` recorded a slashable skip
+  (block `44158712`), and after the tuned 600 s `requestTimeout`,
+  `expireDraw` refunded the full 44 USDG price (block `44159037`, state
+  `Refunded`), leaving the pool unblocked (`drawInFlight=false`).
+- **EquityBasket wrap/unwrap round-trip**: mock TSLAx/SPCXx allowlisted,
+  wrapped into basket #1, unwrapped back to the depositor — balances exact.
+  (Operational note: `wrap`/`setTemplate` token arrays must be sorted
+  ascending by address or the basket reverts `EB: unsorted or duplicate`.)
+- **PackVault**: funded with stocks + backing, `setTemplate`/`setPolicy`,
+  `mintBundle(2)` seeded two packs straight into the pool; later, with the
+  pool below its floor, the **permissionless `replenishIfNeeded` crank**
+  refilled it from inventory.
+- **Dynamic pricing**: with unequal backings (40/40/100), enabling
+  `setDynamicPricing(5000, 2000)` moved the quote 55 → 60 USDG
+  (+dispersion·50%, capped +20%), then was switched back off.
+- **The real keeper bot** (`scripts/keeper-bot.js`) was run against the live
+  adapter and immediately surfaced a production bug: its single-call event
+  scan exceeds the public RPC's **1000-block `eth_getLogs` cap** (at 1 s
+  blocks, any adapter older than ~17 min breaks the bot entirely). Fixed by
+  chunking the scan (≤800-block windows). The public RPC also rate-limited
+  under concurrent load — a production keeper needs a dedicated RPC.
+- **The app in live mode**: `fwa-app` pointed at this deployment
+  (`NEXT_PUBLIC_POOL_ADDRESS` etc.) rendered real on-chain state — pool
+  price, pack count, adapter status, recorded skips — with no demo-mode
+  fallbacks.
+
+Additional round-2 contracts: mock equities `TSLAx`
+`0xfE3f04Ffffc8aD9d7d3A5D72Ea5C188368167a68` and `SPCXx`
+`0x1c0eCb2d9aF119b803789d51a3C6d80380BECD30`.
+
 ## Findings folded back into the repo
 
 - **Sourcify sunset its v1 API** — `hardhat verify`'s Sourcify integration

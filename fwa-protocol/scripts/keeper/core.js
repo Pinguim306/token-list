@@ -17,6 +17,19 @@
  */
 const { ethers } = require("ethers");
 
+/** Public HyperEVM RPCs cap eth_getLogs at 1000 blocks per query, and at the
+ *  ~1s block cadence any FROM_BLOCK older than ~17 minutes exceeds that in a
+ *  single scan. Query in bounded windows instead (discovered live: an
+ *  unchunked scan fails every tick with "query exceeds max block range 1000"). */
+async function queryFilterChunked(adapter, filter, fromBlock, toBlock, step = 800) {
+  const events = [];
+  for (let start = fromBlock; start <= toBlock; start += step) {
+    const end = Math.min(start + step - 1, toBlock);
+    events.push(...(await adapter.queryFilter(filter, start, end)));
+  }
+  return events;
+}
+
 /** Per-chain seed: keccak256(masterSecret ‖ epoch). */
 function chainSeed(masterSecret, epoch) {
   return ethers.solidityPackedKeccak256(["bytes32", "uint256"], [masterSecret, epoch]);
@@ -59,7 +72,7 @@ async function tick(adapter, cfg) {
 
   // Epoch = number of heads ever committed. Only the keeper can commit, so
   // counting HeadCommitted events is authoritative and needs no local state.
-  const commits = await adapter.queryFilter(adapter.filters.HeadCommitted(), fromBlock);
+  const commits = await queryFilterChunked(adapter, adapter.filters.HeadCommitted(), fromBlock, now);
   const epoch = commits.length;
 
   if (pendingId !== 0n) {
@@ -99,4 +112,4 @@ async function tick(adapter, cfg) {
   return { action: "idle", remaining };
 }
 
-module.exports = { chainSeed, buildLinks, locateHead, tick };
+module.exports = { chainSeed, buildLinks, locateHead, queryFilterChunked, tick };
