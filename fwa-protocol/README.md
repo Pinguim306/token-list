@@ -86,7 +86,7 @@ work.
 | `randomness/MockRandomnessAdapter.sol` | Deterministic randomness for tests / local |
 | `randomness/CCIPVRFAdapter.sol` | Production skeleton: VRF v2.5 request from Arbitrum One over CCIP (RH Chain side) |
 | `randomness/VRFRequester.sol` | Production skeleton: Arbitrum One counterpart — draws VRF, relays back over CCIP |
-| `token/FWAToken.sol` | `$FWA` reward token: capped, role-gated mint, launch gate, 1% DEX-trade fee |
+| `token/FWAToken.sol` | `$FWA` reward token: capped, role-gated mint, launch gate; plain ERC-20 on transfer (no transfer fee — clean DEX/aggregator/CEX compatibility) |
 | `token/FWAEmitter.sol` | `$FWA` emissions (MasterChef-style): depositor rewards on √backing + pro-rata daily-pot purchaser rewards; guarded pool hooks |
 | `token/FWAClaim.sol` | Merkle-gated `$FWA` distribution (snapshot allocation) |
 | `periphery/PackVault.sol` | Operator pack factory: bundle seeding (`mintBundle`) + permissionless pool replenishment (`replenishIfNeeded` with floor/bundle/cooldown policy) from a funded inventory |

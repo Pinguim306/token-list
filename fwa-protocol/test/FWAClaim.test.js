@@ -15,7 +15,7 @@ function leafOf(index, account, amount) {
 describe("FWAClaim", function () {
   it("distributes via a Merkle proof and prevents double claims", async () => {
     const [admin, a, b] = await ethers.getSigners();
-    const fwa = await (await ethers.getContractFactory("FWAToken")).deploy(1_000_000n * WAD, admin.address, admin.address);
+    const fwa = await (await ethers.getContractFactory("FWAToken")).deploy(1_000_000n * WAD, admin.address);
     await fwa.grantRole(await fwa.MINTER_ROLE(), admin.address);
 
     const entries = [
@@ -27,7 +27,7 @@ describe("FWAClaim", function () {
 
     const claim = await (await ethers.getContractFactory("FWAClaim")).deploy(await fwa.getAddress(), root, admin.address);
     // a distributor must be fee-exempt so it can pay out while the market is still gated
-    await fwa.setFeeExempt(await claim.getAddress(), true);
+    await fwa.setLaunchAllowed(await claim.getAddress(), true);
     await fwa.mint(await claim.getAddress(), 350n * WAD);
 
     // a claims with proof [leaf1]
