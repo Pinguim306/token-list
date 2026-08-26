@@ -64,17 +64,15 @@ is mechanical.
   over LayerZero as native OFTs), and **SpaceX (SPCXD)** from **Dinari** —
   allowlisted via `EquityBasket.setTokenAllowed`.
 
-  > ⚠️ **Addresses are not recorded here on purpose.** The bStock addresses
-  > this file used to carry were HyperEVM-only and do not exist on HyperEVM.
-  > Before allowlisting, resolve each token's HyperEVM address from the
-  > **issuer's own documentation** (Ondo, Dinari), then open it on
-  > [hyperevmscan.io](https://hyperevmscan.io) and confirm the issuer and that
-  > it is the official contract — a wrong or look-alike address would wrap an
-  > unbacked token. Note that Dinari's SPCXD trades spot on **HyperCore**;
-  > confirm it is linked as an ERC-20 on HyperEVM before wiring it into the
-  > basket, since `EquityBasket` wraps ERC-20s, not HyperCore spot balances.
-  > Curation is the owner's responsibility. (Testnet uses mocks; these addresses
-  > gate mainnet.)
+  > The candidate addresses are now resolved and validated on-chain — see
+  > **[`tokenized-stocks-hyperevm.md`](./tokenized-stocks-hyperevm.md)** (35
+  > Ondo assets + 18 Dinari dShares, each checked for bytecode, on-chain
+  > symbol/name/decimals, and set-wide bytecode consistency). The old SPCXD
+  > caveat is RESOLVED: Dinari's SpaceX exists natively as ERC-20 `SPCX` on
+  > chain 999. Final gate before allowlisting: open each address on
+  > [hyperevmscan.io](https://hyperevmscan.io) and confirm holders/activity —
+  > curation is the owner's responsibility. (Testnet uses mocks; these
+  > addresses gate mainnet.)
 - **Dynamic pricing** is off by default; enable with
   `pool.setDynamicPricing(dispersionFactorBps, maxExtraSurchargeBps)` — e.g.
   `(5000, 2000)` = add 50% of the dispersion, capped at +20%.
