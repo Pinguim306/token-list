@@ -86,7 +86,7 @@ export function Hero() {
             <div className="u">to the top deposit</div>
           </div>
           <div className="tile">
-            <div className="k">$FWA rewards</div>
+            <div className="k">$HFWA rewards</div>
             <div className="v"><CountUp value={budgetN} /></div>
             <div className="u">purchaser budget</div>
           </div>

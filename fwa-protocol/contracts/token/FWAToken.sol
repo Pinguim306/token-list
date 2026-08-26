@@ -5,13 +5,16 @@ import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ERC20Capped} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Capped.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 
-/// @title FWAToken ($FWA)
-/// @notice Fake World Assets reward token. Capped supply, role-gated minting,
-///         and a launch gate that keeps transfers closed to the public until
-///         the market is opened. It is a plain ERC-20 on transfer — there is
-///         NO transfer fee — so it works cleanly with DEX routers, aggregators,
-///         and CEX deposits (a fee-on-transfer would break all three). Protocol
-///         revenue comes from the pack mechanics, not a token tax.
+/// @title FWAToken — HyperFWA ($HFWA)
+/// @notice HyperFWA, the Fake World Assets reward token on HyperEVM. Capped
+///         supply, role-gated minting, and a launch gate that keeps transfers
+///         closed to the public until the market is opened. It is a plain
+///         ERC-20 on transfer — there is NO transfer fee — so it works cleanly
+///         with DEX routers, aggregators, and CEX deposits (a fee-on-transfer
+///         would break all three). Protocol revenue comes from the pack
+///         mechanics, not a token tax. The name/symbol are the on-chain launch
+///         identity; the project domain (hyperfwa.xyz) lives on the site, not
+///         in the token name.
 contract FWAToken is ERC20Capped, AccessControl {
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
 
@@ -24,7 +27,7 @@ contract FWAToken is ERC20Capped, AccessControl {
     event LaunchAllowedSet(address indexed account, bool allowed);
 
     constructor(uint256 cap_, address admin)
-        ERC20("Fake World Assets", "FWA")
+        ERC20("HyperFWA", "HFWA")
         ERC20Capped(cap_)
     {
         require(admin != address(0), "FWA: zero");

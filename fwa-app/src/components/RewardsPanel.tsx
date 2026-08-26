@@ -32,7 +32,7 @@ export function RewardsPanel() {
   if (!hasEmitter) {
     return (
       <div className="card">
-        <h2>$FWA rewards</h2>
+        <h2>$HFWA rewards</h2>
         <p className="muted">No emitter configured (set NEXT_PUBLIC_EMITTER).</p>
       </div>
     );
@@ -40,14 +40,14 @@ export function RewardsPanel() {
 
   return (
     <div className="card">
-      <h2>$FWA rewards</h2>
-      <div className="stat"><span>Claimable $FWA</span><b>{fmt(credit)}</b></div>
+      <h2>$HFWA rewards</h2>
+      <div className="stat"><span>Claimable $HFWA</span><b>{fmt(credit)}</b></div>
       <div className="stat"><span>Current day</span><b>{day?.toString() ?? "—"}</b></div>
       <div className="stat"><span>Purchaser budget left</span><b>{fmt(budget)}</b></div>
       <div className="row" style={{ marginTop: 12 }}>
         <button className="btn primary" disabled={busy || !credit}
           onClick={() => writeContract({ ...emitter, functionName: "claim" })}>
-          Claim $FWA
+          Claim $HFWA
         </button>
       </div>
       <label htmlFor="claim-day">Claim a closed day&apos;s purchaser pot</label>
