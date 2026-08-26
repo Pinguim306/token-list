@@ -8,6 +8,7 @@ import { usdValue, fmtUsd } from "@/lib/prices";
 import { DEMO, demo } from "@/lib/demo";
 import { ErrorNote, SkeletonRows } from "@/components/States";
 import { BasketWrapForm } from "@/components/BasketWrapForm";
+import { EQUITY_CATALOG } from "@/lib/equityCatalog";
 import { StuckPayouts } from "@/components/StuckPayouts";
 
 type Holding = { token: `0x${string}`; amount: bigint };
@@ -109,7 +110,8 @@ export default function Baskets() {
 
       <h1 className="mt-6 mb-0 font-display text-3xl text-ink">Build a pack</h1>
       <p className="mt-2 mb-0 font-body text-sm text-muted">
-        A pack is tokenized stocks — Ondo and Dinari: TSLAon, NVDAon, SPCXD — wrapped into a
+        A pack is tokenized stocks — {EQUITY_CATALOG.length} Ondo and Dinari assets live on
+        HyperEVM, from TSLAon and NVDAon to SpaceX (SPCX) — wrapped into a
         single on-chain collectible. Build one here, then
         list it in the pool from the pool page — whoever ends up holding it can unwrap it back
         into the shares at any time.
@@ -118,6 +120,36 @@ export default function Baskets() {
       <div className="mt-8">
         <BasketWrapForm />
       </div>
+
+      <section
+        className="mt-8 overflow-hidden rounded-lg border border-border bg-surface shadow-sm"
+        data-equity-catalog
+      >
+        <h2 className="m-0 border-b border-border px-6 py-4 font-display text-base text-ink">
+          Available stocks ({EQUITY_CATALOG.length})
+        </h2>
+        <p className="m-0 border-b border-border px-6 py-3 font-body text-xs text-muted">
+          Every address validated on-chain (chain 999) — bytecode, symbol/name/decimals, and
+          issuer-wide bytecode consistency. Click to copy an address into the form above.
+        </p>
+        <div className="grid max-h-80 grid-cols-1 gap-x-6 overflow-y-auto px-6 py-4 sm:grid-cols-2">
+          {EQUITY_CATALOG.map((e) => (
+            <button
+              key={e.address}
+              type="button"
+              className="flex items-baseline justify-between gap-3 border-0 bg-transparent px-0 py-1.5 text-left font-body text-sm text-ink transition-colors hover:text-accent"
+              title={`${e.name} — ${e.address}`}
+              onClick={() => navigator.clipboard?.writeText(e.address).catch(() => {})}
+            >
+              <span>
+                <b>{e.symbol}</b>
+                <span className="ml-2 text-xs text-muted">{e.issuer}</span>
+              </span>
+              <span className="mono text-xs text-muted">{short(e.address)}</span>
+            </button>
+          ))}
+        </div>
+      </section>
 
       <section className="mt-8 overflow-hidden rounded-lg border border-border bg-surface shadow-sm" data-basket-list>
         <h2 className="m-0 border-b border-border px-6 py-4 font-display text-base text-ink">

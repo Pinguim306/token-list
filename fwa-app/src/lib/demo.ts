@@ -11,7 +11,7 @@ export const DEMO = addresses.pool === "0x00000000000000000000000000000000000000
 const collections = [
   { address: "0xC0113c7100000000000000000000000000000001", name: "Tesla Packs", symbol: "TSLAon" },
   { address: "0xC0113c7100000000000000000000000000000002", name: "Nvidia Packs", symbol: "NVDAon" },
-  { address: "0xC0113c7100000000000000000000000000000003", name: "SpaceX Packs", symbol: "SPCXD" },
+  { address: "0xC0113c7100000000000000000000000000000003", name: "SpaceX Packs", symbol: "SPCX" },
 ];
 
 /**
@@ -96,7 +96,7 @@ export const demo = {
   /** Basket-unwrap payouts that could not be delivered (paused token) and sit
    *  in escrow awaiting claimStuckToken. */
   stuckPayouts: [
-    { token: "0xE9010000000000000000000000000000000000b2", symbol: "TSLAon", amount: 4n * WAD, decimals: 18 },
+    { token: "0x417883b1709545f1211A25b00ad13455fC7F1bc5", symbol: "TSLAon", amount: 4n * WAD, decimals: 18 },
   ],
   /** NFTs escrowed by the pool because settlement delivery reverted
    *  (pool.claimStuckNFT recovers them). */
@@ -131,31 +131,30 @@ export const demo = {
     { id: 8n,  seedBlock: 41_905_614n, status: "revealed", word: "0x5a6c…07bb", requestedAt: 1784910600n, resolvedAt: 1784910648n },
   ],
 
-  /** Allowlisted tokenized stocks — Ondo (TSLAon, NVDAon) and Dinari (SPCXD).
-   *  Curated to the
-   *  three the product ships with: Tesla, NVIDIA, SpaceX. Round demo prices
-   *  keep the derived USD values legible and test-stable. On mainnet these
-   *  become the real Ondo/Dinari token addresses via EquityBasket.setTokenAllowed
-   *  (see docs/deploy-runbook.md — the real HyperEVM addresses must be verified
-   *  on the explorer before they are allowlisted). */
+  /** The three showcase equities — Tesla, NVIDIA, SpaceX — at their REAL,
+   *  on-chain-validated HyperEVM addresses (docs/tokenized-stocks-hyperevm.md;
+   *  the full 53-asset catalog lives in lib/equityCatalog.ts). Round demo
+   *  prices keep the derived USD values legible and test-stable. On mainnet
+   *  the pool allowlists the whole catalog via
+   *  fwa-protocol/scripts/allowlist-equities.js. */
   equities: [
-    { address: "0xE9010000000000000000000000000000000000b2", symbol: "TSLAon", name: "Tesla · Ondo", priceUsd: 300 },
-    { address: "0xE9010000000000000000000000000000000000c3", symbol: "NVDAon", name: "Nvidia · Ondo", priceUsd: 100 },
-    { address: "0xE901000000000000000000000000000000000007", symbol: "SPCXD", name: "SpaceX · Dinari", priceUsd: 100 },
+    { address: "0x417883b1709545f1211A25b00ad13455fC7F1bc5", symbol: "TSLAon", name: "Tesla · Ondo", priceUsd: 300 },
+    { address: "0xB989ad9b91886b1Aaed8DaADb26F028b29b40945", symbol: "NVDAon", name: "Nvidia · Ondo", priceUsd: 100 },
+    { address: "0x9b4Db2271EB1fa0aEe1abA7ed55E51C38cE514a3", symbol: "SPCX", name: "SpaceX · Dinari", priceUsd: 100 },
   ],
   /** Sample baskets owned by the preview wallet. Amounts are 18-decimals. */
   baskets: [
     {
       id: 1n,
       contents: [
-        { token: "0xE9010000000000000000000000000000000000b2", symbol: "TSLAon", amount: 2n * WAD, decimals: 18 },
-        { token: "0xE901000000000000000000000000000000000007", symbol: "SPCXD", amount: 4n * WAD, decimals: 18 },
+        { token: "0x417883b1709545f1211A25b00ad13455fC7F1bc5", symbol: "TSLAon", amount: 2n * WAD, decimals: 18 },
+        { token: "0x9b4Db2271EB1fa0aEe1abA7ed55E51C38cE514a3", symbol: "SPCX", amount: 4n * WAD, decimals: 18 },
       ],
     },
     {
       id: 2n,
       contents: [
-        { token: "0xE9010000000000000000000000000000000000c3", symbol: "NVDAon", amount: 5n * WAD, decimals: 18 },
+        { token: "0xB989ad9b91886b1Aaed8DaADb26F028b29b40945", symbol: "NVDAon", amount: 5n * WAD, decimals: 18 },
       ],
     },
   ],

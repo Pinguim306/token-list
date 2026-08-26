@@ -192,7 +192,7 @@ export default function HowItWorks() {
 
       <H2 id="baskets">Stock packs</H2>
       <P>
-        A pack is how tokenized stocks — Tesla (TSLAon), NVIDIA (NVDAon) and SpaceX (SPCXD) — enter the pool: fungible shares wrap into an ERC-721
+        A pack is how tokenized stocks — Tesla (TSLAon), NVIDIA (NVDAon) and SpaceX (SPCX) — enter the pool: fungible shares wrap into an ERC-721
         whose contents are the shares you deposited; the pool escrows and delivers it like any NFT,
         and <Strong>whoever holds the basket may unwrap it</Strong> back into the underlying tokens.
         The NFT is packaging; ownership of the wrapper is ownership of the shares.

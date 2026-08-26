@@ -27,7 +27,7 @@ const PALETTES: Record<string, Palette> = {
     bg: ["#10231a", "#17120f"],
     cells: ["#2ee27f", "#48d2f5", "#f5eef1", "#f7b750"],
   },
-  SPCXD: {
+  SPCX: {
     bg: ["#161c28", "#101319"],
     cells: ["#8fa4c0", "#c7d2e2", "#f5eef1", "#5a7dab"],
   },
@@ -64,9 +64,9 @@ function BrandMark({ symbol }: { symbol: string }) {
           </text>
         </g>
       );
-    case "SPCXD":
+    case "SPCX":
       return (
-        <g data-brand="SPCXD" fill="none" stroke="#d8dee6" strokeWidth="8" strokeLinecap="round">
+        <g data-brand="SPCX" fill="none" stroke="#d8dee6" strokeWidth="8" strokeLinecap="round">
           {/* SpaceX-style X: short backslash + long swooping stroke */}
           <path d="M34 40 L72 76" />
           <path d="M22 80 C46 72 76 52 104 30" />

@@ -113,6 +113,6 @@ test.describe("generative NFT art", () => {
     await page.goto("/app");
     await expect(page.locator('[data-brand="TSLAon"]').first()).toBeAttached();
     await expect(page.locator('[data-brand="NVDAon"]').first()).toBeAttached();
-    await expect(page.locator('[data-brand="SPCXD"]').first()).toBeAttached();
+    await expect(page.locator('[data-brand="SPCX"]').first()).toBeAttached();
   });
 });
