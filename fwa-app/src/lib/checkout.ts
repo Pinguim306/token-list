@@ -20,6 +20,29 @@ export const CHECKOUT = DEMO;
 export const TREASURY = "0x8Ee4961c5E6F0C5325646F6775f20Cb694b8be14" as const;
 
 /**
+ * PackRip — the on-chain checkout with the StockRip-style sell-back paid in
+ * $HFWA. When this address is configured the buy sends `ripPacks` (15% dev cut
+ * to the treasury, 85% escrowed) and Keep / Sell become real settlements:
+ * Keep releases the escrow to the treasury, Sell market-buys $HFWA with it and
+ * delivers the tokens. Unset = the legacy plain-transfer demo checkout.
+ */
+export const PACKRIP = (process.env.NEXT_PUBLIC_PACKRIP_ADDRESS ??
+  "0x0000000000000000000000000000000000000000") as `0x${string}`;
+export const RIP_LIVE = CHECKOUT && PACKRIP !== "0x0000000000000000000000000000000000000000";
+
+export const packRipAbi = [
+  { type: "function", name: "ripPacks", stateMutability: "payable",
+    inputs: [{ name: "qty", type: "uint256" }], outputs: [] },
+  { type: "function", name: "sellBack", stateMutability: "nonpayable",
+    inputs: [{ name: "count", type: "uint256" }, { name: "minOut", type: "uint256" }], outputs: [] },
+  { type: "function", name: "keep", stateMutability: "nonpayable",
+    inputs: [{ name: "count", type: "uint256" }], outputs: [] },
+  { type: "function", name: "quoteSellBack", stateMutability: "view",
+    inputs: [{ name: "buyer", type: "address" }, { name: "count", type: "uint256" }],
+    outputs: [{ name: "escrowShare", type: "uint256" }, { name: "out", type: "uint256" }] },
+] as const;
+
+/**
  * Pack price in native HYPE. Flat product price per pack; a 20-pack purchase
  * (the per-tx cap) moves 4 HYPE.
  */

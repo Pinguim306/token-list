@@ -10,14 +10,19 @@ import {
   useWaitForTransactionReceipt,
   useWriteContract,
 } from "wagmi";
-import { maxUint256 } from "viem";
+import { encodeFunctionData, maxUint256 } from "viem";
+import { readContract } from "wagmi/actions";
 import { pool, backing } from "@/lib/contracts";
 import { activeChain } from "@/lib/chains";
+import { config as wagmiConfig } from "@/lib/wagmi";
 import { DRAW_STATE, fmt, fmtDuration, short } from "@/lib/format";
 import { DEMO, demo } from "@/lib/demo";
 import {
   CHECKOUT,
   TREASURY,
+  PACKRIP,
+  RIP_LIVE,
+  packRipAbi,
   PACK_PRICE_HYPE,
   MAX_PACKS_PER_TX,
   totalPriceWei,
@@ -117,16 +122,71 @@ export function DrawPanel() {
     boughtQty.current = qty;
     try {
       if (chainId !== activeChain.id) await switchChainAsync({ chainId: activeChain.id });
-      sendTransaction({ to: TREASURY, value: totalPriceWei(qty), chainId: activeChain.id });
+      if (RIP_LIVE) {
+        // On-chain checkout: ripPacks escrows 85% for the Keep/Sell decision.
+        sendTransaction({
+          to: PACKRIP,
+          value: totalPriceWei(qty),
+          data: encodeFunctionData({ abi: packRipAbi, functionName: "ripPacks", args: [BigInt(qty)] }),
+          chainId: activeChain.id,
+        });
+      } else {
+        sendTransaction({ to: TREASURY, value: totalPriceWei(qty), chainId: activeChain.id });
+      }
     } catch {
       // user rejected the network switch — nothing sent, nothing to clean up
     }
   };
 
   const clampQty = (n: number) => Math.max(1, Math.min(MAX_PACKS_PER_TX, Math.floor(n) || 1));
+
+  // ---- Settlement. Legacy demo: outcomes are UI state. With PackRip live,
+  // Keep / Sell are REAL transactions first (keep releases the escrow to the
+  // treasury; sellBack market-buys $HFWA with it and delivers the tokens) and
+  // the outcome is recorded once the transaction is sent.
+  const {
+    sendTransaction: sendSettleTx,
+    isPending: settleSending,
+    reset: settleReset,
+  } = useSendTransaction();
+  const [settleBusy, setSettleBusy] = useState(false);
+  const applyOutcome = (idx: number | "all", o: "kept" | "sold") =>
+    setOutcomes((prev) => prev.map((v, j) => (idx === "all" || j === idx ? (v ?? o) : v)));
+
+  const settleOnChain = async (idx: number | "all", o: "kept" | "sold") => {
+    const count = idx === "all" ? outcomes.filter((v) => v === null).length : 1;
+    if (count === 0) return;
+    setSettleBusy(true);
+    try {
+      let data: `0x${string}`;
+      if (o === "sold") {
+        // Quote the swap and give ourselves a 3% slippage floor.
+        const [, out] = (await readContract(wagmiConfig, {
+          address: PACKRIP,
+          abi: packRipAbi,
+          functionName: "quoteSellBack",
+          args: [address!, BigInt(count)],
+        })) as readonly [bigint, bigint];
+        data = encodeFunctionData({
+          abi: packRipAbi, functionName: "sellBack", args: [BigInt(count), (out * 97n) / 100n],
+        });
+      } else {
+        data = encodeFunctionData({ abi: packRipAbi, functionName: "keep", args: [BigInt(count)] });
+      }
+      settleReset();
+      sendSettleTx(
+        { to: PACKRIP, data, chainId: activeChain.id },
+        { onSuccess: () => applyOutcome(idx, o), onSettled: () => setSettleBusy(false) },
+      );
+    } catch {
+      setSettleBusy(false); // quote failed or user rejected — outcome stays open
+    }
+  };
+
   const settle = (i: number, o: "kept" | "sold") =>
-    setOutcomes((prev) => prev.map((v, j) => (j === i ? (v ?? o) : v)));
-  const settleAll = (o: "kept" | "sold") => setOutcomes((prev) => prev.map((v) => v ?? o));
+    RIP_LIVE ? void settleOnChain(i, o) : setOutcomes((prev) => prev.map((v, j) => (j === i ? (v ?? o) : v)));
+  const settleAll = (o: "kept" | "sold") =>
+    RIP_LIVE ? void settleOnChain("all", o) : setOutcomes((prev) => prev.map((v) => v ?? o));
 
   const paying = paySending || payMining;
   const explorer = activeChain.blockExplorers?.default?.url;
@@ -337,7 +397,7 @@ export function DrawPanel() {
         )}
         <button
           className="btn"
-          disabled={checkout ? !won || allSettled : busy || !fulfilled || windowClosed || (!isBuyer && !DEMO)}
+          disabled={checkout ? !won || allSettled || settleBusy || settleSending : busy || !fulfilled || windowClosed || (!isBuyer && !DEMO)}
           title={checkout && !won ? "Buy a pack first" : undefined}
           onClick={() =>
             checkout
@@ -349,8 +409,8 @@ export function DrawPanel() {
         </button>
         <button
           className="btn"
-          disabled={checkout ? !won || allSettled : busy || !fulfilled || windowClosed || (!isBuyer && !DEMO)}
-          title={checkout && !won ? "Buy a pack first" : undefined}
+          disabled={checkout ? !won || allSettled || settleBusy || settleSending : busy || !fulfilled || windowClosed || (!isBuyer && !DEMO)}
+          title={checkout && !won ? "Buy a pack first" : RIP_LIVE ? "Sell back: the escrow buys $HFWA on the market and sends it to you" : undefined}
           onClick={() =>
             checkout
               ? settleAll("sold")
@@ -378,8 +438,8 @@ export function DrawPanel() {
                 </span>
               ) : (
                 <div className="row">
-                  <button className="btn" onClick={() => settle(i, "kept")}>Keep</button>
-                  <button className="btn" onClick={() => settle(i, "sold")}>Sell</button>
+                  <button className="btn" disabled={settleBusy || settleSending} onClick={() => settle(i, "kept")}>Keep</button>
+                  <button className="btn" disabled={settleBusy || settleSending} onClick={() => settle(i, "sold")}>Sell</button>
                 </div>
               )}
             </li>
@@ -421,7 +481,9 @@ export function DrawPanel() {
 
       <p className="muted" style={{ marginTop: 12 }}>
         {checkout
-          ? `Live demo checkout: buying sends the pack price × quantity (up to ${MAX_PACKS_PER_TX} packs per transaction) in one HYPE transfer on ${activeChain.name} to the FWA treasury. Each pack is a weighted random draw without replacement, settled Keep or Sell-back — simulated exactly as the contracts will run them.`
+          ? RIP_LIVE
+            ? `Live checkout: buying pays the pack price × quantity (up to ${MAX_PACKS_PER_TX} packs per transaction) on ${activeChain.name} — 85% is escrowed on-chain for your call. Keep releases the escrow to the treasury; Sell back market-buys $HFWA with it and sends the tokens to you. Each pack is a weighted random draw without replacement.`
+            : `Live demo checkout: buying sends the pack price × quantity (up to ${MAX_PACKS_PER_TX} packs per transaction) in one HYPE transfer on ${activeChain.name} to the FWA treasury. Each pack is a weighted random draw without replacement, settled Keep or Sell-back — simulated exactly as the contracts will run them.`
           : "Randomness mixes a keeper commit-reveal chain with a future blockhash (Pyth Entropy-upgradable at the router). While “Requested”, the pool is frozen (freeze-at-request); once “Fulfilled”, the buyer keeps the pack or sells it back for the standing bid."}
       </p>
     </div>
