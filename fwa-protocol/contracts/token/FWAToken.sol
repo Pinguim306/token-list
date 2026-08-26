@@ -7,35 +7,29 @@ import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 
 /// @title FWAToken ($FWA)
 /// @notice Fake World Assets reward token. Capped supply, role-gated minting,
-///         a 1% fee applied only to DEX trades (routed to a fee wallet), and a
-///         launch gate that keeps transfers closed to non-exempt parties until
-///         the market is opened.
-/// @dev Fee-on-DEX-trade replaces FWA's Uniswap-v4-hook fee, since a v4
-///      PoolManager is not confirmed on RobinhoodChain (see Fase 0 gate).
+///         and a launch gate that keeps transfers closed to the public until
+///         the market is opened. It is a plain ERC-20 on transfer — there is
+///         NO transfer fee — so it works cleanly with DEX routers, aggregators,
+///         and CEX deposits (a fee-on-transfer would break all three). Protocol
+///         revenue comes from the pack mechanics, not a token tax.
 contract FWAToken is ERC20Capped, AccessControl {
     bytes32 public constant MINTER_ROLE = keccak256("MINTER_ROLE");
-    uint256 public constant BPS = 10_000;
-    uint256 public constant FEE_BPS = 100; // 1%
 
-    address public feeWallet;
     bool public transfersOpen;
-    mapping(address => bool) public feeExempt;
-    mapping(address => bool) public isDexPair;
+    /// @notice Accounts allowed to move tokens before the market opens — the
+    ///         deployer distributing supply, the emitter, the claim contract.
+    mapping(address => bool) public launchAllowed;
 
     event TransfersOpened();
-    event FeeWalletUpdated(address indexed feeWallet);
-    event FeeExemptSet(address indexed account, bool exempt);
-    event DexPairSet(address indexed pair, bool isPair);
+    event LaunchAllowedSet(address indexed account, bool allowed);
 
-    constructor(uint256 cap_, address admin, address feeWallet_)
+    constructor(uint256 cap_, address admin)
         ERC20("Fake World Assets", "FWA")
         ERC20Capped(cap_)
     {
-        require(admin != address(0) && feeWallet_ != address(0), "FWA: zero");
+        require(admin != address(0), "FWA: zero");
         _grantRole(DEFAULT_ADMIN_ROLE, admin);
-        feeWallet = feeWallet_;
-        feeExempt[admin] = true;
-        feeExempt[feeWallet_] = true;
+        launchAllowed[admin] = true;
     }
 
     function mint(address to, uint256 amount) external onlyRole(MINTER_ROLE) {
@@ -47,40 +41,19 @@ contract FWAToken is ERC20Capped, AccessControl {
         emit TransfersOpened();
     }
 
-    function setFeeWallet(address w) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        require(w != address(0), "FWA: zero");
-        feeWallet = w;
-        emit FeeWalletUpdated(w);
-    }
-
-    function setFeeExempt(address account, bool exempt) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        feeExempt[account] = exempt;
-        emit FeeExemptSet(account, exempt);
-    }
-
-    function setDexPair(address pair, bool value) external onlyRole(DEFAULT_ADMIN_ROLE) {
-        isDexPair[pair] = value;
-        emit DexPairSet(pair, value);
+    /// @notice Allow (or disallow) an account to move tokens before the market
+    ///         opens. Used to seed distribution/emissions/claims pre-launch.
+    function setLaunchAllowed(address account, bool allowed) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        launchAllowed[account] = allowed;
+        emit LaunchAllowedSet(account, allowed);
     }
 
     function _update(address from, address to, uint256 value) internal override {
-        bool isTransfer = from != address(0) && to != address(0);
-
-        // Launch gate: before the market opens, only mint/burn or exempt parties move tokens.
-        if (isTransfer && !transfersOpen) {
-            require(feeExempt[from] || feeExempt[to], "FWA: transfers closed");
+        // Launch gate: before the market opens, only mint/burn or an
+        // allowlisted party may move tokens. No fee is ever taken.
+        if (from != address(0) && to != address(0) && !transfersOpen) {
+            require(launchAllowed[from] || launchAllowed[to], "FWA: transfers closed");
         }
-
-        uint256 fee;
-        if (isTransfer && (isDexPair[from] || isDexPair[to]) && !feeExempt[from] && !feeExempt[to]) {
-            fee = (value * FEE_BPS) / BPS;
-        }
-
-        if (fee > 0) {
-            super._update(from, feeWallet, fee);
-            super._update(from, to, value - fee);
-        } else {
-            super._update(from, to, value);
-        }
+        super._update(from, to, value);
     }
 }

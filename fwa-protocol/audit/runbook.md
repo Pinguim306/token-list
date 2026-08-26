@@ -17,8 +17,8 @@ especially:
 3. `FeeRouter(owner, recipients, sharesBps)`.
 4. `FWAFactory(owner)` → `createPool(backingToken, router, whitelist, feeRouter, owner)`.
 5. `router.setConsumer(pool, true)`.
-6. `FWAToken(cap, admin, feeWallet)`; `FWAEmitter(fwa, owner)`; `emitter.setPool(pool)`;
-   `pool.setEmitter(emitter)`; `fwa.setFeeExempt(emitter, true)`;
+6. `FWAToken(cap, admin)`; `FWAEmitter(fwa, owner)`; `emitter.setPool(pool)`;
+   `pool.setEmitter(emitter)`; `fwa.setLaunchAllowed(emitter, true)`;
    `emitter.configure(start, end, depositorRatePerSec, purchaserDailyPot)`;
    `emitter.setPurchaserBudget(x)` with `x >= EMISSION_DAYS * purchaserDailyPot`
    (under-funding causes intra-day purchaser claim races — see review note C-N1);

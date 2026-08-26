@@ -72,26 +72,59 @@ harness/interaction issue, not a broken router. Close it before launch by:
    uses the correct multicall/permit2 path the raw router calls skip), and/or
 2. Testing against HyperSwap's current published **periphery** (multicall router)
    rather than the bare `UniswapV2Router02` ABI, and/or
-3. Deciding on the **1% transfer fee**: even though it was not the swap blocker
-   here (swaps reverted with the fee off too), a fee-on-transfer token routinely
-   breaks aggregators (1inch/others) and CEX deposits. The pack protocol already
-   earns treasury revenue, so **launching $FWA as a plain ERC-20 (no transfer
-   fee)** removes a whole class of DEX/CEX friction. Strong recommendation.
+3. The **1% transfer fee has been removed** (decided): `FWAToken` is now a plain
+   ERC-20 on transfer (cap + launch gate only), so it works cleanly with DEX
+   routers, aggregators, and CEX deposits. Protocol revenue comes from the pack
+   mechanics, not a token tax.
+
+## Decided launch parameters
+
+- **Owner wallet:** `0x8ba969c2CcC040DA8307d2e418CA511901F90f15` — receives the
+  supply, holds the LP tokens, and is `admin`/minter of the token.
+- **Supply / cap:** 100,000,000 FWA.
+- **Token fee:** none (plain ERC-20).
+- **Initial market cap:** ≤ $5,000 (seed price set from the live HYPE price).
+- **LP:** kept in the owner wallet, redeemable anytime (not burned).
 
 ## Real-launch checklist (when the owner is ready)
 
-1. Deploy `FWAToken` with **cap = supply = 100,000,000**, `admin`/`feeWallet` =
-   the **owner's real wallet or multisig** (not a burner). Decide fee vs no-fee.
+1. Deploy `FWAToken(cap = 100,000,000, admin = owner)` — the owner wallet above.
 2. Mint the supply; allocate per tokenomics (LP + `FWAEmitter` emissions +
-   `FWAClaim` community airdrop).
-3. `openTransfers()`.
+   `FWAClaim` community airdrop). `setLaunchAllowed(emitter/claim, true)` so
+   they can distribute before the market opens.
+3. Decide **pool depth** (see "Pool depth vs slippage" below) — it sets how much
+   HYPE and what fraction of supply go into the LP.
 4. Big blocks on (owner must be a HyperCore user first) → `factory.createPair` →
    big blocks off.
 5. `addLiquidity` at the live-price ratio for ≤$5k MC; **keep the LP tokens in
    the owner wallet** (redeemable anytime).
-6. If keeping the fee: `setDexPair(pair, true)`.
+6. `openTransfers()`.
 7. Verify a real buy/sell through the HyperSwap app, publish the official CA on
    the site (restore the "Official CA" bar with the real address).
+
+## Pool depth vs slippage (why more HYPE = healthier launch)
+
+HyperSwap V2 is a constant-product AMM (`x*y=k`), **not** a bonding curve. Market
+cap is set by the seed price; **slippage is set by pool depth** — they are
+independent knobs. The pool holds only the FRACTION of supply you put in it; a
+buy can never take more than what's in the pool, and each buy pushes the price
+up (draining the pool is asymptotically expensive). At a $5,000 cap and HYPE
+≈ $79, a balanced pool holding fraction `f` of the 100M supply needs `f × $5,000`
+of HYPE, and a **$100 buy** moves it like this:
+
+| Supply in pool | HYPE seeded | Pool TVL | $100 buy → price impact | FWA drained |
+|---|---|---|---|---|
+| 5% (5M) | ~3.2 HYPE (~$250) | ~$500 | **+96%** | ~1.4% of supply |
+| 10% (10M) | ~6.3 HYPE (~$500) | ~$1,000 | **+44%** | ~1.7% of supply |
+| 20% (20M) | ~12.7 HYPE (~$1,000) | ~$2,000 | **+19%** | ~1.8% of supply |
+| 50% (50M) | ~31.6 HYPE (~$2,500) | ~$5,000 | **+8%** | ~1.9% of supply |
+
+So a shallow pool is not a rug risk (funds are safe, LP redeemable) but it makes
+early buys swing hard. The tension is real: at a very low cap, deep liquidity
+means committing a large share of supply to the LP. Recommended starting point:
+**10–20% of supply in the pool** (≈$500–$1,000 of HYPE) for a launch that feels
+tradeable without over-committing supply. The owner tops up depth later by adding
+more liquidity at the prevailing price.
 
 ## Test artifacts (disposable — burner-owned, mock token)
 

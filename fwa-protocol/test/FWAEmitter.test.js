@@ -19,12 +19,12 @@ describe("FWAEmitter", function () {
     );
     await router.setConsumer(await pool.getAddress(), true);
 
-    const fwa = await (await ethers.getContractFactory("FWAToken")).deploy(10n ** 9n * WAD, owner.address, owner.address);
+    const fwa = await (await ethers.getContractFactory("FWAToken")).deploy(10n ** 9n * WAD, owner.address);
     await fwa.grantRole(await fwa.MINTER_ROLE(), owner.address);
     const emitter = await (await ethers.getContractFactory("FWAEmitter")).deploy(await fwa.getAddress(), owner.address);
     await emitter.setPool(await pool.getAddress());
     await pool.setEmitter(await emitter.getAddress());
-    await fwa.setFeeExempt(await emitter.getAddress(), true);
+    await fwa.setLaunchAllowed(await emitter.getAddress(), true);
     await fwa.mint(await emitter.getAddress(), 1_000_000n * WAD);
 
     for (const s of [alice, bob, buyer]) {
