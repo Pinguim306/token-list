@@ -106,6 +106,51 @@ harness/interaction issue, not a broken router. Close it before launch by:
 7. Verify a real buy/sell through the HyperSwap app, publish the official CA on
    the site (restore the "Official CA" bar with the real address).
 
+## Launch economics — NO pack inventory is needed; the LP is the inventory
+
+A natural question: since users acquire $HFWA through pack sell-backs, must
+packs exist in a pool at launch? **No.** PackRip packs are minted by the
+purchase itself — each buyer's own payment funds that pack's escrow (85% of
+the price), and the sell-back buys $HFWA **from the HFWA/WHYPE LP**. There is
+no inventory to pre-fund and no way to "run out of packs":
+
+- **Every pack is self-funded**: 0.2 HYPE in → 0.03 to the treasury, 0.17
+  escrowed for that buyer's own Keep/Sell decision. Nothing is consumed from
+  any pool.
+- **The LP is the sell-back sink**: each sell-back INJECTS ~0.17 HYPE into the
+  pool and takes $HFWA out — so sell-backs make the pool's HYPE side grow and
+  push the price UP. The pool can never be drained to zero (constant product
+  is asymptotic).
+- **Total launch investment: the 12.7 HYPE LP + gas.** That's it.
+
+Simulated drain (LP seeded 20M HFWA + 12.7 HYPE; every pack sold back — the
+worst case for the pool and the best case for buy pressure; Keeps only add
+treasury revenue):
+
+| Packs sold back | HYPE in pool | HFWA left in pool | Price | Implied MC | Treasury (15% cut) |
+|---|---|---|---|---|---|
+| 0 | 12.7 | 20.0M | 1.0× | $5.0k | $0 |
+| 100 | 29.7 | 8.6M | 5.5× | $27k | ~$236 |
+| 500 | 97.5 | 2.6M | 59× | $293k | ~$1.2k |
+| 1,000 | 182 | 1.4M | 206× | $1.0M | ~$2.4k |
+| 5,000 | 860 | 0.3M | 4,587× | $22.9M | ~$11.8k |
+
+Reading it: volume through the packs is what re-rates the token — 1,000 packs
+(~$16k of purchases) push the market cap from $5k to ~$1M while the treasury
+collects its cut on every pack (15% on sell-backs, **100%** on Keeps). The
+protocol needs no further capital after the seed; growth is customer-funded.
+
+## Later — the REAL pool (FWAPool + PackVault, Fase 2)
+
+When the full on-chain pool launches, packs there ARE inventory: EquityBasket
+NFTs holding real tokenized stocks + backing, seeded via `PackVault.mintBundle`
+and topped up permissionlessly by `replenishIfNeeded`. Sizing example (all
+owner-tunable in the template): 50 packs × (~$5 of TSLA/NVDA/SPCX shares +
+~$10 backing) ≈ **$750 of inventory** for a launch-day pool, with the
+replenisher configured floor=20, bundle=10. Per this plan's own logic, that
+seeding should be **funded from PackRip treasury revenue** rather than new
+capital — the checkout launches first, revenue accrues, the real pool follows.
+
 ## Pool depth vs slippage (why more HYPE = healthier launch)
 
 HyperSwap V2 is a constant-product AMM (`x*y=k`), **not** a bonding curve. Market
