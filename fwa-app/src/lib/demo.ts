@@ -103,7 +103,7 @@ export const demo = {
   stuckNfts: [
     { asset: "0xC0113c7100000000000000000000000000000001", symbol: "TSLAon", tokenId: 77n },
   ],
-  /** Pending $FWA emissions per owned position (emitter.pendingOf). */
+  /** Pending $HFWA emissions per owned position (emitter.pendingOf). */
   pendingEmissions: new Map<bigint, bigint>([
     [1n, 12n * WAD],
     [4n, 3n * WAD],

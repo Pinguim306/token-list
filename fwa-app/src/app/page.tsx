@@ -23,7 +23,7 @@ const STATS = [
   { k: "Total backing", v: "—", u: "USD" },
   { k: "Active positions", v: "—", u: "" },
   { k: "Draws settled", v: "—", u: "" },
-  { k: "$FWA emitted", v: "—", u: "" },
+  { k: "$HFWA emitted", v: "—", u: "" },
 ];
 
 const STEPS = [

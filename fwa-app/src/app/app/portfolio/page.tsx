@@ -119,7 +119,7 @@ export default function Portfolio() {
   const reward = DEMO ? demo.reward : (balances?.[2]?.result as bigint | undefined);
   const drawInFlight = DEMO ? demo.drawInFlight : (balances?.[3]?.result as boolean | undefined) === true;
 
-  // Pending $FWA emissions per owned position (harvest realizes them into
+  // Pending $HFWA emissions per owned position (harvest realizes them into
   // rewardCredit without closing the position).
   const { data: pendingData } = useReadContracts({
     contracts: mine.map((p) => ({ ...emitter, functionName: "pendingOf", args: [p.id] }) as const),
@@ -139,7 +139,7 @@ export default function Portfolio() {
         </a>
         <h1 className="mt-6 mb-0 font-display text-3xl text-ink">Your portfolio</h1>
         <p className="mt-4 mb-0 font-body text-base text-muted">
-          Connect a wallet to see the positions you back, your withdrawable credit, and your $FWA
+          Connect a wallet to see the positions you back, your withdrawable credit, and your $HFWA
           rewards.
         </p>
       </main>
@@ -177,7 +177,7 @@ export default function Portfolio() {
           />
         </div>
         <div className="rounded-lg border border-border bg-surface p-5 shadow-sm">
-          <Money label="$FWA claimable" value={reward !== undefined ? fmt(reward, 18) : "—"} />
+          <Money label="$HFWA claimable" value={reward !== undefined ? fmt(reward, 18) : "—"} />
         </div>
       </div>
 
@@ -240,7 +240,7 @@ export default function Portfolio() {
                     </div>
                     <div className="text-right">
                       <p className="m-0 font-body text-[10px] tracking-wide text-muted uppercase">
-                        Pending $FWA
+                        Pending $HFWA
                       </p>
                       <p className="m-0 font-body text-sm tabular-nums text-ink">
                         {pending !== undefined ? fmt(pending, 18) : "—"}
@@ -250,7 +250,7 @@ export default function Portfolio() {
                       <button
                         className="btn"
                         disabled={busy || !pending}
-                        title="Realize this position's pending $FWA without closing it"
+                        title="Realize this position's pending $HFWA without closing it"
                         onClick={() => {
                           reset();
                           writeContract({ ...emitter, functionName: "harvest", args: [p.id] });

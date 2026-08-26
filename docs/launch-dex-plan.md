@@ -79,9 +79,13 @@ harness/interaction issue, not a broken router. Close it before launch by:
 
 ## Decided launch parameters
 
+- **Token name:** `HyperFWA` · **Ticker:** `HFWA` (set in `FWAToken`'s
+  constructor). The domain **hyperfwa.xyz** is the website/branding — kept out
+  of the on-chain name on purpose (a URL in the token name reads as a scam
+  pattern and gets flagged by explorers/aggregators).
 - **Owner wallet:** `0x8ba969c2CcC040DA8307d2e418CA511901F90f15` — receives the
   supply, holds the LP tokens, and is `admin`/minter of the token.
-- **Supply / cap:** 100,000,000 FWA.
+- **Supply / cap:** 100,000,000 HFWA.
 - **Token fee:** none (plain ERC-20).
 - **Initial market cap:** ≤ $5,000 (seed price set from the live HYPE price).
 - **LP:** kept in the owner wallet, redeemable anytime (not burned).

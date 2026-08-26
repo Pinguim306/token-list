@@ -59,7 +59,7 @@ test.describe("pool", () => {
     const row1 = page.locator('[data-portfolio-position="1"]');
     await expect(row1.getByRole("button", { name: "Withdraw" })).toBeVisible();
     await expect(row1.getByRole("button", { name: "Harvest" })).toBeVisible();
-    await expect(row1).toContainText("Pending $FWA");
+    await expect(row1).toContainText("Pending $HFWA");
     await expect(row1).toContainText("12");
     // recovery card for escrowed NFTs, with the demo sample
     const recovery = page.locator("[data-stuck-nfts]");
