@@ -18,8 +18,9 @@
 @source "../";
 
 /* ============================================================================
-   FWA — design system (inspired by fwa.fun): Bungee display + Inter, warm
-   off-white / near-black themes, rose accent, vivid semantic colors.
+   HyperFWA — design system (Hyperliquid-inspired): Bungee display + Inter,
+   near-black teal-tinted background, signature mint-teal accent (#97FCE4),
+   vivid semantic colors.
    ========================================================================== */
 
 :root {
@@ -28,27 +29,27 @@
   --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
 
   /* Single dark theme, by explicit product decision — the near-black look is
-     the brand. The old warm-light palette lives in git history if a theme
-     toggle ever becomes a requirement; prefers-color-scheme is deliberately
-     not consulted. */
-  --bg: #0a080b;
-  --bg-tint: radial-gradient(1200px 600px at 12% -10%, rgba(229,100,127,.12) 0%, rgba(229,100,127,0) 60%),
-             radial-gradient(1000px 500px at 100% 0%, rgba(240,161,58,.10) 0%, rgba(240,161,58,0) 55%);
-  --surface: #141116;
-  --surface-2: #1b171d;
-  --surface-3: #221d25;
-  --ink: #f5eef1;
-  --muted: #9a8f96;
-  --border: #2a242c;
-  --border-strong: #362e38;
+     the brand. Reskinned to Hyperliquid's palette: near-black with a faint
+     teal cast, and the signature mint-teal as the primary accent.
+     prefers-color-scheme is deliberately not consulted. */
+  --bg: #06100e;
+  --bg-tint: radial-gradient(1200px 600px at 12% -10%, rgba(151,252,228,.10) 0%, rgba(151,252,228,0) 60%),
+             radial-gradient(1000px 500px at 100% 0%, rgba(80,210,193,.08) 0%, rgba(80,210,193,0) 55%);
+  --surface: #0f1815;
+  --surface-2: #14201c;
+  --surface-3: #1a2a25;
+  --ink: #eafcf7;
+  --muted: #85a19a;
+  --border: #1e2c28;
+  --border-strong: #2a3d37;
 
-  --accent: #ec7b93;
-  --accent-strong: #e5647f;
-  --accent-soft: #2a1a20;
-  --accent-ink: #14060a;
+  --accent: #97fce4;
+  --accent-strong: #50d2c1;
+  --accent-soft: #0b2621;
+  --accent-ink: #04231c;
 
   --success: #2ee27f;
-  --success-soft: #10231a;
+  --success-soft: #0e2419;
   --danger: #ff5257;
   --danger-soft: #2a1416;
   --warning: #f7b750;
@@ -61,7 +62,7 @@
   --radius-pill: 999px;
   --shadow-sm: 0 1px 2px rgba(0,0,0,.5);
   --shadow: 0 18px 46px -18px rgba(0,0,0,.7), 0 2px 8px rgba(0,0,0,.4);
-  --shadow-accent: 0 18px 50px -16px rgba(236,123,147,.4);
+  --shadow-accent: 0 18px 50px -16px rgba(151,252,228,.35);
 }
 
 
