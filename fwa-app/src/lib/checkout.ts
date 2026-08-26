@@ -1,5 +1,6 @@
 import { formatEther, parseEther } from "viem";
-import { DEMO, demo } from "./demo";
+import { DEMO } from "./demo";
+import { ACTIVE_DSTOCKS, type Dstock } from "./dstockCatalog";
 
 /**
  * Hardcoded demo checkout ("marretado").
@@ -36,10 +37,29 @@ export const packRipAbi = [
   { type: "function", name: "sellBack", stateMutability: "nonpayable",
     inputs: [{ name: "count", type: "uint256" }, { name: "minOut", type: "uint256" }], outputs: [] },
   { type: "function", name: "keep", stateMutability: "nonpayable",
-    inputs: [{ name: "count", type: "uint256" }], outputs: [] },
+    inputs: [{ name: "stockTokens", type: "address[]" }], outputs: [] },
+  { type: "function", name: "takeShares", stateMutability: "nonpayable",
+    inputs: [
+      { name: "count", type: "uint256" },
+      { name: "stockToken", type: "address" },
+      { name: "minShares", type: "uint256" },
+    ], outputs: [] },
   { type: "function", name: "quoteSellBack", stateMutability: "view",
     inputs: [{ name: "buyer", type: "address" }, { name: "count", type: "uint256" }],
     outputs: [{ name: "escrowShare", type: "uint256" }, { name: "out", type: "uint256" }] },
+  { type: "function", name: "quoteTakeShares", stateMutability: "view",
+    inputs: [
+      { name: "buyer", type: "address" },
+      { name: "count", type: "uint256" },
+      { name: "stockToken", type: "address" },
+    ],
+    outputs: [
+      { name: "escrowShare", type: "uint256" },
+      { name: "sharesOut", type: "uint256" },
+      { name: "stockPxE8", type: "uint256" },
+      { name: "hypePxE8", type: "uint256" },
+      { name: "inventory", type: "uint256" },
+    ] },
 ] as const;
 
 /**
@@ -58,32 +78,33 @@ export const totalPriceWei = (qty: number) => packPriceWei * BigInt(qty);
 /** Total price for a quantity as a display string ("0.4"). */
 export const totalPriceHype = (qty: number) => formatEther(totalPriceWei(qty));
 
-export type DemoPosition = (typeof demo.positions)[number];
+/** Escrowed (standing-bid) share of one pack's price: 85%, mirroring PackRip. */
+export const BID_BPS = 8500n;
+export const packEscrowWei = (packPriceWei * BID_BPS) / 10_000n;
+export const PACK_ESCROW_HYPE = formatEther(packEscrowWei);
+
+/** One ripped pack: the tokenized stock it drew plus a cosmetic card serial. */
+export type PackPull = { stock: Dstock; serial: number };
 
 /**
- * Select winning positions the way FWAPool does: probability proportional to
- * each position's inverse-backing weight (the demo data pre-computes those as
- * oddsBps). Draws are WITHOUT replacement — on the contracts every drawn
- * position closes, so a multi-pack purchase is N sequential draws from a
- * shrinking pool. Client randomness stands in for the keeper × blockhash word.
+ * Draw the stocks a pack purchase pulls. The pool is the ACTIVE dStock catalog
+ * (HyperCore-linked, healthy books — the same set PackRip can actually deliver
+ * via take-the-shares), weighted inversely to the share price so pricier
+ * stocks are rarer pulls. Rarity is cosmetic: every settlement option pays
+ * from the same 85% escrow regardless of which stock was drawn.
  */
-export function pickWeightedMany(count: number): DemoPosition[] {
-  const pool = [...demo.positions];
-  const winners: DemoPosition[] = [];
-  const n = Math.min(count, pool.length);
-  for (let i = 0; i < n; i++) {
-    const total = pool.reduce((a, p) => a + Number(p.oddsBps), 0);
+export function pickPackStocks(count: number): PackPull[] {
+  const pool = ACTIVE_DSTOCKS.filter((d) => d.priceUsd);
+  const weights = pool.map((d) => 1 / d.priceUsd!);
+  const total = weights.reduce((a, w) => a + w, 0);
+  return Array.from({ length: count }, () => {
     let r = Math.random() * total;
     let idx = pool.length - 1;
     for (let j = 0; j < pool.length; j++) {
-      r -= Number(pool[j].oddsBps);
-      if (r <= 0) {
-        idx = j;
-        break;
-      }
+      r -= weights[j];
+      if (r <= 0) { idx = j; break; }
     }
-    winners.push(pool[idx]);
-    pool.splice(idx, 1);
-  }
-  return winners;
+    return { stock: pool[idx], serial: 1000 + Math.floor(Math.random() * 9000) };
+  });
 }
+

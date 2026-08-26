@@ -24,13 +24,15 @@ import {
   RIP_LIVE,
   packRipAbi,
   PACK_PRICE_HYPE,
+  PACK_ESCROW_HYPE,
   MAX_PACKS_PER_TX,
   totalPriceWei,
   totalPriceHype,
-  pickWeightedMany,
-  type DemoPosition,
+  pickPackStocks,
+  type PackPull,
 } from "@/lib/checkout";
 import { collectionSymbol } from "@/lib/usePositions";
+import { ACTIVE_DSTOCKS } from "@/lib/dstockCatalog";
 import { NftArt } from "@/components/nft/NftArt";
 import { RipReveal, type RipSelected } from "@/components/RipReveal";
 
@@ -38,6 +40,9 @@ type Draw = {
   buyer: `0x${string}`; price: bigint; totalWeightSnapshot: bigint; randomWord: bigint;
   requestedAt: bigint; fulfilledAt: bigint; selectedId: bigint; state: number;
 };
+
+/** The three settlements a ripped pack can take (plus finalize's default). */
+type Outcome = "kept" | "sold" | "shares";
 
 export function DrawPanel() {
   const { address, isConnected, chainId } = useAccount();
@@ -102,16 +107,16 @@ export function DrawPanel() {
   // stepper while the payment mines cannot change how many packs it opens.
   const [qty, setQty] = useState(1);
   const boughtQty = useRef(1);
-  const [won, setWon] = useState<DemoPosition[] | null>(null);
-  const [outcomes, setOutcomes] = useState<("kept" | "sold" | null)[]>([]);
+  const [won, setWon] = useState<PackPull[] | null>(null);
+  const [outcomes, setOutcomes] = useState<(Outcome | null)[]>([]);
 
   // The payment receipt is the "randomness": one confirmed transfer reveals
-  // the whole batch — N sequential draws without replacement, as on-chain.
+  // the whole batch — each pack pulls a deliverable dStock, rarity-weighted.
   useEffect(() => {
     if (paid && !won) {
-      const winners = pickWeightedMany(boughtQty.current);
-      setWon(winners);
-      setOutcomes(Array(winners.length).fill(null));
+      const pulls = pickPackStocks(boughtQty.current);
+      setWon(pulls);
+      setOutcomes(Array(pulls.length).fill(null));
     }
   }, [paid, won]);
 
@@ -141,20 +146,25 @@ export function DrawPanel() {
   const clampQty = (n: number) => Math.max(1, Math.min(MAX_PACKS_PER_TX, Math.floor(n) || 1));
 
   // ---- Settlement. Legacy demo: outcomes are UI state. With PackRip live,
-  // Keep / Sell are REAL transactions first (keep releases the escrow to the
-  // treasury; sellBack market-buys $HFWA with it and delivers the tokens) and
-  // the outcome is recorded once the transaction is sent.
+  // all three choices are REAL transactions first (keep mints the PackCards
+  // collectible and releases the escrow to the treasury; sellBack market-buys
+  // $HFWA with it and delivers the tokens; takeShares delivers the escrow's
+  // value in the drawn dStock at the live HyperCore price) and the outcome is
+  // recorded once the transaction is sent.
   const {
     sendTransaction: sendSettleTx,
     isPending: settleSending,
     reset: settleReset,
   } = useSendTransaction();
   const [settleBusy, setSettleBusy] = useState(false);
-  const applyOutcome = (idx: number | "all", o: "kept" | "sold") =>
+  const applyOutcome = (idx: number | "all", o: Outcome) =>
     setOutcomes((prev) => prev.map((v, j) => (idx === "all" || j === idx ? (v ?? o) : v)));
 
-  const settleOnChain = async (idx: number | "all", o: "kept" | "sold") => {
-    const count = idx === "all" ? outcomes.filter((v) => v === null).length : 1;
+  const settleOnChain = async (idx: number | "all", o: Outcome) => {
+    const targets = won
+      ? won.map((p, j) => ({ p, j })).filter(({ j }) => outcomes[j] === null && (idx === "all" || j === idx))
+      : [];
+    const count = targets.length;
     if (count === 0) return;
     setSettleBusy(true);
     try {
@@ -170,8 +180,25 @@ export function DrawPanel() {
         data = encodeFunctionData({
           abi: packRipAbi, functionName: "sellBack", args: [BigInt(count), (out * 97n) / 100n],
         });
+      } else if (o === "shares") {
+        // Take-the-shares runs per stock: every targeted pack here shares one
+        // drawn stock (per-card button, or "all" when the pulls agree).
+        const stock = targets[0].p.stock;
+        const [, sharesOut] = (await readContract(wagmiConfig, {
+          address: PACKRIP,
+          abi: packRipAbi,
+          functionName: "quoteTakeShares",
+          args: [address!, BigInt(count), stock.address],
+        })) as readonly [bigint, bigint, bigint, bigint, bigint];
+        data = encodeFunctionData({
+          abi: packRipAbi,
+          functionName: "takeShares",
+          args: [BigInt(count), stock.address, (sharesOut * 98n) / 100n],
+        });
       } else {
-        data = encodeFunctionData({ abi: packRipAbi, functionName: "keep", args: [BigInt(count)] });
+        data = encodeFunctionData({
+          abi: packRipAbi, functionName: "keep", args: [[...targets.map(({ p }) => p.stock.address)]],
+        });
       }
       settleReset();
       sendSettleTx(
@@ -183,10 +210,17 @@ export function DrawPanel() {
     }
   };
 
-  const settle = (i: number, o: "kept" | "sold") =>
+  const settle = (i: number, o: Outcome) =>
     RIP_LIVE ? void settleOnChain(i, o) : setOutcomes((prev) => prev.map((v, j) => (j === i ? (v ?? o) : v)));
-  const settleAll = (o: "kept" | "sold") =>
+  const settleAll = (o: Outcome) =>
     RIP_LIVE ? void settleOnChain("all", o) : setOutcomes((prev) => prev.map((v) => v ?? o));
+
+  // "Take all shares" needs a single stock across the unsettled pulls (one
+  // takeShares call is per-stock); mixed pulls settle shares per card.
+  const unsettledStocks = won
+    ? new Set(won.filter((_, j) => outcomes[j] === null).map((p) => p.stock.address))
+    : new Set<string>();
+  const sharesAllOk = !RIP_LIVE || unsettledStocks.size <= 1;
 
   const paying = paySending || payMining;
   const explorer = activeChain.blockExplorers?.default?.url;
@@ -258,7 +292,7 @@ export function DrawPanel() {
   });
   const selected: RipSelected | undefined = checkout
     ? won && won.length > 0
-      ? { positionId: won[0].id.toString(), symbol: collectionSymbol(won[0].asset), tokenId: won[0].tokenId.toString() }
+      ? { positionId: won[0].serial.toString(), symbol: won[0].stock.ticker, tokenId: won[0].serial.toString() }
       : undefined
     : showSample
       ? (() => {
@@ -275,15 +309,12 @@ export function DrawPanel() {
           })()
         : undefined;
 
-  // Standing bid the winner may exercise per pack: 85% of that position's
-  // backing. Sold packs credit their bid; the totals feed the summary.
-  const bidOf = (p: DemoPosition) => (p.backing * demo.bidBps) / 10_000n;
-  const totalBids = won ? won.reduce((a, p) => a + bidOf(p), 0n) : 0n;
-  const soldTotal = won
-    ? won.reduce((a, p, i) => (outcomes[i] === "sold" ? a + bidOf(p) : a), 0n)
-    : 0n;
+  // Standing bid the buyer may exercise per pack: the escrowed 85% of the
+  // pack price (same for every pack). The totals feed the summary.
+  const escrowHype = (n: number) => (n === 1 ? PACK_ESCROW_HYPE : (Number(PACK_ESCROW_HYPE) * n).toFixed(2));
   const keptCount = outcomes.filter((o) => o === "kept").length;
   const soldCount = outcomes.filter((o) => o === "sold").length;
+  const sharesCount = outcomes.filter((o) => o === "shares").length;
   const multi = !!won && won.length > 1;
 
   return (
@@ -325,8 +356,8 @@ export function DrawPanel() {
           )}
           {won && (
             <div className="stat">
-              <span>{multi ? "Standing bids (total)" : "Standing bid"}</span>
-              <b>{fmt(totalBids, demo.decimals)}</b>
+              <span>{multi ? "Escrowed for your call (total)" : "Escrowed for your call"}</span>
+              <b>{escrowHype(won.length)} HYPE</b>
             </div>
           )}
         </>
@@ -398,14 +429,14 @@ export function DrawPanel() {
         <button
           className="btn"
           disabled={checkout ? !won || allSettled || settleBusy || settleSending : busy || !fulfilled || windowClosed || (!isBuyer && !DEMO)}
-          title={checkout && !won ? "Buy a pack first" : undefined}
+          title={checkout && !won ? "Buy a pack first" : RIP_LIVE ? "Keep: you receive the pack card (an on-chain collectible of your pull)" : undefined}
           onClick={() =>
             checkout
               ? settleAll("kept")
               : writeContract({ ...pool, functionName: "settle", args: [drawCount!, 0] })
           }
         >
-          {checkout && multi ? "Keep all" : "Keep the pack"}
+          {checkout && multi ? "Keep all" : "Keep the card"}
         </button>
         <button
           className="btn"
@@ -419,27 +450,47 @@ export function DrawPanel() {
         >
           {checkout && multi ? "Sell all back" : "Sell back"}
         </button>
+        {checkout ? (
+          <button
+            className="btn"
+            data-take-shares
+            disabled={!won || allSettled || settleBusy || settleSending || !sharesAllOk}
+            title={
+              !won
+                ? "Buy a pack first"
+                : !sharesAllOk
+                  ? "Your pulls drew different stocks — take shares per card below"
+                  : "Take the shares: the escrow's value is delivered in the drawn stock's tokens at the live HyperCore price"
+            }
+            onClick={() => settleAll("shares")}
+          >
+            {multi ? "Take all shares" : "Take the shares"}
+          </button>
+        ) : null}
       </div>
 
       {checkout && won && multi ? (
         <ul className="won-grid" data-won-grid>
           {won.map((p, i) => (
-            <li key={p.id.toString()} className="won-card" data-won-card={p.id.toString()}>
+            <li key={`${p.stock.ticker}-${p.serial}`} className="won-card" data-won-card={p.serial.toString()}>
               <span className="won-thumb">
-                <NftArt symbol={collectionSymbol(p.asset)} tokenId={p.tokenId.toString()} />
+                <NftArt symbol={p.stock.ticker} tokenId={p.serial.toString()} />
               </span>
               <div className="won-meta">
-                <b>#{p.tokenId.toString()}</b>
-                <span className="muted">Position {p.id.toString()} · bid {fmt(bidOf(p), demo.decimals)}</span>
+                <b>{p.stock.ticker} #{p.serial}</b>
+                <span className="muted">
+                  {p.stock.priceUsd ? `$${p.stock.priceUsd} · ` : ""}escrow {PACK_ESCROW_HYPE} HYPE
+                </span>
               </div>
               {outcomes[i] ? (
                 <span className={`badge ${outcomes[i] === "kept" ? "hot" : ""}`}>
-                  {outcomes[i] === "kept" ? "Kept" : "Sold"}
+                  {outcomes[i] === "kept" ? "Kept" : outcomes[i] === "sold" ? "Sold" : "Shares"}
                 </span>
               ) : (
                 <div className="row">
                   <button className="btn" disabled={settleBusy || settleSending} onClick={() => settle(i, "kept")}>Keep</button>
                   <button className="btn" disabled={settleBusy || settleSending} onClick={() => settle(i, "sold")}>Sell</button>
+                  <button className="btn" disabled={settleBusy || settleSending} title={`Receive the escrow's value in ${p.stock.symbol} tokens`} onClick={() => settle(i, "shares")}>Shares</button>
                 </div>
               )}
             </li>
@@ -470,20 +521,22 @@ export function DrawPanel() {
       {checkout && allSettled && won ? (
         <p className="notice ok" role="status" data-settle-summary>
           {multi
-            ? `${won.length} packs settled — ${keptCount} kept, ${soldCount} sold back${
-                soldCount > 0 ? ` for a total of ${fmt(soldTotal, demo.decimals)} credited (85% of each backing)` : ""
-              }. On contracts, settle(Keep) transfers the pack NFT and settle(SellBack) pays the bid from the position's own backing. (Settlement simulated.)`
+            ? `${won.length} packs settled — ${keptCount} kept as cards, ${soldCount} sold back${
+                soldCount > 0 ? ` (${escrowHype(soldCount)} HYPE of escrow bought $HFWA for you)` : ""
+              }${sharesCount > 0 ? `, ${sharesCount} taken as shares (escrow value delivered in the drawn stocks)` : ""}.${RIP_LIVE ? "" : " (Settlement simulated.)"}`
             : outcomes[0] === "kept"
-              ? `Pack kept — position #${won[0].id.toString()} is yours. On contracts, settle(Keep) transfers the pack NFT to you and returns the depositor's backing minus the keep fee. (Settlement simulated.)`
-              : `Sold back for the standing bid — ${fmt(soldTotal, demo.decimals)} (85% of backing) credited. On contracts, settle(SellBack) pays this from the position's own backing. (Settlement simulated.)`}
+              ? `Pack kept — the ${won[0].stock.ticker} #${won[0].serial} card is yours${RIP_LIVE ? " (PackCards NFT minted to your wallet)" : ""}.${RIP_LIVE ? "" : " (Settlement simulated.)"}`
+              : outcomes[0] === "sold"
+                ? `Sold back — the ${PACK_ESCROW_HYPE} HYPE escrow market-bought $HFWA and sent it to you.${RIP_LIVE ? "" : " (Settlement simulated.)"}`
+                : `Shares taken — the ${PACK_ESCROW_HYPE} HYPE escrow's value was delivered in ${won[0].stock.symbol} tokens at the live HyperCore price.${RIP_LIVE ? "" : " (Settlement simulated.)"}`}
         </p>
       ) : null}
 
       <p className="muted" style={{ marginTop: 12 }}>
         {checkout
           ? RIP_LIVE
-            ? `Live checkout: buying pays the pack price × quantity (up to ${MAX_PACKS_PER_TX} packs per transaction) on ${activeChain.name} — 85% is escrowed on-chain for your call. Keep releases the escrow to the treasury; Sell back market-buys $HFWA with it and sends the tokens to you. Each pack is a weighted random draw without replacement.`
-            : `Live demo checkout: buying sends the pack price × quantity (up to ${MAX_PACKS_PER_TX} packs per transaction) in one HYPE transfer on ${activeChain.name} to the FWA treasury. Each pack is a weighted random draw without replacement, settled Keep or Sell-back — simulated exactly as the contracts will run them.`
+            ? `Live checkout: buying pays the pack price × quantity (up to ${MAX_PACKS_PER_TX} packs per transaction) on ${activeChain.name} — 85% is escrowed on-chain for your call, three ways. Keep mints you the pack card (an on-chain collectible of your pull). Sell back market-buys $HFWA with the escrow and sends the tokens to you. Take the shares delivers the escrow's value in the drawn stock's own tokens (HyperCore-linked dStocks) at the live on-chain price. Each pack pulls one deliverable tokenized stock, rarity-weighted. Pull pool: ${ACTIVE_DSTOCKS.map((d) => d.ticker).join(", ")}.`
+            : `Live demo checkout: buying sends the pack price × quantity (up to ${MAX_PACKS_PER_TX} packs per transaction) in one HYPE transfer on ${activeChain.name} to the FWA treasury. Each pack pulls a real tokenized stock, then settles one of three ways — Keep the card, Sell back for $HFWA, or Take the shares — simulated exactly as the contracts run them. Pull pool: ${ACTIVE_DSTOCKS.map((d) => d.ticker).join(", ")}.`
           : "Randomness mixes a keeper commit-reveal chain with a future blockhash (Pyth Entropy-upgradable at the router). While “Requested”, the pool is frozen (freeze-at-request); once “Fulfilled”, the buyer keeps the pack or sells it back for the standing bid."}
       </p>
     </div>

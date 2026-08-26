@@ -103,8 +103,93 @@ harness/interaction issue, not a broken router. Close it before launch by:
 5. `addLiquidity` at the live-price ratio for ≤$5k MC; **keep the LP tokens in
    the owner wallet** (redeemable anytime).
 6. `openTransfers()`.
-7. Verify a real buy/sell through the HyperSwap app, publish the official CA on
-   the site (restore the "Official CA" bar with the real address).
+7. Deploy `PackCards(owner)` + `PackRip(hfwa, whype, pair, cards, treasury,
+   0.2 HYPE, 8500, 24h, owner)`; `cards.setMinter(packRip)`; register the
+   deliverable stocks (`PACKRIP=0x… scripts/setup-packrip-stocks.js`); seed
+   the dStock inventory (~$15–20 per active stock, bought on the Core spot
+   book and transferred to PackRip).
+8. Verify a real buy/sell through the HyperSwap app, publish the official CA on
+   the site (restore the "Official CA" bar with the real address) and set
+   `NEXT_PUBLIC_PACKRIP_ADDRESS` on Vercel.
+
+## Launch economics — NO pack inventory is needed; the LP is the inventory
+
+A natural question: since users acquire $HFWA through pack sell-backs, must
+packs exist in a pool at launch? **No.** PackRip packs are minted by the
+purchase itself — each buyer's own payment funds that pack's escrow (85% of
+the price), and the sell-back buys $HFWA **from the HFWA/WHYPE LP**. There is
+no inventory to pre-fund and no way to "run out of packs":
+
+- **Every pack is self-funded**: 0.2 HYPE in → 0.03 to the treasury, 0.17
+  escrowed for that buyer's own three-way decision. Nothing is consumed from
+  any pool.
+- **The LP is the sell-back sink**: each sell-back INJECTS ~0.17 HYPE into the
+  pool and takes $HFWA out — so sell-backs make the pool's HYPE side grow and
+  push the price UP. The pool can never be drained to zero (constant product
+  is asymptotic).
+- **Total launch investment: the 12.7 HYPE LP + a small dStock inventory
+  (below) + gas.**
+
+## Three-way settlement — Keep / Sell back / Take the shares
+
+The original two-way settle (keep = escrow forfeited, sell-back = 85% in
+$HFWA) gave the buyer nothing tangible on Keep. The shipped PackRip settles
+each pack one of THREE ways, all real on-chain outcomes:
+
+| Option | Buyer receives | Escrow (0.17 HYPE) goes to |
+|---|---|---|
+| **Keep** | A **PackCards ERC-721** tagged with the drawn stock — a tradeable on-chain collectible of the pull | Treasury |
+| **Sell back** | The escrow market-bought into **$HFWA** (buy pressure on the token) | The HFWA/WHYPE LP |
+| **Take the shares** | The escrow's **VALUE in the drawn stock's own tokens** (HyperCore-linked dStocks) from PackRip's inventory | Treasury (which re-buys stock on the Core book) |
+
+Take-the-shares mechanics (all verified live on chain 999 — see
+`docs/tokenized-stocks-hyperevm.md`, "HyperCore-linked dStocks"):
+
+- The draw pool is the **8 live-book dStocks** (CRCLd, SLVd, HOODd, GLDd,
+  SPYd, METAd, QQQd, MUd) — real Dinari stock tokens whose HyperCore books
+  are arbitraged to the real equity price.
+- Pricing is read **in-contract** from the HyperCore precompiles: the stock
+  at `max(spotPx, best ask)` and the HYPE credit at `min(spotPx, best bid)` —
+  conservative on both legs, so crashing a thin book cannot mint shares above
+  live market value; the buyer's `minShares` bounds the other direction.
+- **Inventory**: PackRip holds dStock ERC-20 balances. Seed ≈ **$15–20 per
+  stock (~$120–160 total, ~1.5–2 HYPE)** at launch — one pack delivers
+  ~$13.9, so that covers the first take-shares on every stock; each
+  take-shares sends its 0.17 HYPE escrow to the treasury, which re-buys stock
+  on the Core spot book (manual at first; a CoreWriter automation can come
+  later). If a stock's inventory runs dry the option reverts and the app
+  offers the other two — escrow is never at risk.
+- **Inventory is protocol capital, always recoverable**: `rescueToken` lets
+  the owner withdraw any dStock balance anytime (buyer escrow is native HYPE
+  and has no owner-reachable exit).
+
+Simulated drain (LP seeded 20M HFWA + 12.7 HYPE; every pack sold back — the
+worst case for the pool and the best case for buy pressure; Keeps only add
+treasury revenue):
+
+| Packs sold back | HYPE in pool | HFWA left in pool | Price | Implied MC | Treasury (15% cut) |
+|---|---|---|---|---|---|
+| 0 | 12.7 | 20.0M | 1.0× | $5.0k | $0 |
+| 100 | 29.7 | 8.6M | 5.5× | $27k | ~$236 |
+| 500 | 97.5 | 2.6M | 59× | $293k | ~$1.2k |
+| 1,000 | 182 | 1.4M | 206× | $1.0M | ~$2.4k |
+| 5,000 | 860 | 0.3M | 4,587× | $22.9M | ~$11.8k |
+
+Reading it: volume through the packs is what re-rates the token — 1,000 packs
+(~$16k of purchases) push the market cap from $5k to ~$1M while the treasury
+collects its cut on every pack (15% on sell-backs, **100%** on Keeps). The
+protocol needs no further capital after the seed; growth is customer-funded.
+
+## Later — the REAL pool (FWAPool + PackVault, Fase 2)
+
+When the full on-chain pool launches, packs there ARE inventory: EquityBasket
+NFTs holding real tokenized stocks + backing, seeded via `PackVault.mintBundle`
+and topped up permissionlessly by `replenishIfNeeded`. Sizing example (all
+owner-tunable in the template): 50 packs × (~$5 of TSLA/NVDA/SPCX shares +
+~$10 backing) ≈ **$750 of inventory** for a launch-day pool, with the
+replenisher configured floor=20, bundle=10. Per this plan's own logic, that
+seeding should be **funded from PackRip treasury revenue** rather than new
+capital — the checkout launches first, revenue accrues, the real pool follows.
 
 ## Pool depth vs slippage (why more HYPE = healthier launch)
 
