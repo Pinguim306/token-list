@@ -12,6 +12,7 @@ import { Erc20Abi, EquityBasketAbi } from "@/lib/abis";
 import { parseAddress, parseAmount } from "@/lib/parse";
 import { usdValue, fmtUsd } from "@/lib/prices";
 import { DEMO, demo } from "@/lib/demo";
+import { EQUITY_CATALOG, equityByAddress } from "@/lib/equityCatalog";
 
 /** Mirrors EquityBasket.MAX_TOKENS. */
 const MAX_TOKENS = 16;
@@ -57,7 +58,12 @@ export function BasketWrapForm() {
 
   const metaFor = (addr: `0x${string}` | null) => {
     if (DEMO) {
-      const eq = demo.equities.find((e) => e.address.toLowerCase() === addr?.toLowerCase());
+      // Demo mode recognizes both the sample equities and the REAL validated
+      // HyperEVM catalog (docs/tokenized-stocks-hyperevm.md), so pasting a
+      // real Ondo/Dinari address resolves its symbol.
+      const eq =
+        demo.equities.find((e) => e.address.toLowerCase() === addr?.toLowerCase()) ??
+        equityByAddress(addr ?? undefined);
       return { allowed: !!eq, symbol: eq?.symbol, decimals: 18 };
     }
     const i = addr ? validAddrs.indexOf(addr) : -1;
@@ -124,7 +130,7 @@ export function BasketWrapForm() {
                   className="mono"
                   value={row.token}
                   onChange={(e) => setRow(i, { token: e.target.value })}
-                  placeholder={DEMO ? demo.equities[i % demo.equities.length].address : "0x…"}
+                  placeholder={EQUITY_CATALOG[i % EQUITY_CATALOG.length].address}
                   aria-invalid={f.addr.error ? true : undefined}
                 />
                 {f.addr.error ? (

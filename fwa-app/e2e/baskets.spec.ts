@@ -16,7 +16,7 @@ test.describe("baskets page", () => {
     // two demo baskets with their contents listed
     await expect(page.locator("[data-basket-item]")).toHaveCount(2);
     await expect(page.locator('[data-basket-item="1"]')).toContainText("TSLAon");
-    await expect(page.locator('[data-basket-item="1"]')).toContainText("SPCXD");
+    await expect(page.locator('[data-basket-item="1"]')).toContainText("SPCX");
     await expect(page.locator('[data-basket-item="2"]')).toContainText("NVDAon");
   });
 
@@ -37,7 +37,7 @@ test.describe("baskets page", () => {
   });
 
   test("recognizes a demo equity token and flags duplicates", async ({ page }) => {
-    const TSLAon = "0xE9010000000000000000000000000000000000b2";
+    const TSLAon = "0x417883b1709545f1211A25b00ad13455fC7F1bc5";
     await page.fill("#wrap-token-0", TSLAon);
     await expect(page.locator("[data-token-symbol]")).toHaveText("TSLAon");
 
@@ -60,7 +60,7 @@ test.describe("baskets page", () => {
   });
 
   test("baskets are valued in USD from the configured prices", async ({ page }) => {
-    // demo prices are round on purpose: 2 TSLAon@300 + 4 SPCXD@100, 5 NVDAon@100
+    // demo prices are round on purpose: 2 TSLAon@300 + 4 SPCX@100, 5 NVDAon@100
     await expect(page.locator('[data-basket-item="1"] [data-basket-value]')).toHaveText("≈ $1,000.00");
     await expect(page.locator('[data-basket-item="2"] [data-basket-value]')).toHaveText("≈ $500.00");
     await expect(page.locator('[data-basket-item="1"]')).toContainText("$600.00");
@@ -68,7 +68,7 @@ test.describe("baskets page", () => {
   });
 
   test("the wrap form totals the contents' USD value", async ({ page }) => {
-    await page.fill("#wrap-token-0", "0xE9010000000000000000000000000000000000b2");
+    await page.fill("#wrap-token-0", "0x417883b1709545f1211A25b00ad13455fC7F1bc5");
     await page.fill("#wrap-amount-0", "10");
     await expect(page.locator("[data-wrap-value]")).toContainText("≈ $3,000.00");
   });
