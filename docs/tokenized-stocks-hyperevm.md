@@ -98,6 +98,51 @@ display-only). Bytecode hash `0xb924bf8b…` on every row.
 Bytecode hash `0xcc62cfc6…` on every row. Names read on-chain are the full
 legal security names (e.g. "Space Exploration Technologies Corp.").
 
+## HyperCore-linked dStocks — the ON-CHAIN-ACQUIRABLE set (2026-08-26)
+
+The two catalogs above are custody assets: **no HyperEVM DEX pool exists for
+any of the 53** (proven by a `factory.getPair` sweep on HyperSwap V2 against
+WHYPE/USD₮0/USDe/feUSD/USDHL — zero pairs — plus a DexScreener sweep by
+address — zero pairs) and none is EVM-linked to a HyperCore spot market. They
+can only be acquired through the issuers (Ondo bridge / Dinari mint).
+
+There IS a second, separately deployed Dinari set that **can be bought and
+sold on-chain**: the "(dStock)" tokens. Each is an ERC-1967 proxy on HyperEVM
+(shared proxy bytecode `0xe5e36931…`, Dinari implementation set) **EVM-linked
+to a HyperCore spot orderbook** (`spotMeta.evmContract` match), so it moves
+Core⇄EVM through the native system link and trades against USDC on
+Hyperliquid's own books. Verified live: the `spotPx` precompile
+(`0x…0808`, raw ÷ `10^(8 − szDecimals)`) matched `allMids` to 4 decimals for
+HYPE, and the stock books were arbitrage-priced against the real equities
+(book health measured 2026-08-26):
+
+| Core | dStock (EVM) | Address | Spot pair | Book |
+|---|---|---|---|---|
+| CRCL | CRCLd | `0xe74aA6C4050A15790525eB11cc4562c664dC67C9` | @263 | **live** ($91.8, 0.42% spread) |
+| SLV | SLVd | `0x7EF4Eba0C0200957e357627CEd1884D6CB63E961` | @265 | **live** ($62.6, 0.34%) |
+| GOOGL | GOOGLd | `0x35eEdA03E55FF217a013892E9e2E37E792B264EA` | @266 | dead (no mid) |
+| AAPL | AAPLd | `0x7374DC1894fBD1bc6C42f6Ebbc50b78C211A8606` | @268 | dead (no mid) |
+| HOOD | HOODd | `0xc304a9d52CF9165024EBc7814250EF3A5013F924` | @271 | **live** ($112, 1.2%) |
+| GLD | GLDd | `0x08be08c37D93E689518CED744A89F113b4AfAad4` | @276 | **live** ($419, 0.71%) |
+| SPY | SPYd | `0xB7bF37783DB41A2851B77c6917280c56312C833a` | @279 | **live** ($773, 0.77%) |
+| AMZN | AMZNd | `0x4F2164C12D2d450A8B1D430492Ef6670FE4caD8e` | @280 | dead (137% spread) |
+| META | METAd | `0x5A9D2DeeE7D8782011695623f1C453F46B2b566e` | @287 | **live** ($562, 0.86%) |
+| QQQ | QQQd | `0x499e347174f237AD28687B947B94C0d49570D1b7` | @288 | **live** ($719, 0.90%) |
+| MSFT | MSFTd | `0x66520d8Fd614487214a25Af7bAbF27584f59f76B` | @289 | dead (no mid) |
+| ORCL | ORCLd | `0xCA2156522638f597FFb3705857fFdC356EFABe50` | @331 | dead (no mid) |
+| MU | MUd | `0x173C83A71C1A9E254721A86B7512cD65bf92648d` | @333 | **live** ($936, 0.18%) |
+| SPCX | SPCXd | `0xe8c8AFDf7E80bE51E91AFA28B6aC44404d270B5d` | @590 | thin (17% spread) |
+
+(There is also a `TSLA` Core token by "Wagyu.xyz" — a third-party wrapper,
+NOT a Dinari dStock; excluded.)
+
+The 8 **live** rows are PackRip's take-the-shares delivery set: all
+18-decimals ERC-20s on 999, priced in-contract via the `spotPx`/`bbo` read
+precompiles, inventoried by the treasury buying on the Core book (data:
+`fwa-protocol/scripts/data/dstocks-hyperevm.json`, registered on-chain by
+`scripts/setup-packrip-stocks.js`). The thin/dead rows stay retired until
+their books mature (`setStock` can enable them anytime).
+
 ## Suggested pack curation
 
 The product identity today is **Tesla / NVIDIA / SpaceX**:

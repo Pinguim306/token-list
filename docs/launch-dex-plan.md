@@ -103,8 +103,14 @@ harness/interaction issue, not a broken router. Close it before launch by:
 5. `addLiquidity` at the live-price ratio for ≤$5k MC; **keep the LP tokens in
    the owner wallet** (redeemable anytime).
 6. `openTransfers()`.
-7. Verify a real buy/sell through the HyperSwap app, publish the official CA on
-   the site (restore the "Official CA" bar with the real address).
+7. Deploy `PackCards(owner)` + `PackRip(hfwa, whype, pair, cards, treasury,
+   0.2 HYPE, 8500, 24h, owner)`; `cards.setMinter(packRip)`; register the
+   deliverable stocks (`PACKRIP=0x… scripts/setup-packrip-stocks.js`); seed
+   the dStock inventory (~$15–20 per active stock, bought on the Core spot
+   book and transferred to PackRip).
+8. Verify a real buy/sell through the HyperSwap app, publish the official CA on
+   the site (restore the "Official CA" bar with the real address) and set
+   `NEXT_PUBLIC_PACKRIP_ADDRESS` on Vercel.
 
 ## Launch economics — NO pack inventory is needed; the LP is the inventory
 
@@ -115,13 +121,47 @@ the price), and the sell-back buys $HFWA **from the HFWA/WHYPE LP**. There is
 no inventory to pre-fund and no way to "run out of packs":
 
 - **Every pack is self-funded**: 0.2 HYPE in → 0.03 to the treasury, 0.17
-  escrowed for that buyer's own Keep/Sell decision. Nothing is consumed from
+  escrowed for that buyer's own three-way decision. Nothing is consumed from
   any pool.
 - **The LP is the sell-back sink**: each sell-back INJECTS ~0.17 HYPE into the
   pool and takes $HFWA out — so sell-backs make the pool's HYPE side grow and
   push the price UP. The pool can never be drained to zero (constant product
   is asymptotic).
-- **Total launch investment: the 12.7 HYPE LP + gas.** That's it.
+- **Total launch investment: the 12.7 HYPE LP + a small dStock inventory
+  (below) + gas.**
+
+## Three-way settlement — Keep / Sell back / Take the shares
+
+The original two-way settle (keep = escrow forfeited, sell-back = 85% in
+$HFWA) gave the buyer nothing tangible on Keep. The shipped PackRip settles
+each pack one of THREE ways, all real on-chain outcomes:
+
+| Option | Buyer receives | Escrow (0.17 HYPE) goes to |
+|---|---|---|
+| **Keep** | A **PackCards ERC-721** tagged with the drawn stock — a tradeable on-chain collectible of the pull | Treasury |
+| **Sell back** | The escrow market-bought into **$HFWA** (buy pressure on the token) | The HFWA/WHYPE LP |
+| **Take the shares** | The escrow's **VALUE in the drawn stock's own tokens** (HyperCore-linked dStocks) from PackRip's inventory | Treasury (which re-buys stock on the Core book) |
+
+Take-the-shares mechanics (all verified live on chain 999 — see
+`docs/tokenized-stocks-hyperevm.md`, "HyperCore-linked dStocks"):
+
+- The draw pool is the **8 live-book dStocks** (CRCLd, SLVd, HOODd, GLDd,
+  SPYd, METAd, QQQd, MUd) — real Dinari stock tokens whose HyperCore books
+  are arbitraged to the real equity price.
+- Pricing is read **in-contract** from the HyperCore precompiles: the stock
+  at `max(spotPx, best ask)` and the HYPE credit at `min(spotPx, best bid)` —
+  conservative on both legs, so crashing a thin book cannot mint shares above
+  live market value; the buyer's `minShares` bounds the other direction.
+- **Inventory**: PackRip holds dStock ERC-20 balances. Seed ≈ **$15–20 per
+  stock (~$120–160 total, ~1.5–2 HYPE)** at launch — one pack delivers
+  ~$13.9, so that covers the first take-shares on every stock; each
+  take-shares sends its 0.17 HYPE escrow to the treasury, which re-buys stock
+  on the Core spot book (manual at first; a CoreWriter automation can come
+  later). If a stock's inventory runs dry the option reverts and the app
+  offers the other two — escrow is never at risk.
+- **Inventory is protocol capital, always recoverable**: `rescueToken` lets
+  the owner withdraw any dStock balance anytime (buyer escrow is native HYPE
+  and has no owner-reachable exit).
 
 Simulated drain (LP seeded 20M HFWA + 12.7 HYPE; every pack sold back — the
 worst case for the pool and the best case for buy pressure; Keeps only add
