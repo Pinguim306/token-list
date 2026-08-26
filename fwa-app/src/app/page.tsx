@@ -456,9 +456,30 @@ export default function LandingPage() {
           </div>
           <div className="grid grid-cols-2 gap-10 sm:grid-cols-3">
             {[
-              { h: "Protocol", l: ["Launch App", "How it works", "Security"] },
-              { h: "Developers", l: ["Contracts", "Audit package", "Indexer"] },
-              { h: "Project", l: ["Brand", "Roadmap", "Changelog"] },
+              {
+                h: "Protocol",
+                l: [
+                  { label: "Launch App", href: "/app" },
+                  { label: "How it works", href: "/how-it-works" },
+                  { label: "Security", href: "/how-it-works#safety" },
+                ],
+              },
+              {
+                h: "App",
+                l: [
+                  { label: "Draws", href: "/app/draws" },
+                  { label: "Build packs", href: "/app/baskets" },
+                  { label: "Portfolio", href: "/app/portfolio" },
+                ],
+              },
+              {
+                h: "Project",
+                l: [
+                  { label: "Fairness", href: "/app/randomness" },
+                  { label: "Analytics", href: "/app/analytics" },
+                  { label: "Randomness explained", href: "/how-it-works#randomness" },
+                ],
+              },
             ].map((col) => (
               <div key={col.h}>
                 <p className="m-0 font-body text-[11px] font-semibold tracking-[0.14em] text-ink uppercase">
@@ -466,8 +487,16 @@ export default function LandingPage() {
                 </p>
                 <ul className="m-0 mt-3 list-none space-y-2 p-0">
                   {col.l.map((item) => (
-                    <li key={item}>
-                      <span className="font-body text-sm text-muted">{item}</span>
+                    <li key={item.label}>
+                      <a
+                        className="font-body text-sm text-muted transition-colors hover:text-accent"
+                        href={item.href}
+                        {...(item.href.startsWith("http")
+                          ? { target: "_blank", rel: "noopener noreferrer" }
+                          : {})}
+                      >
+                        {item.label}
+                      </a>
                     </li>
                   ))}
                 </ul>
