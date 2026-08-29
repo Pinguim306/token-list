@@ -103,13 +103,22 @@ harness/interaction issue, not a broken router. Close it before launch by:
 5. `addLiquidity` at the live-price ratio for ≤$5k MC; **keep the LP tokens in
    the owner wallet** (redeemable anytime).
 6. `openTransfers()`.
-7. Deploy `PackCards(owner)` + `PackRip(hfwa, whype, pair, cards, treasury,
-   0.2 HYPE, 8500, 24h, owner)`; `cards.setMinter(packRip)`; register the
-   deliverable stocks (`PACKRIP=0x… scripts/setup-packrip-stocks.js`); seed
-   the dStock inventory (~$15–20 per active stock, bought on the Core spot
-   book and transferred to PackRip).
-8. Verify a real buy/sell through the HyperSwap app, publish the official CA on
+7. Deploy the POOL stack (see "The launch product" below): `FWAWhitelist`,
+   `EquityBasket`, `RandomnessRouter` + `KeeperHashChainAdapter` (keeper bot
+   armed), `FWAPool(backing = HFWA, router, whitelist, feeRouter = treasury,
+   owner)`, `PackVault`. Allowlist the basket tokens (53-catalog +
+   `scripts/allowlist-equities.js`; add the active dStocks the same way),
+   whitelist the basket collection on the pool, `setMinBacking(template
+   backing)`, fund PackVault (stock slices + HFWA backing), `setTemplate`,
+   `mintBundle(50)`.
+8. Deploy `PackCards(owner)` + `PackRip(hfwa, whype, pair, cards, treasury,
+   0.2 HYPE, 8500, 24h, owner)` as the secondary flat-price checkout;
+   `cards.setMinter(packRip)`; register the deliverable stocks
+   (`PACKRIP=0x… scripts/setup-packrip-stocks.js`); seed the dStock
+   inventory (~$15–20 per active stock, bought on the Core spot book).
+9. Verify a real buy/sell through the HyperSwap app, publish the official CA on
    the site (restore the "Official CA" bar with the real address) and set
+   `NEXT_PUBLIC_POOL_ADDRESS` (+ the stack addresses) and
    `NEXT_PUBLIC_PACKRIP_ADDRESS` on Vercel.
 
 ## Launch economics — NO pack inventory is needed; the LP is the inventory
@@ -180,16 +189,69 @@ Reading it: volume through the packs is what re-rates the token — 1,000 packs
 collects its cut on every pack (15% on sell-backs, **100%** on Keeps). The
 protocol needs no further capital after the seed; growth is customer-funded.
 
-## Later — the REAL pool (FWAPool + PackVault, Fase 2)
+## The launch product — FWAPool live on day one (decided)
 
-When the full on-chain pool launches, packs there ARE inventory: EquityBasket
-NFTs holding real tokenized stocks + backing, seeded via `PackVault.mintBundle`
-and topped up permissionlessly by `replenishIfNeeded`. Sizing example (all
-owner-tunable in the template): 50 packs × (~$5 of TSLA/NVDA/SPCX shares +
-~$10 backing) ≈ **$750 of inventory** for a launch-day pool, with the
-replenisher configured floor=20, bundle=10. Per this plan's own logic, that
-seeding should be **funded from PackRip treasury revenue** rather than new
-capital — the checkout launches first, revenue accrues, the real pool follows.
+The pool is NOT Fase 2 anymore: **we launch WITH the FWAPool live**, seeded by
+us with minimum-value packs, open from day one to anyone who wants to list a
+bigger pack. This is the model the owner specified, and the deployed contracts
+already implement every piece of it:
+
+**1. Our seed packs enter at the MINIMUM value — and still profit.**
+`PackVault.mintBundle` wraps N identical packs from a template (tiny dStock
+slices + a minimum backing) and deposits them into the pool. While the pool is
+all-house, EVERY leg of a draw pays us: the 20% protocol cut, the 5% crown
+tithe (our first pack holds the crown), the equal fee split (all positions are
+ours), and the settlement leg. Worked example — template of **$5 backing +
+~$0.60 of stock slices**, 50 packs:
+
+| Event | Buyer pays/gets | House net |
+|---|---|---|
+| Draw (uniform pool) | pays 1.1 × $5 = **$5.50** | ~all of it returns to us |
+| … buyer Keeps | gets the pack NFT (~$0.60 of shares inside) | **+$4.85**/draw (price + backing back − 1% − contents) |
+| … buyer Sells back | gets 85% of backing = $4.25 | **+$1.25**/draw AND the pack returns for re-listing |
+
+Capital to seed 50 packs: ~$250 of HFWA backing (recoverable — withdrawable
+any time the pool isn't mid-draw) + ~$40 of stock slices. There is no way to
+seed at a loss as long as `1.09 × backing > contents`.
+
+**2. Open listings: bigger backing = much lower odds — the law of the contract.**
+`deposit()` is permissionless (any whitelisted basket). Selection weight is
+`1e36 / backing` — odds are **inversely proportional to backing**, exactly as
+specified. A $500 pack listed among fifty $5 packs has **~0.02% odds per draw**
+(1 in ~5,000) while a house pack has ~2%.
+
+**3. The whale's game: low odds, real yield — this is also the buyers' jackpot.**
+A big-backing lister earns two streams on every single draw:
+- the **equal per-position fee split** (75% of each draw price ÷ active packs), and
+- the **Crown tithe**: the top-backing position accrues **5% of every
+  acquisition fee** until dethroned (challenger needs +10% backing) — paid out
+  when it exits. The whale IS the crown.
+
+With the $500 whale listed: every $5.61 draw pays it ~$0.30 (~5.4% of ticket)
+against a 0.02% chance of being drawn and sold back (winner takes $425 of its
+backing). And symmetrically — **this answers the odds question**: the buyer
+pays $5.61 for a 1-in-5,000 shot at a $425 sell-back, ~75× the ticket. Whales
+provide the jackpot; the house never funds it.
+
+**4. New safety rail — `minBacking` (added for this launch).**
+Without a floor, a 1-wei-backing pack (weight 1e36) would dominate selection
+AND crash the harmonic-mean price to dust, letting an attacker re-roll draws
+for pennies fishing for real packs. `setMinBacking` (owner) floors new
+deposits; set it to the house template backing at launch. (112 tests passing.)
+
+**5. Backing token: recommend $HFWA** (final call at go-time):
+- draw tickets are paid in HFWA → every player must first BUY HFWA (constant
+  DEX buy pressure);
+- whale backings LOCK HFWA (supply sink); sell-backs pay out in HFWA (the
+  fwa.fun distribution funnel, now inside the pool itself);
+- pool fees/yield accrue in HFWA.
+Alternative: WHYPE (values stable in HYPE terms, less token synergy). With the
+pool live the site runs in pool mode; the PackRip checkout (three-way settle)
+stays deployed as the secondary flat-price product.
+
+**Replenishment loop:** as draws consume house packs, permissionless
+`replenishIfNeeded()` re-mints from PackVault inventory (floor=20, bundle=10);
+treasury revenue buys the stock slices — customer-funded growth, as before.
 
 ## Pool depth vs slippage (why more HYPE = healthier launch)
 

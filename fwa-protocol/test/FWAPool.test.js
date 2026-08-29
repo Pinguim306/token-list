@@ -82,6 +82,29 @@ describe("FWAPool", function () {
     expect(await ctx.pool.totalWeight()).to.equal(NUM / b);
   });
 
+  it("minBacking floors new deposits — the dust-backing dilution attack is blocked", async () => {
+    const ctx = await loadFixture(deploy);
+    // Default floor is 0: any positive backing works (existing behavior).
+    await deposit(ctx, ctx.alice, 1, 1n);
+    expect((await ctx.pool.positions(1)).active).to.equal(true);
+
+    // An open mainnet pool sets a floor. Below it: rejected; at it: fine.
+    await expect(ctx.pool.connect(ctx.alice).setMinBacking(5n * WAD)).to.be.reverted; // not owner
+    await ctx.pool.setMinBacking(5n * WAD);
+    await ctx.nft.mint(ctx.bob.address, 2);
+    await ctx.nft.connect(ctx.bob).approve(await ctx.pool.getAddress(), 2);
+    await expect(
+      ctx.pool.connect(ctx.bob).deposit(await ctx.nft.getAddress(), 2, 5n * WAD - 1n)
+    ).to.be.revertedWith("FWA: backing below min");
+    await ctx.pool.connect(ctx.bob).deposit(await ctx.nft.getAddress(), 2, 5n * WAD);
+    expect((await ctx.pool.positions(2)).active).to.equal(true);
+
+    // Without the floor, a 1-wei backing carries weight 1e36 and would crash
+    // the harmonic-mean price to dust; with the floor in place the price
+    // stays anchored to real backings.
+    expect(await ctx.pool.acquisitionPrice()).to.be.greaterThan(0n);
+  });
+
   it("prices acquisition as harmonic mean * (1 + surcharge)", async () => {
     const ctx = await loadFixture(deploy);
     await deposit(ctx, ctx.alice, 1, 100n * WAD);

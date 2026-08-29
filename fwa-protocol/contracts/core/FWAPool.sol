@@ -83,6 +83,12 @@ contract FWAPool is IRandomnessConsumer, Ownable, ReentrancyGuard {
     uint256 public bidBps = 8_500; // standing bid = 85% of backing
     uint256 public settlementWindow = 24 hours; // purchaser-only decision window
     uint256 public requestTimeout = 1 hours; // randomness liveness deadline
+    /// @notice Floor on a position's backing (0 = no floor). REQUIRED on an
+    ///         open mainnet pool: without it a dust-backing position (1 wei ->
+    ///         weight 1e36) dominates the selection tree AND crashes the
+    ///         harmonic-mean acquisition price to dust, letting an attacker
+    ///         cheaply re-roll draws fishing for the real positions.
+    uint256 public minBacking;
 
     // --------------------------------------------------------------------- //
     //                               Positions                               //
@@ -166,6 +172,7 @@ contract FWAPool is IRandomnessConsumer, Ownable, ReentrancyGuard {
     event CrownDethroned(uint256 indexed oldId, uint256 indexed newId, uint256 potPaid);
     event CrownVacated(uint256 indexed id, uint256 potPaid);
     event CrownParamsUpdated(uint256 topShareBps, uint256 topThresholdBps);
+    event MinBackingUpdated(uint256 minBacking);
     event ParamsUpdated();
 
     constructor(
@@ -193,6 +200,7 @@ contract FWAPool is IRandomnessConsumer, Ownable, ReentrancyGuard {
     function deposit(address asset, uint256 tokenId, uint256 backing) external nonReentrant returns (uint256 id) {
         require(!drawInFlight, "FWA: draw in flight");
         require(backing > 0, "FWA: backing=0");
+        require(backing >= minBacking, "FWA: backing below min");
         require(whitelist.isAllowed(asset), "FWA: asset not allowed");
 
         uint256 weight = INVERSE_WEIGHT_NUMERATOR / backing;
@@ -593,6 +601,13 @@ contract FWAPool is IRandomnessConsumer, Ownable, ReentrancyGuard {
     function setFeeRouter(address feeRouter_) external onlyOwner {
         require(feeRouter_ != address(0), "FWA: zero");
         feeRouter = feeRouter_;
+    }
+
+    /// @notice Set the backing floor for NEW positions (existing ones are
+    ///         untouched). See `minBacking` for why an open pool needs one.
+    function setMinBacking(uint256 minBacking_) external onlyOwner {
+        minBacking = minBacking_;
+        emit MinBackingUpdated(minBacking_);
     }
 
     /// @notice Set (or clear, with address(0)) the $FWA emissions sink.
